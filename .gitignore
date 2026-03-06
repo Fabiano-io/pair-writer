@@ -1,5 +1,26 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
+﻿# OS
+.DS_Store
+Thumbs.db
 
-/.vs
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Desktop app - Node/Vite
+apps/desktop/node_modules/
+apps/desktop/dist/
+apps/desktop/.vite/
+
+# Desktop app - Tauri/Rust
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/target-release/
+apps/desktop/src-tauri/bin/
+
+# Optional editor/build leftovers
+apps/desktop/.turbo/
+apps/desktop/.cache/
