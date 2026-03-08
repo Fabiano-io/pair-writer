@@ -81,13 +81,17 @@ fn save_window_state(window: &tauri::Window) {
         settings.window.is_maximized = is_maximized;
 
         if !is_maximized {
-            if let Ok(size) = window.outer_size() {
-                settings.window.width = size.width as f64;
-                settings.window.height = size.height as f64;
+            let scale_factor = window.scale_factor().unwrap_or(1.0);
+
+            if let Ok(physical_size) = window.inner_size() {
+                let logical_size = physical_size.to_logical::<f64>(scale_factor);
+                settings.window.width = logical_size.width;
+                settings.window.height = logical_size.height;
             }
-            if let Ok(pos) = window.outer_position() {
-                settings.window.x = Some(pos.x as f64);
-                settings.window.y = Some(pos.y as f64);
+            if let Ok(physical_pos) = window.outer_position() {
+                let logical_pos = physical_pos.to_logical::<f64>(scale_factor);
+                settings.window.x = Some(logical_pos.x);
+                settings.window.y = Some(logical_pos.y);
             }
         }
     }
