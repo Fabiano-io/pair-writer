@@ -1,3 +1,7 @@
+interface ExplorerSidebarProps {
+  width: number;
+}
+
 const EXPLORER_GROUPS = [
   {
     label: "Project",
@@ -16,9 +20,12 @@ const EXPLORER_GROUPS = [
   },
 ];
 
-export function ExplorerSidebar() {
+export function ExplorerSidebar({ width }: ExplorerSidebarProps) {
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950">
+    <aside
+      className="flex shrink-0 flex-col border-r border-zinc-800 bg-zinc-950"
+      style={{ width }}
+    >
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
         <span className="text-base">✦</span>

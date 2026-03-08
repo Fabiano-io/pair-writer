@@ -14,3 +14,35 @@ body {
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
     Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
 }
+
+body.resize-dragging {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+body.resize-dragging * {
+  cursor: col-resize !important;
+}
+
+.resize-handle {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 150ms ease;
+  position: relative;
+}
+
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -2px;
+  right: -2px;
+}
+
+.resize-handle:hover,
+.resize-dragging .resize-handle {
+  background-color: var(--color-zinc-600);
+}

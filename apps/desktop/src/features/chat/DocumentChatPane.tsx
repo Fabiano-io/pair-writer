@@ -1,5 +1,6 @@
 interface DocumentChatPaneProps {
   documentTitle: string;
+  width: number;
 }
 
 const MOCK_MESSAGES = [
@@ -12,7 +13,7 @@ const MOCK_MESSAGES = [
     id: "2",
     role: "assistant" as const,
     content:
-      "Of course! I notice the principles list mixes current features with future goals. Consider separating them into \"Active\" and \"Planned\" groups to give readers a clearer picture of where the product stands today.",
+      'Of course! I notice the principles list mixes current features with future goals. Consider separating them into "Active" and "Planned" groups to give readers a clearer picture of where the product stands today.',
   },
   {
     id: "3",
@@ -21,9 +22,15 @@ const MOCK_MESSAGES = [
   },
 ];
 
-export function DocumentChatPane({ documentTitle }: DocumentChatPaneProps) {
+export function DocumentChatPane({
+  documentTitle,
+  width,
+}: DocumentChatPaneProps) {
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-zinc-800 bg-zinc-950">
+    <aside
+      className="flex shrink-0 flex-col border-l border-zinc-800 bg-zinc-950"
+      style={{ width }}
+    >
       {/* Header with document link */}
       <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
         <span className="text-xs text-zinc-600">💬</span>
