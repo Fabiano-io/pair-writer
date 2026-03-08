@@ -24,3 +24,6 @@ apps/desktop/src-tauri/bin/
 # Optional editor/build leftovers
 apps/desktop/.turbo/
 apps/desktop/.cache/
+
+#agents
+.agents/
