@@ -14,6 +14,8 @@ export function TipTapEditor({
   onContentChange,
   readOnly = false,
 }: TipTapEditorProps) {
+  // Provisional: StarterKit is the initial extension set and is not the final
+  // editor configuration for the product.
   const editor = useEditor({
     extensions: [StarterKit],
     // content is used as the initial value only — no controlled sync from prop.
@@ -27,9 +29,12 @@ export function TipTapEditor({
   });
 
   return (
+    // tiptap-body is a provisional CSS namespace scoped in index.css.
+    // Typography and color styles are handled there to keep this component clean.
+    // min-h ensures the editor area is always clickable even when empty.
     <EditorContent
       editor={editor}
-      className="tiptap-body w-full min-h-[500px] text-base leading-relaxed text-zinc-300 outline-none"
+      className="tiptap-body w-full min-h-[500px] text-base leading-relaxed"
     />
   );
 }
