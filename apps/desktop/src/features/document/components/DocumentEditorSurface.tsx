@@ -12,6 +12,7 @@ export function DocumentEditorSurface({
   title,
   content,
   onTitleChange,
+  onContentChange,
   readOnly = false,
 }: DocumentEditorSurfaceProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -26,6 +27,10 @@ export function DocumentEditorSurface({
 
   const handleTitleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     onTitleChange?.(e.target.value);
+  };
+
+  const handleContentChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    onContentChange?.(e.target.value);
   };
 
   return (
@@ -49,37 +54,26 @@ export function DocumentEditorSurface({
       </header>
 
       {/* Editor Content Surface (Provisional placeholder until TipTap) */}
-      <article className="min-h-[50vh] cursor-text space-y-6 text-base leading-relaxed text-zinc-300">
-        {content !== undefined ? (
-          <div className="prose prose-invert max-w-none">{content}</div>
-        ) : (
-          <>
-            <p>
-              Pair Writer is a desktop writing environment designed for structured thinking and AI-assisted content creation. It combines a focused document editor with contextual AI chat that lives alongside each document.
-            </p>
-            <p>
-              The core experience prioritizes rendered content over raw markup, delivering an editorial feel that keeps writers immersed in their ideas rather than formatting syntax.
-            </p>
+      <article className="min-h-[50vh] flex flex-col space-y-4">
+        {/* Subtle Provisional Marker */}
+        <div className="flex items-center text-xs font-medium text-amber-500/50 bg-amber-500/10 px-2 py-1 rounded w-max select-none">
+          Transitional Plain Text Input
+        </div>
 
-            <h2 className="text-xl font-semibold text-zinc-200 mt-8">
-              Core Principles
-            </h2>
-            <ul className="space-y-2 pl-5 mt-4">
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-zinc-700 text-xs text-emerald-400">
-                  ✓
-                </span>
-                <span>Document-first experience with contextual AI</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-zinc-700 text-xs text-emerald-400">
-                  ✓
-                </span>
-                <span>Chat belongs to the document, not to the application</span>
-              </li>
-            </ul>
-          </>
-        )}
+        {/* TODO: TIPTAP ENGINE MOUNT POINT */}
+        {/* The future TipTap editor component will be injected exactly here.
+            It will consume:
+            - content (as initial state or TipTap JSON/HTML doc)
+            - onContentChange (to sync TipTap updates back to the parent)
+            - readOnly
+            This <textarea> is strictly provisional and will be completely removed. */}
+        <textarea
+          value={content || ""}
+          onChange={handleContentChange}
+          readOnly={readOnly}
+          className="w-full flex-1 min-h-[500px] resize-none bg-transparent text-base leading-relaxed text-zinc-300 placeholder-zinc-700 outline-none"
+          placeholder="Start typing..."
+        />
       </article>
     </div>
   );
