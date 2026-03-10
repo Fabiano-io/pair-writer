@@ -34,6 +34,14 @@ export function TipTapEditor({
     if (editor) onEditorReady?.(editor);
   }, [editor, onEditorReady]);
 
+  useEffect(() => {
+    if (!editor) return;
+    const current = editor.getHTML();
+    if (content !== undefined && current !== content) {
+      editor.commands.setContent(content, { emitUpdate: false });
+    }
+  }, [editor, content]);
+
   return (
     <div className="flex min-h-full flex-col w-full">
       <EditorContent
