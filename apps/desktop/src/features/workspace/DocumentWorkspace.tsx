@@ -18,23 +18,26 @@ function createInitialContentByTabId(): Record<string, string> {
 
 interface DocumentWorkspaceProps {
   chatWidth: number;
+  chatVisible: boolean;
   onChatResize: (delta: number) => void;
   onChatResizeEnd: () => void;
-  /** Transient signal: id of a document the explorer wants opened/activated. */
   documentToOpen?: string | null;
-  /** Called after the workspace has processed the documentToOpen signal. */
   onDocumentOpened?: () => void;
-  /** Reports the current active tab id back to the shell (for explorer highlight). */
   onActiveTabChange?: (id: string | null) => void;
+  closeActiveTabRequested?: boolean;
+  onCloseActiveTabHandled?: () => void;
 }
 
 export function DocumentWorkspace({
   chatWidth,
+  chatVisible,
   onChatResize,
   onChatResizeEnd,
   documentToOpen,
   onDocumentOpened,
   onActiveTabChange,
+  closeActiveTabRequested,
+  onCloseActiveTabHandled,
 }: DocumentWorkspaceProps) {
   const [openTabIds, setOpenTabIds] = useState<string[]>(
     () => [...INITIAL_OPEN_TAB_IDS]
@@ -56,12 +59,10 @@ export function DocumentWorkspace({
     [activeTabId]
   );
 
-  // --- Report active tab changes to the shell ---
   useEffect(() => {
     onActiveTabChange?.(activeTabId);
   }, [activeTabId, onActiveTabChange]);
 
-  // --- Process incoming documentToOpen signal from the explorer ---
   useEffect(() => {
     if (!documentToOpen) return;
 
@@ -85,10 +86,6 @@ export function DocumentWorkspace({
     onDocumentOpened?.();
   }, [documentToOpen, onDocumentOpened]);
 
-  const onTabSelect = useCallback((id: string) => {
-    setActiveTabId(id);
-  }, []);
-
   const onTabClose = useCallback(
     (id: string) => {
       setOpenTabIds((prev) => {
@@ -107,6 +104,19 @@ export function DocumentWorkspace({
     },
     [activeTabId]
   );
+
+  useEffect(() => {
+    if (!closeActiveTabRequested || !activeTabId) {
+      if (closeActiveTabRequested) onCloseActiveTabHandled?.();
+      return;
+    }
+    onTabClose(activeTabId);
+    onCloseActiveTabHandled?.();
+  }, [closeActiveTabRequested, activeTabId, onTabClose, onCloseActiveTabHandled]);
+
+  const onTabSelect = useCallback((id: string) => {
+    setActiveTabId(id);
+  }, []);
 
   const handleContentChange = useCallback(
     (content: string) => {
@@ -136,14 +146,18 @@ export function DocumentWorkspace({
               content={contentByTabId[activeTabId] ?? PROVISIONAL_CONTENT}
               onContentChange={handleContentChange}
             />
-            <ResizeHandle
-              onResize={onChatResize}
-              onResizeEnd={onChatResizeEnd}
-            />
-            <DocumentChatPane
-              documentTitle={activeDocument.label}
-              width={chatWidth}
-            />
+            {chatVisible && (
+              <>
+                <ResizeHandle
+                  onResize={onChatResize}
+                  onResizeEnd={onChatResizeEnd}
+                />
+                <DocumentChatPane
+                  documentTitle={activeDocument.label}
+                  width={chatWidth}
+                />
+              </>
+            )}
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-sm text-zinc-600">

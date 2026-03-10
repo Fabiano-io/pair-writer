@@ -15,6 +15,10 @@ export interface WorkspaceLayoutState {
   explorerWidth: number;
   chatWidth: number;
   isLoaded: boolean;
+  explorerVisible: boolean;
+  chatVisible: boolean;
+  toggleExplorer: () => void;
+  toggleChat: () => void;
   onExplorerResize: (delta: number) => void;
   onExplorerResizeEnd: () => void;
   onChatResize: (delta: number) => void;
@@ -25,6 +29,11 @@ export function useWorkspaceLayout(): WorkspaceLayoutState {
   const [explorerWidth, setExplorerWidth] = useState(EXPLORER_DEFAULT_WIDTH);
   const [chatWidth, setChatWidth] = useState(CHAT_DEFAULT_WIDTH);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [explorerVisible, setExplorerVisible] = useState(true);
+  const [chatVisible, setChatVisible] = useState(true);
+
+  const toggleExplorer = useCallback(() => setExplorerVisible((v) => !v), []);
+  const toggleChat = useCallback(() => setChatVisible((v) => !v), []);
 
   const explorerRef = useRef(explorerWidth);
   const chatRef = useRef(chatWidth);
@@ -104,6 +113,10 @@ export function useWorkspaceLayout(): WorkspaceLayoutState {
     explorerWidth,
     chatWidth,
     isLoaded,
+    explorerVisible,
+    chatVisible,
+    toggleExplorer,
+    toggleChat,
     onExplorerResize,
     onExplorerResizeEnd,
     onChatResize,

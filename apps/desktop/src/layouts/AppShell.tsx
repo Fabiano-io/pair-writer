@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { AppMenuBar } from "../components/AppMenuBar";
 import { ExplorerSidebar } from "../features/explorer/ExplorerSidebar";
 import { DocumentWorkspace } from "../features/workspace/DocumentWorkspace";
 import { ResizeHandle } from "../components/ResizeHandle";
@@ -8,42 +9,69 @@ export function AppShell() {
   const {
     explorerWidth,
     chatWidth,
+    explorerVisible,
+    chatVisible,
+    toggleExplorer,
+    toggleChat,
     onExplorerResize,
     onExplorerResizeEnd,
     onChatResize,
     onChatResizeEnd,
   } = useWorkspaceLayout();
 
-  // Transient signal: which document the explorer wants opened.
-  // Cleared by DocumentWorkspace after processing.
   const [documentToOpen, setDocumentToOpen] = useState<string | null>(null);
-
-  // Mirrors the workspace's active tab so the explorer can highlight it.
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
+  const [closeActiveTabRequested, setCloseActiveTabRequested] = useState(false);
 
   const handleDocumentOpened = useCallback(() => {
     setDocumentToOpen(null);
   }, []);
 
+  const handleCloseActiveTab = useCallback(() => {
+    setCloseActiveTabRequested(true);
+  }, []);
+
+  const handleCloseActiveTabHandled = useCallback(() => {
+    setCloseActiveTabRequested(false);
+  }, []);
+
   return (
-    <div className="flex h-screen w-screen bg-zinc-950 text-zinc-100">
-      <ExplorerSidebar
-        width={explorerWidth}
-        activeDocumentId={activeDocumentId}
-        onDocumentSelect={setDocumentToOpen}
+    <div className="flex h-screen w-screen flex-col bg-zinc-950 text-zinc-100">
+      <AppMenuBar
+        hasActiveTab={activeDocumentId !== null}
+        onCloseActiveTab={handleCloseActiveTab}
+        onToggleExplorer={toggleExplorer}
+        onToggleChat={toggleChat}
+        explorerVisible={explorerVisible}
+        chatVisible={chatVisible}
       />
-      <ResizeHandle
-        onResize={onExplorerResize}
-        onResizeEnd={onExplorerResizeEnd}
-      />
-      <DocumentWorkspace
-        chatWidth={chatWidth}
-        onChatResize={onChatResize}
-        onChatResizeEnd={onChatResizeEnd}
-        documentToOpen={documentToOpen}
-        onDocumentOpened={handleDocumentOpened}
-        onActiveTabChange={setActiveDocumentId}
-      />
+
+      <div className="flex flex-1 overflow-hidden">
+        {explorerVisible && (
+          <>
+            <ExplorerSidebar
+              width={explorerWidth}
+              activeDocumentId={activeDocumentId}
+              onDocumentSelect={setDocumentToOpen}
+            />
+            <ResizeHandle
+              onResize={onExplorerResize}
+              onResizeEnd={onExplorerResizeEnd}
+            />
+          </>
+        )}
+        <DocumentWorkspace
+          chatWidth={chatWidth}
+          chatVisible={chatVisible}
+          onChatResize={onChatResize}
+          onChatResizeEnd={onChatResizeEnd}
+          documentToOpen={documentToOpen}
+          onDocumentOpened={handleDocumentOpened}
+          onActiveTabChange={setActiveDocumentId}
+          closeActiveTabRequested={closeActiveTabRequested}
+          onCloseActiveTabHandled={handleCloseActiveTabHandled}
+        />
+      </div>
     </div>
   );
 }
