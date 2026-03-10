@@ -2,12 +2,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { WorkspaceTabs } from "./WorkspaceTabs";
 import { DocumentPane } from "../document/DocumentPane";
 import { DocumentChatPane } from "../chat/DocumentChatPane";
+import { DocumentStatusBar } from "./DocumentStatusBar";
 import { ResizeHandle } from "../../components/ResizeHandle";
 import {
   WORKSPACE_DOCUMENTS,
   INITIAL_OPEN_TAB_IDS,
   PROVISIONAL_CONTENT,
 } from "./workspaceDocuments";
+
+/**
+ * Approximate word count from HTML string. Local, provisional, compatible with
+ * the current HTML content contract. Not an editorial-grade metric.
+ */
+function approximateWordCount(html: string): number {
+  const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return text ? text.split(" ").filter(Boolean).length : 0;
+}
 
 function createInitialContentByTabId(): Record<string, string> {
   return INITIAL_OPEN_TAB_IDS.reduce(
@@ -165,6 +175,19 @@ export function DocumentWorkspace({
           </div>
         )}
       </div>
+
+      <DocumentStatusBar
+        hasActiveTab={hasActiveTab}
+        activeDocumentLabel={activeDocument?.label ?? ""}
+        wordCount={
+          hasActiveTab
+            ? approximateWordCount(
+                contentByTabId[activeTabId] ?? PROVISIONAL_CONTENT
+              )
+            : 0
+        }
+        chatVisible={chatVisible}
+      />
     </div>
   );
 }
