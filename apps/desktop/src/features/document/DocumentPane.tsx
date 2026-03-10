@@ -19,8 +19,8 @@ export function DocumentPane({ title: initialTitle }: DocumentPaneProps) {
 
   return (
     <main className="flex flex-1 flex-col overflow-hidden bg-zinc-950/20">
-      <div className="flex h-full w-full flex-col overflow-y-auto outline-none">
-        <div className="mx-auto w-full max-w-[800px] px-12 py-16 lg:px-20 lg:py-24">
+      <div className="flex flex-1 min-h-0 flex-col overflow-hidden outline-none">
+        <div className="mx-auto flex w-full max-w-[800px] flex-1 min-h-0 flex-col px-12 py-16 lg:px-20 lg:py-24">
           <DocumentEditorSurface 
             title={title} 
             content={content}
