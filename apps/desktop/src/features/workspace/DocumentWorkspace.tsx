@@ -1,25 +1,18 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { WorkspaceTabs } from "./WorkspaceTabs";
 import { DocumentPane } from "../document/DocumentPane";
 import { DocumentChatPane } from "../chat/DocumentChatPane";
 import { ResizeHandle } from "../../components/ResizeHandle";
-
-const TAB_DOCUMENTS = [
-  { id: "product-vision", label: "Product Vision" },
-  { id: "context-engine", label: "Context Engine" },
-  { id: "checkpoints", label: "Checkpoints" },
-] as const;
-
-const PROVISIONAL_CONTENT = `Pair Writer is a desktop writing environment designed for structured thinking and AI-assisted content creation. It combines a focused document editor with contextual AI chat that lives alongside each document.
-
-The core experience prioritizes rendered content over raw markup, delivering an editorial feel that keeps writers immersed in their ideas rather than formatting syntax.
-
-[This is a transitional plain text area. The real TipTap rich-text engine will replace this space.]`;
+import {
+  WORKSPACE_DOCUMENTS,
+  INITIAL_OPEN_TAB_IDS,
+  PROVISIONAL_CONTENT,
+} from "./workspaceDocuments";
 
 function createInitialContentByTabId(): Record<string, string> {
-  return TAB_DOCUMENTS.reduce(
-    (acc, tab) => ({ ...acc, [tab.id]: PROVISIONAL_CONTENT }),
-    {}
+  return INITIAL_OPEN_TAB_IDS.reduce(
+    (acc, id) => ({ ...acc, [id]: PROVISIONAL_CONTENT }),
+    {} as Record<string, string>
   );
 }
 
@@ -27,58 +20,102 @@ interface DocumentWorkspaceProps {
   chatWidth: number;
   onChatResize: (delta: number) => void;
   onChatResizeEnd: () => void;
+  /** Transient signal: id of a document the explorer wants opened/activated. */
+  documentToOpen?: string | null;
+  /** Called after the workspace has processed the documentToOpen signal. */
+  onDocumentOpened?: () => void;
+  /** Reports the current active tab id back to the shell (for explorer highlight). */
+  onActiveTabChange?: (id: string | null) => void;
 }
 
 export function DocumentWorkspace({
   chatWidth,
   onChatResize,
   onChatResizeEnd,
+  documentToOpen,
+  onDocumentOpened,
+  onActiveTabChange,
 }: DocumentWorkspaceProps) {
-  const [openTabIds, setOpenTabIds] = useState<string[]>(() =>
-    TAB_DOCUMENTS.map((t) => t.id)
+  const [openTabIds, setOpenTabIds] = useState<string[]>(
+    () => [...INITIAL_OPEN_TAB_IDS]
   );
   const [activeTabId, setActiveTabId] = useState<string | null>(
-    TAB_DOCUMENTS[0]?.id ?? null
+    INITIAL_OPEN_TAB_IDS[0] ?? null
   );
   const [contentByTabId, setContentByTabId] = useState<Record<string, string>>(
     createInitialContentByTabId
   );
 
   const tabs = useMemo(
-    () => TAB_DOCUMENTS.filter((t) => openTabIds.includes(t.id)),
+    () => WORKSPACE_DOCUMENTS.filter((d) => openTabIds.includes(d.id)),
     [openTabIds]
   );
 
   const activeDocument = useMemo(
-    () => TAB_DOCUMENTS.find((t) => t.id === activeTabId),
+    () => WORKSPACE_DOCUMENTS.find((d) => d.id === activeTabId),
     [activeTabId]
   );
+
+  // --- Report active tab changes to the shell ---
+  useEffect(() => {
+    onActiveTabChange?.(activeTabId);
+  }, [activeTabId, onActiveTabChange]);
+
+  // --- Process incoming documentToOpen signal from the explorer ---
+  useEffect(() => {
+    if (!documentToOpen) return;
+
+    const docExists = WORKSPACE_DOCUMENTS.some((d) => d.id === documentToOpen);
+    if (!docExists) {
+      onDocumentOpened?.();
+      return;
+    }
+
+    setOpenTabIds((prev) => {
+      if (prev.includes(documentToOpen)) return prev;
+      return [...prev, documentToOpen];
+    });
+
+    setContentByTabId((prev) => {
+      if (prev[documentToOpen] !== undefined) return prev;
+      return { ...prev, [documentToOpen]: PROVISIONAL_CONTENT };
+    });
+
+    setActiveTabId(documentToOpen);
+    onDocumentOpened?.();
+  }, [documentToOpen, onDocumentOpened]);
 
   const onTabSelect = useCallback((id: string) => {
     setActiveTabId(id);
   }, []);
 
-  const onTabClose = useCallback((id: string) => {
-    setOpenTabIds((prev) => {
-      const next = prev.filter((tabId) => tabId !== id);
-      if (next.length === 0) {
-        setActiveTabId(null);
-        return [];
-      }
-      if (activeTabId === id) {
-        const idx = prev.indexOf(id);
-        const nextActiveIdx = Math.min(idx, next.length - 1);
-        setActiveTabId(next[nextActiveIdx]);
-      }
-      return next;
-    });
-  }, [activeTabId]);
+  const onTabClose = useCallback(
+    (id: string) => {
+      setOpenTabIds((prev) => {
+        const next = prev.filter((tabId) => tabId !== id);
+        if (next.length === 0) {
+          setActiveTabId(null);
+          return [];
+        }
+        if (activeTabId === id) {
+          const idx = prev.indexOf(id);
+          const nextActiveIdx = Math.min(idx, next.length - 1);
+          setActiveTabId(next[nextActiveIdx]);
+        }
+        return next;
+      });
+    },
+    [activeTabId]
+  );
 
-  const handleContentChange = useCallback((content: string) => {
-    setContentByTabId((prev) =>
-      activeTabId ? { ...prev, [activeTabId]: content } : prev
-    );
-  }, [activeTabId]);
+  const handleContentChange = useCallback(
+    (content: string) => {
+      setContentByTabId((prev) =>
+        activeTabId ? { ...prev, [activeTabId]: content } : prev
+      );
+    },
+    [activeTabId]
+  );
 
   const hasActiveTab = activeTabId !== null && activeDocument !== undefined;
 
@@ -99,14 +136,17 @@ export function DocumentWorkspace({
               content={contentByTabId[activeTabId] ?? PROVISIONAL_CONTENT}
               onContentChange={handleContentChange}
             />
-            <ResizeHandle onResize={onChatResize} onResizeEnd={onChatResizeEnd} />
+            <ResizeHandle
+              onResize={onChatResize}
+              onResizeEnd={onChatResizeEnd}
+            />
             <DocumentChatPane
               documentTitle={activeDocument.label}
               width={chatWidth}
             />
           </>
         ) : (
-          <div className="flex flex-1 items-center justify-center text-zinc-600 text-sm">
+          <div className="flex flex-1 items-center justify-center text-sm text-zinc-600">
             No document open
           </div>
         )}
