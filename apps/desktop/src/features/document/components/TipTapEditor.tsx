@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Placeholder } from "@tiptap/extension-placeholder";
+import { EditorBubbleMenu } from "./EditorBubbleMenu";
 
 interface TipTapEditorProps {
   content?: string;
@@ -38,6 +40,17 @@ export function TipTapEditor({
         editor={editor}
         className="tiptap-body w-full min-h-[500px] text-base leading-relaxed"
       />
+      {!readOnly && editor && (
+        <BubbleMenu
+          editor={editor}
+          shouldShow={({ editor: e }) => {
+            const { from, to } = e.state.selection;
+            return from !== to && e.state.doc.textBetween(from, to).trim().length > 0;
+          }}
+        >
+          <EditorBubbleMenu editor={editor} />
+        </BubbleMenu>
+      )}
     </div>
   );
 }

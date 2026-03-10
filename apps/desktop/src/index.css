@@ -196,3 +196,8 @@ body.resize-dragging * {
   float: left;
   height: 0;
 }
+
+/* Bubble menu: ensure it renders above body content and does not affect scroll */
+.editor-bubble-menu {
+  z-index: 50;
+}
