@@ -1,9 +1,9 @@
-import { useCallback, useState } from "react";
 import { AppMenuBar } from "../components/AppMenuBar";
 import { ExplorerSidebar } from "../features/explorer/ExplorerSidebar";
 import { DocumentWorkspace } from "../features/workspace/DocumentWorkspace";
 import { ResizeHandle } from "../components/ResizeHandle";
 import { useWorkspaceLayout } from "../features/workspace/useWorkspaceLayout";
+import { useWorkspaceDocuments } from "../features/workspace/useWorkspaceDocuments";
 
 export function AppShell() {
   const {
@@ -19,27 +19,13 @@ export function AppShell() {
     onChatResizeEnd,
   } = useWorkspaceLayout();
 
-  const [documentToOpen, setDocumentToOpen] = useState<string | null>(null);
-  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
-  const [closeActiveTabRequested, setCloseActiveTabRequested] = useState(false);
-
-  const handleDocumentOpened = useCallback(() => {
-    setDocumentToOpen(null);
-  }, []);
-
-  const handleCloseActiveTab = useCallback(() => {
-    setCloseActiveTabRequested(true);
-  }, []);
-
-  const handleCloseActiveTabHandled = useCallback(() => {
-    setCloseActiveTabRequested(false);
-  }, []);
+  const workspace = useWorkspaceDocuments();
 
   return (
     <div className="flex h-screen w-screen flex-col bg-zinc-950 text-zinc-100">
       <AppMenuBar
-        hasActiveTab={activeDocumentId !== null}
-        onCloseActiveTab={handleCloseActiveTab}
+        hasActiveTab={workspace.hasActiveTab}
+        onCloseActiveTab={workspace.closeActiveTab}
         onToggleExplorer={toggleExplorer}
         onToggleChat={toggleChat}
         explorerVisible={explorerVisible}
@@ -51,8 +37,8 @@ export function AppShell() {
           <>
             <ExplorerSidebar
               width={explorerWidth}
-              activeDocumentId={activeDocumentId}
-              onDocumentSelect={setDocumentToOpen}
+              activeDocumentId={workspace.activeTabId}
+              onDocumentSelect={workspace.openDocument}
             />
             <ResizeHandle
               onResize={onExplorerResize}
@@ -65,11 +51,14 @@ export function AppShell() {
           chatVisible={chatVisible}
           onChatResize={onChatResize}
           onChatResizeEnd={onChatResizeEnd}
-          documentToOpen={documentToOpen}
-          onDocumentOpened={handleDocumentOpened}
-          onActiveTabChange={setActiveDocumentId}
-          closeActiveTabRequested={closeActiveTabRequested}
-          onCloseActiveTabHandled={handleCloseActiveTabHandled}
+          tabs={workspace.tabs}
+          activeTabId={workspace.activeTabId}
+          activeDocument={workspace.activeDocument}
+          contentByTabId={workspace.contentByTabId}
+          hasActiveTab={workspace.hasActiveTab}
+          onTabSelect={workspace.selectDocument}
+          onTabClose={workspace.closeDocument}
+          onContentChange={workspace.handleContentChange}
         />
       </div>
     </div>
