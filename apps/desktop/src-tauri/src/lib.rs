@@ -1,5 +1,7 @@
+mod documents;
 mod settings;
 
+use documents::{load_document_content, save_document_content};
 use settings::{get_settings_path, read_settings_from_disk, write_settings_to_disk};
 use std::sync::Mutex;
 use tauri::Manager;
@@ -59,6 +61,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             settings::load_settings,
             settings::save_settings,
+            load_document_content,
+            save_document_content,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
