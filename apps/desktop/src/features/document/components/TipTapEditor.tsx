@@ -1,5 +1,6 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
+import { Placeholder } from "@tiptap/extension-placeholder";
 
 interface TipTapEditorProps {
   // Provisional: content is treated as the initial HTML string for this mount cycle.
@@ -16,8 +17,24 @@ export function TipTapEditor({
 }: TipTapEditorProps) {
   // Provisional: StarterKit is the initial extension set and is not the final
   // editor configuration for the product.
+  //
+  // StarterKit v3 already includes active input rules for basic authoring:
+  //   - Headings: "# " → h1, "## " → h2, "### " → h3 (up to h6)
+  //   - Bullet list: "- " or "* " at line start
+  //   - Ordered list: "1. " at line start
+  //   - Blockquote: "> " at line start
+  //   - Code block: "```" at line start
+  //   - Inline code: "`text`"
+  //   - Bold: "**text**" or "__text__"
+  //   - Italic: "*text*" or "_text_"
+  // No additional configuration is needed to enable these behaviors.
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      // Placeholder activates the .is-editor-empty CSS class used in index.css
+      // to render the placeholder text when the editor is empty.
+      Placeholder.configure({ placeholder: "Start writing..." }),
+    ],
     // content is used as the initial value only — no controlled sync from prop.
     // Updating content from outside this component is intentionally out of scope
     // for this initial mount cycle to avoid bidirectional sync complexity.
