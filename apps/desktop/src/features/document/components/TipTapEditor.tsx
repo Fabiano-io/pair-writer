@@ -1,4 +1,5 @@
 import { useEditor, EditorContent } from "@tiptap/react";
+import { EditorToolbar } from "./EditorToolbar";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Placeholder } from "@tiptap/extension-placeholder";
 
@@ -46,12 +47,15 @@ export function TipTapEditor({
   });
 
   return (
-    // tiptap-body is a provisional CSS namespace scoped in index.css.
-    // Typography and color styles are handled there to keep this component clean.
-    // min-h ensures the editor area is always clickable even when empty.
-    <EditorContent
-      editor={editor}
-      className="tiptap-body w-full min-h-[500px] text-base leading-relaxed"
-    />
+    <div className="flex flex-col w-full">
+      {!readOnly && <EditorToolbar editor={editor} />}
+      {/* tiptap-body is a provisional CSS namespace scoped in index.css.
+          Typography and color styles are handled there to keep this component clean.
+          min-h ensures the editor area is always clickable even when empty. */}
+      <EditorContent
+        editor={editor}
+        className="tiptap-body w-full min-h-[500px] text-base leading-relaxed"
+      />
+    </div>
   );
 }
