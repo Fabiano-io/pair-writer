@@ -14,6 +14,7 @@ export interface ProjectExplorerState {
   expandedPaths: Set<string>;
   isLoading: boolean;
   selectProjectFolder: () => Promise<void>;
+  refreshRoot: () => Promise<void>;
   toggleExpand: (path: string) => void;
   isExpanded: (path: string) => boolean;
   getChildren: (path: string) => DirEntry[];
@@ -59,6 +60,12 @@ export function useProjectExplorer(): ProjectExplorerState {
       setIsLoading(false);
     });
   }, [loadRoot]);
+
+  const refreshRoot = useCallback(async () => {
+    if (projectRootPath) {
+      await loadRoot(projectRootPath);
+    }
+  }, [projectRootPath, loadRoot]);
 
   const selectProjectFolder = useCallback(async () => {
     const path = await pickProjectFolder();
@@ -106,6 +113,7 @@ export function useProjectExplorer(): ProjectExplorerState {
     expandedPaths,
     isLoading,
     selectProjectFolder,
+    refreshRoot,
     toggleExpand,
     isExpanded,
     getChildren,

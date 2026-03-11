@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   WORKSPACE_DOCUMENTS,
   PROVISIONAL_CONTENT,
@@ -15,10 +15,8 @@ import {
 import { textToSimpleHtml, htmlToPlainText } from "../project/textContentUtils";
 import { loadSettings } from "../settings/appSettings";
 
-const SAVE_DEBOUNCE_MS = 500;
 const CATALOG_IDS = new Set(WORKSPACE_DOCUMENTS.map((d) => d.id));
 
-/** Operational id is normalized path. Not final document identity. */
 function isProjectFileId(id: string): boolean {
   return id.includes("/") || id.includes("\\");
 }
@@ -33,52 +31,32 @@ function needsTextConversion(path: string): boolean {
   return lower.endsWith(".md") || lower.endsWith(".txt");
 }
 
+export type CloseConfirmAction = "save" | "discard" | "cancel";
+
 export function useWorkspaceDocuments() {
   const [openTabIds, setOpenTabIds] = useState<string[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [contentByTabId, setContentByTabId] = useState<Record<string, string>>(
     {}
   );
-
-  const loadGenerationRef = useRef<Record<string, number>>({});
-  const pristineByDocIdRef = useRef<Record<string, boolean>>({});
-  const pendingSaveRef = useRef<{ documentId: string; content: string } | null>(
+  const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(
     null
   );
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const flushPendingSave = useCallback(async () => {
-    if (saveTimeoutRef.current !== null) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
-    }
-    const pending = pendingSaveRef.current;
-    if (!pending) return;
-    pendingSaveRef.current = null;
-    if (CATALOG_IDS.has(pending.documentId)) {
-      saveDocumentContent(pending.documentId, pending.content);
-    } else if (isProjectFileId(pending.documentId)) {
-      const settings = await loadSettings();
-      const projectRoot = settings.projectRootPath ?? undefined;
-      let content = pending.content;
-      if (needsTextConversion(pending.documentId)) {
-        content = htmlToPlainText(content);
+  const savedContentRef = useRef<Record<string, string>>({});
+  const loadGenerationRef = useRef<Record<string, number>>({});
+
+  const dirtyTabIds = useMemo(() => {
+    const dirty = new Set<string>();
+    for (const id of openTabIds) {
+      const current = contentByTabId[id];
+      const saved = savedContentRef.current[id];
+      if (current !== undefined && saved !== undefined && current !== saved) {
+        dirty.add(id);
       }
-      await saveFileContent(pending.documentId, content, projectRoot);
     }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      void flushPendingSave();
-    };
-  }, [flushPendingSave]);
-
-  useEffect(() => {
-    const handler = () => flushPendingSave();
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [flushPendingSave]);
+    return dirty;
+  }, [openTabIds, contentByTabId]);
 
   const tabs = useMemo(
     () =>
@@ -92,79 +70,117 @@ export function useWorkspaceDocuments() {
 
   const activeDocument = useMemo(
     () =>
-      WORKSPACE_DOCUMENTS.find((d) => d.id === activeTabId) ?? (activeTabId ? { id: activeTabId, label: basename(activeTabId), group: "" } : undefined),
+      WORKSPACE_DOCUMENTS.find((d) => d.id === activeTabId) ??
+      (activeTabId
+        ? { id: activeTabId, label: basename(activeTabId), group: "" }
+        : undefined),
     [activeTabId]
   );
 
   const hasActiveTab = activeTabId !== null && activeDocument !== undefined;
 
-  const openDocument = useCallback((documentId: string) => {
-    const isProject = isProjectFileId(documentId);
-    const isCatalog = CATALOG_IDS.has(documentId);
+  const persistDocument = useCallback(
+    async (docId: string, html: string) => {
+      if (CATALOG_IDS.has(docId)) {
+        await saveDocumentContent(docId, html);
+      } else if (isProjectFileId(docId)) {
+        const settings = await loadSettings();
+        const projectRoot = settings.projectRootPath ?? undefined;
+        const content = needsTextConversion(docId)
+          ? htmlToPlainText(html)
+          : html;
+        await saveFileContent(docId, content, projectRoot);
+      }
+    },
+    []
+  );
 
-    if (!isProject && !isCatalog) return;
+  const saveDocument = useCallback(
+    async (docId: string) => {
+      const html = contentByTabId[docId];
+      if (html === undefined) return;
+      await persistDocument(docId, html);
+      savedContentRef.current[docId] = html;
+      setContentByTabId((prev) => ({ ...prev }));
+    },
+    [contentByTabId, persistDocument]
+  );
 
-    if (openTabIds.includes(documentId)) {
-      setActiveTabId(documentId);
-      return;
-    }
+  const saveActiveDocument = useCallback(async () => {
+    if (activeTabId) await saveDocument(activeTabId);
+  }, [activeTabId, saveDocument]);
 
-    setOpenTabIds((prev) => [...prev, documentId]);
+  const openDocument = useCallback(
+    (documentId: string) => {
+      const isProject = isProjectFileId(documentId);
+      const isCatalog = CATALOG_IDS.has(documentId);
 
-    if (contentByTabId[documentId] !== undefined) {
-      setActiveTabId(documentId);
-      return;
-    }
+      if (!isProject && !isCatalog) return;
 
-    setContentByTabId((prev) => ({
-      ...prev,
-      [documentId]: PROVISIONAL_CONTENT,
-    }));
-    pristineByDocIdRef.current[documentId] = true;
-    const gen = (loadGenerationRef.current[documentId] ?? 0) + 1;
-    loadGenerationRef.current[documentId] = gen;
+      if (openTabIds.includes(documentId)) {
+        setActiveTabId(documentId);
+        return;
+      }
 
-    if (isProject && isSupportedFile(documentId)) {
-      loadSettings().then((s) => s.projectRootPath ?? undefined).then((projectRoot) =>
-        readFileContent(documentId, projectRoot)
-          .then((text) => {
-            if (
-              (loadGenerationRef.current[documentId] ?? 0) === gen &&
-              pristineByDocIdRef.current[documentId]
-            ) {
+      setOpenTabIds((prev) => [...prev, documentId]);
+
+      if (contentByTabId[documentId] !== undefined) {
+        setActiveTabId(documentId);
+        return;
+      }
+
+      const placeholder = PROVISIONAL_CONTENT;
+      setContentByTabId((prev) => ({ ...prev, [documentId]: placeholder }));
+      savedContentRef.current[documentId] = placeholder;
+
+      const gen = (loadGenerationRef.current[documentId] ?? 0) + 1;
+      loadGenerationRef.current[documentId] = gen;
+
+      const isStale = (id: string) =>
+        (loadGenerationRef.current[id] ?? 0) !== gen;
+
+      if (isProject && isSupportedFile(documentId)) {
+        loadSettings()
+          .then((s) => s.projectRootPath ?? undefined)
+          .then((projectRoot) =>
+            readFileContent(documentId, projectRoot).then((text) => {
+              if (isStale(documentId)) return;
               const html = needsTextConversion(documentId)
                 ? textToSimpleHtml(text)
                 : text;
+              savedContentRef.current[documentId] = html;
               setContentByTabId((prev) => ({ ...prev, [documentId]: html }));
-            }
-          })
+            })
+          )
           .catch(() => {
-            setContentByTabId((prev) => ({
-              ...prev,
-              [documentId]: PROVISIONAL_CONTENT,
-            }));
-          })
-      );
-    } else if (isCatalog) {
-      loadDocumentContent(documentId).then((html) => {
-        if (
-          (loadGenerationRef.current[documentId] ?? 0) === gen &&
-          pristineByDocIdRef.current[documentId]
-        ) {
-          setContentByTabId((prev) => ({
-            ...prev,
-            [documentId]: html ?? PROVISIONAL_CONTENT,
-          }));
-        }
-      });
-    }
+            if (isStale(documentId)) return;
+            savedContentRef.current[documentId] = placeholder;
+          });
+      } else if (isCatalog) {
+        loadDocumentContent(documentId).then((html) => {
+          if (isStale(documentId)) return;
+          const loaded = html ?? placeholder;
+          savedContentRef.current[documentId] = loaded;
+          setContentByTabId((prev) => ({ ...prev, [documentId]: loaded }));
+        });
+      }
 
-    setActiveTabId(documentId);
-  }, [openTabIds, contentByTabId]);
+      setActiveTabId(documentId);
+    },
+    [openTabIds, contentByTabId]
+  );
 
-  const closeDocument = useCallback(
+  const performClose = useCallback(
     (id: string) => {
-      flushPendingSave();
+      delete savedContentRef.current[id];
+      delete loadGenerationRef.current[id];
+
+      setContentByTabId((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+
       setOpenTabIds((prev) => {
         const next = prev.filter((tabId) => tabId !== id);
         if (next.length === 0) {
@@ -179,34 +195,56 @@ export function useWorkspaceDocuments() {
         return next;
       });
     },
-    [activeTabId, flushPendingSave]
+    [activeTabId]
+  );
+
+  const closeDocument = useCallback(
+    (id: string) => {
+      const current = contentByTabId[id];
+      const saved = savedContentRef.current[id];
+      const isDirty =
+        current !== undefined && saved !== undefined && current !== saved;
+
+      if (isDirty) {
+        setPendingCloseTabId(id);
+      } else {
+        performClose(id);
+      }
+    },
+    [contentByTabId, performClose]
+  );
+
+  const confirmClose = useCallback(
+    async (action: CloseConfirmAction) => {
+      const id = pendingCloseTabId;
+      setPendingCloseTabId(null);
+      if (!id) return;
+
+      if (action === "cancel") return;
+
+      if (action === "save") {
+        const html = contentByTabId[id];
+        if (html !== undefined) {
+          await persistDocument(id, html);
+          savedContentRef.current[id] = html;
+        }
+      }
+
+      performClose(id);
+    },
+    [pendingCloseTabId, contentByTabId, persistDocument, performClose]
   );
 
   const closeActiveTab = useCallback(() => {
     if (activeTabId) closeDocument(activeTabId);
   }, [activeTabId, closeDocument]);
 
-  const selectDocument = useCallback(
-    (id: string) => {
-      flushPendingSave();
-      setActiveTabId(id);
-    },
-    [flushPendingSave]
-  );
+  const selectDocument = useCallback((id: string) => {
+    setActiveTabId(id);
+  }, []);
 
   const handleContentChange = useCallback(
     (content: string) => {
-      if (activeTabId) {
-        pristineByDocIdRef.current[activeTabId] = false;
-        if (saveTimeoutRef.current !== null) {
-          clearTimeout(saveTimeoutRef.current);
-        }
-        pendingSaveRef.current = { documentId: activeTabId, content };
-        saveTimeoutRef.current = setTimeout(() => {
-          flushPendingSave();
-          saveTimeoutRef.current = null;
-        }, SAVE_DEBOUNCE_MS);
-      }
       setContentByTabId((prev) =>
         activeTabId ? { ...prev, [activeTabId]: content } : prev
       );
@@ -221,10 +259,14 @@ export function useWorkspaceDocuments() {
     tabs,
     activeDocument,
     hasActiveTab,
+    dirtyTabIds,
+    pendingCloseTabId,
     openDocument,
     closeDocument,
     selectDocument,
     closeActiveTab,
+    saveActiveDocument,
+    confirmClose,
     handleContentChange,
   };
 }

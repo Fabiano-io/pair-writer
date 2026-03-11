@@ -8,6 +8,7 @@ interface DocumentStatusBarProps {
   /** Approximate word count derived from current HTML content (local, provisional). */
   wordCount: number;
   chatVisible: boolean;
+  isDirty: boolean;
 }
 
 export function DocumentStatusBar({
@@ -15,6 +16,7 @@ export function DocumentStatusBar({
   activeDocumentLabel,
   wordCount,
   chatVisible,
+  isDirty,
 }: DocumentStatusBarProps) {
   return (
     <div
@@ -24,6 +26,13 @@ export function DocumentStatusBar({
       <span className="truncate">
         {hasActiveTab ? activeDocumentLabel : "No document open"}
       </span>
+
+      {hasActiveTab && isDirty && (
+        <>
+          <span className="h-2.5 w-px bg-zinc-700" aria-hidden />
+          <span className="text-zinc-400">Edited</span>
+        </>
+      )}
 
       {hasActiveTab && (
         <>

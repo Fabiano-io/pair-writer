@@ -94,3 +94,17 @@ export async function saveFileContent(
     throw error;
   }
 }
+
+/**
+ * Creates a new empty file inside the project. Fails if file already exists.
+ * Returns the created file path.
+ */
+export async function createProjectFile(
+  filePath: string,
+  projectRoot: string
+): Promise<string> {
+  return await invoke<string>("create_project_file", {
+    filePath,
+    projectRoot,
+  });
+}

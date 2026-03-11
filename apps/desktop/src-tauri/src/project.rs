@@ -112,3 +112,38 @@ pub fn save_file_content(
 
     fs::write(path, content).map_err(|e| format!("Failed to write file: {}", e))
 }
+
+#[tauri::command]
+pub fn create_project_file(
+    file_path: String,
+    project_root: String,
+) -> Result<String, String> {
+    let path = Path::new(&file_path);
+    let base = Path::new(&project_root);
+
+    if !base.is_dir() {
+        return Err("Project root is not a directory".to_string());
+    }
+
+    let canon_base = normalize_path(base)?;
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+    }
+
+    let parent_canon = normalize_path(
+        path.parent().unwrap_or(base)
+    )?;
+    if !parent_canon.starts_with(&canon_base) {
+        return Err("File is outside project directory".to_string());
+    }
+
+    if path.exists() {
+        return Err("File already exists".to_string());
+    }
+
+    fs::write(path, "").map_err(|e| format!("Failed to create file: {}", e))?;
+
+    Ok(path.to_string_lossy().into_owned())
+}

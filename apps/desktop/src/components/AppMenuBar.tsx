@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface MenuItem {
   label: string;
+  shortcut?: string;
   disabled?: boolean;
   action?: () => void;
 }
@@ -13,7 +14,11 @@ interface MenuGroup {
 
 interface AppMenuBarProps {
   hasActiveTab: boolean;
+  isSaveable: boolean;
+  hasProject: boolean;
   onCloseActiveTab: () => void;
+  onSave: () => void;
+  onNewDocument: () => void;
   onToggleExplorer: () => void;
   onToggleChat: () => void;
   explorerVisible: boolean;
@@ -22,7 +27,11 @@ interface AppMenuBarProps {
 
 export function AppMenuBar({
   hasActiveTab,
+  isSaveable,
+  hasProject,
   onCloseActiveTab,
+  onSave,
+  onNewDocument,
   onToggleExplorer,
   onToggleChat,
   explorerVisible,
@@ -49,6 +58,23 @@ export function AppMenuBar({
     {
       label: "File",
       items: [
+        {
+          label: "New Document",
+          disabled: !hasProject,
+          action: () => {
+            onNewDocument();
+            close();
+          },
+        },
+        {
+          label: "Save",
+          shortcut: "Ctrl+S",
+          disabled: !isSaveable,
+          action: () => {
+            onSave();
+            close();
+          },
+        },
         {
           label: "Close Tab",
           disabled: !hasActiveTab,
@@ -128,13 +154,18 @@ export function AppMenuBar({
                     type="button"
                     disabled={item.disabled}
                     onClick={item.action}
-                    className={`flex w-full items-center px-3 py-1.5 text-left text-xs transition-colors ${
+                    className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition-colors ${
                       item.disabled
                         ? "cursor-default text-zinc-600"
                         : "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
                     }`}
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    {item.shortcut && (
+                      <span className="ml-4 text-[10px] text-zinc-600">
+                        {item.shortcut}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>

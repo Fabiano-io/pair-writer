@@ -6,11 +6,6 @@ import { ResizeHandle } from "../../components/ResizeHandle";
 import { PROVISIONAL_CONTENT } from "./workspaceDocuments";
 import type { WorkspaceDocument } from "./workspaceDocuments";
 
-/**
- * Approximate word count from HTML string. Local, provisional, compatible with
- * the current HTML content contract. Not an editorial-grade metric.
- * Belongs to document chrome/UI rather than core workspace coordination.
- */
 function approximateWordCount(html: string): number {
   const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text ? text.split(" ").filter(Boolean).length : 0;
@@ -26,6 +21,7 @@ interface DocumentWorkspaceProps {
   activeDocument: WorkspaceDocument | undefined;
   contentByTabId: Record<string, string>;
   hasActiveTab: boolean;
+  dirtyTabIds: Set<string>;
   onTabSelect: (id: string) => void;
   onTabClose: (id: string) => void;
   onContentChange: (content: string) => void;
@@ -41,15 +37,19 @@ export function DocumentWorkspace({
   activeDocument,
   contentByTabId,
   hasActiveTab,
+  dirtyTabIds,
   onTabSelect,
   onTabClose,
   onContentChange,
 }: DocumentWorkspaceProps) {
+  const isDirty = activeTabId ? dirtyTabIds.has(activeTabId) : false;
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-zinc-900">
       <WorkspaceTabs
         tabs={tabs}
         activeTabId={activeTabId}
+        dirtyTabIds={dirtyTabIds}
         onTabSelect={onTabSelect}
         onTabClose={onTabClose}
       />
@@ -93,6 +93,7 @@ export function DocumentWorkspace({
             : 0
         }
         chatVisible={chatVisible}
+        isDirty={isDirty}
       />
     </div>
   );
