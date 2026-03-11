@@ -8,6 +8,8 @@ interface DocumentEditorSurfaceProps {
   content?: string;
   onTitleChange?: (title: string) => void;
   onContentChange?: (content: string) => void;
+  onSave?: () => void;
+  isSaveable?: boolean;
   readOnly?: boolean;
 }
 
@@ -18,6 +20,8 @@ interface DocumentEditorSurfaceProps {
 export function DocumentEditorSurface({
   content,
   onContentChange,
+  onSave,
+  isSaveable = false,
   readOnly = false,
 }: DocumentEditorSurfaceProps) {
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -27,7 +31,11 @@ export function DocumentEditorSurface({
     <div className="flex min-h-0 flex-1 flex-col outline-none">
       {!readOnly && (
         <div className="shrink-0">
-          <EditorToolbar editor={editor} />
+          <EditorToolbar
+            editor={editor}
+            onSave={onSave}
+            isSaveable={isSaveable}
+          />
         </div>
       )}
 

@@ -113,6 +113,8 @@ export function AppShell() {
           onTabSelect={workspace.selectDocument}
           onTabClose={workspace.closeDocument}
           onContentChange={workspace.handleContentChange}
+          onSave={workspace.saveActiveDocument}
+          isSaveable={isSaveable}
         />
       </div>
 

@@ -188,6 +188,36 @@ body.resize-dragging * {
   color: #a5b4fc; /* indigo-300 */
 }
 
+/* Table (provisional support: insertion + basic editing) */
+.tiptap-body .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.tiptap-body .ProseMirror th,
+.tiptap-body .ProseMirror td {
+  border: 1px solid #52525b; /* zinc-600 */
+  padding: 0.5em 0.75em;
+  text-align: left;
+  min-width: 100px;
+}
+
+.tiptap-body .ProseMirror th {
+  background-color: rgba(39, 39, 42, 0.6); /* zinc-800 */
+  color: #f4f4f5; /* zinc-100 */
+  font-weight: 600;
+}
+
+.tiptap-body .ProseMirror td {
+  background-color: rgba(24, 24, 27, 0.5); /* zinc-900 */
+  color: #d4d4d8; /* zinc-300 */
+}
+
+.tiptap-body .ProseMirror .selectedCell {
+  background-color: rgba(63, 63, 70, 0.5); /* zinc-700 */
+}
+
 /* Placeholder paragraph style when editor has no content */
 .tiptap-body .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

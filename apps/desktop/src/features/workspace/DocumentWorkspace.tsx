@@ -25,6 +25,8 @@ interface DocumentWorkspaceProps {
   onTabSelect: (id: string) => void;
   onTabClose: (id: string) => void;
   onContentChange: (content: string) => void;
+  onSave?: () => void;
+  isSaveable?: boolean;
 }
 
 export function DocumentWorkspace({
@@ -41,6 +43,8 @@ export function DocumentWorkspace({
   onTabSelect,
   onTabClose,
   onContentChange,
+  onSave,
+  isSaveable = false,
 }: DocumentWorkspaceProps) {
   const isDirty = activeTabId ? dirtyTabIds.has(activeTabId) : false;
 
@@ -61,6 +65,8 @@ export function DocumentWorkspace({
               title={activeDocument!.label}
               content={contentByTabId[activeTabId!] ?? PROVISIONAL_CONTENT}
               onContentChange={onContentChange}
+              onSave={onSave}
+              isSaveable={isSaveable}
             />
             {chatVisible && (
               <>

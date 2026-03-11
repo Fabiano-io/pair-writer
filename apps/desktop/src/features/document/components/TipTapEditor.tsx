@@ -3,6 +3,8 @@ import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Placeholder } from "@tiptap/extension-placeholder";
+import { Underline } from "@tiptap/extension-underline";
+import { TableKit } from "@tiptap/extension-table";
 import { EditorBubbleMenu } from "./EditorBubbleMenu";
 
 interface TipTapEditorProps {
@@ -22,6 +24,8 @@ export function TipTapEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder: "Start writing..." }),
+      Underline,
+      TableKit,
     ],
     content,
     editable: !readOnly,

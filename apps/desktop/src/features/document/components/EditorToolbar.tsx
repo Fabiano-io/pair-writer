@@ -1,42 +1,87 @@
 import { type Editor } from "@tiptap/react";
 
-interface EditorToolbarProps {
-  editor: Editor | null;
-}
-
-export function EditorToolbar({ editor }: EditorToolbarProps) {
-  if (!editor) {
-    return null;
-  }
-
-  const ToolbarButton = ({
-    isActive,
-    onClick,
-    children,
-    title,
-  }: {
-    isActive: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-    title?: string;
-  }) => (
+function ToolbarButton({
+  isActive,
+  onClick,
+  disabled,
+  children,
+  title,
+}: {
+  isActive?: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return (
     <button
+      type="button"
       onClick={onClick}
+      disabled={disabled}
       title={title}
       className={`px-2 py-1.5 text-xs font-semibold rounded transition-colors ${
-        isActive
-          ? "bg-zinc-800 text-zinc-50 shadow-sm"
-          : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+        disabled
+          ? "text-zinc-600 cursor-not-allowed"
+          : isActive
+            ? "bg-zinc-800 text-zinc-50 shadow-sm"
+            : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
       }`}
     >
       {children}
     </button>
   );
+}
 
-  const Divider = () => <div className="w-px h-4 bg-zinc-800 mx-1" />;
+function ToolbarDivider() {
+  return <div className="w-px h-4 bg-zinc-800 mx-1" />;
+}
+
+interface EditorToolbarProps {
+  editor: Editor | null;
+  onSave?: () => void;
+  isSaveable?: boolean;
+}
+
+export function EditorToolbar({
+  editor,
+  onSave,
+  isSaveable = false,
+}: EditorToolbarProps) {
+  if (!editor) {
+    return null;
+  }
+
+  const canUndo = editor.can().undo();
+  const canRedo = editor.can().redo();
 
   return (
-    <div className="flex flex-wrap items-center gap-1 px-3 py-2 mb-6 border border-zinc-800 rounded-lg bg-zinc-950/80 w-full select-none">
+    <div className="flex flex-wrap items-center gap-1 px-3 py-2 mb-4 border border-zinc-800 rounded-lg bg-zinc-950/80 w-full select-none">
+      {/* History + Save */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().undo().run()}
+        disabled={!canUndo}
+        title="Undo (Cmd+Z)"
+      >
+        Undo
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().redo().run()}
+        disabled={!canRedo}
+        title="Redo (Cmd+Shift+Z)"
+      >
+        Redo
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={onSave ?? (() => {})}
+        disabled={!isSaveable}
+        title="Save (Cmd+S)"
+      >
+        Save
+      </ToolbarButton>
+
+      <ToolbarDivider />
+
+      {/* Inline formatting */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive("bold")}
@@ -52,6 +97,13 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         I
       </ToolbarButton>
       <ToolbarButton
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        isActive={editor.isActive("underline")}
+        title="Underline"
+      >
+        U
+      </ToolbarButton>
+      <ToolbarButton
         onClick={() => editor.chain().focus().toggleCode().run()}
         isActive={editor.isActive("code")}
         title="Inline Code (Cmd+E)"
@@ -59,8 +111,9 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         {"<>"}
       </ToolbarButton>
 
-      <Divider />
+      <ToolbarDivider />
 
+      {/* Headings */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         isActive={editor.isActive("heading", { level: 1 })}
@@ -83,8 +136,9 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         H3
       </ToolbarButton>
 
-      <Divider />
+      <ToolbarDivider />
 
+      {/* Lists */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         isActive={editor.isActive("bulletList")}
@@ -100,8 +154,9 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         1. List
       </ToolbarButton>
 
-      <Divider />
+      <ToolbarDivider />
 
+      {/* Blocks */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         isActive={editor.isActive("blockquote")}
@@ -115,6 +170,18 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         title="Code Block"
       >
         {`{ } Code`}
+      </ToolbarButton>
+
+      <ToolbarDivider />
+
+      {/* Table (provisional support) */}
+      <ToolbarButton
+        onClick={() =>
+          editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+        }
+        title="Insert table (3x3)"
+      >
+        Table
       </ToolbarButton>
     </div>
   );
