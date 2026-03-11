@@ -96,6 +96,18 @@ const en = {
   chat_you: "You",
   chat_assistant: "Assistant",
   chat_placeholder: "Ask about this document...",
+
+  // Bubble menu (evolved contextual menu on text selection)
+  bubble_instruction_placeholder: "Instruction for selected text...",
+  bubble_send: "Send",
+  bubble_bold: "Bold (Cmd+B)",
+  bubble_italic: "Italic (Cmd+I)",
+  bubble_h2: "Heading 2",
+  bubble_code: "Inline Code (Cmd+E)",
+  bubble_refine: "Refine",
+  bubble_simplify: "Simplify",
+  bubble_formalize: "Formalize",
+  bubble_command_prepared: "Command prepared",
 } as const;
 
 const pt: Record<StringKey, string> = {
@@ -178,6 +190,17 @@ const pt: Record<StringKey, string> = {
   chat_you: "Você",
   chat_assistant: "Assistente",
   chat_placeholder: "Pergunte sobre este documento...",
+
+  bubble_instruction_placeholder: "Instrução para o trecho selecionado...",
+  bubble_send: "Enviar",
+  bubble_bold: "Negrito (Cmd+B)",
+  bubble_italic: "Itálico (Cmd+I)",
+  bubble_h2: "Título 2",
+  bubble_code: "Código inline (Cmd+E)",
+  bubble_refine: "Refinar",
+  bubble_simplify: "Simplificar",
+  bubble_formalize: "Formalizar",
+  bubble_command_prepared: "Comando preparado",
 };
 
 export const strings: Record<Locale, Record<StringKey, string>> = { en, pt };

@@ -6,11 +6,13 @@ import { Placeholder } from "@tiptap/extension-placeholder";
 import { Underline } from "@tiptap/extension-underline";
 import { TableKit } from "@tiptap/extension-table";
 import { EditorBubbleMenu } from "./EditorBubbleMenu";
+import type { BubbleCommandHandler } from "./bubbleMenuContract";
 
 interface TipTapEditorProps {
   content?: string;
   onContentChange?: (html: string) => void;
   onEditorReady?: (editor: Editor) => void;
+  onBubbleCommand?: BubbleCommandHandler;
   readOnly?: boolean;
 }
 
@@ -18,6 +20,7 @@ export function TipTapEditor({
   content = "",
   onContentChange,
   onEditorReady,
+  onBubbleCommand,
   readOnly = false,
 }: TipTapEditorProps) {
   const editor = useEditor({
@@ -60,7 +63,7 @@ export function TipTapEditor({
             return from !== to && e.state.doc.textBetween(from, to).trim().length > 0;
           }}
         >
-          <EditorBubbleMenu editor={editor} />
+          <EditorBubbleMenu editor={editor} onBubbleCommand={onBubbleCommand} />
         </BubbleMenu>
       )}
     </div>
