@@ -25,6 +25,10 @@ function getFolderName(path: string): string {
   return parts[parts.length - 1] || path;
 }
 
+function isMarkdownDocument(tabId: string | null): boolean {
+  return tabId?.toLowerCase().endsWith(".md") ?? false;
+}
+
 export function AppShell() {
   const {
     explorerWidth,
@@ -42,8 +46,13 @@ export function AppShell() {
   const workspace = useWorkspaceDocuments();
 
   const [projectRootPath, setProjectRootPath] = useState<string | null>(null);
-  const [appearance, setAppearance] = useState<AppearanceSettings>(DEFAULT_APPEARANCE);
+  const [appearance, setAppearance] = useState<AppearanceSettings>(
+    DEFAULT_APPEARANCE
+  );
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [markdownViewMode, setMarkdownViewMode] = useState<
+    "rendered" | "source"
+  >("rendered");
 
   useEffect(() => {
     loadSettings().then((s) => {
@@ -54,9 +63,7 @@ export function AppShell() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      loadSettings().then((s) =>
-        setProjectRootPath(s.projectRootPath ?? null)
-      );
+      loadSettings().then((s) => setProjectRootPath(s.projectRootPath ?? null));
     }, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -65,23 +72,37 @@ export function AppShell() {
     setAppearance(next);
   }, []);
 
+  const saveActiveDocument = workspace.saveActiveDocument;
+
   const isSaveable =
     workspace.hasActiveTab &&
     workspace.activeTabId !== null &&
     workspace.dirtyTabIds.has(workspace.activeTabId);
+
+  const canToggleMarkdownView = isMarkdownDocument(workspace.activeTabId);
+  const effectiveMarkdownViewMode = canToggleMarkdownView
+    ? markdownViewMode
+    : "rendered";
+
+  const toggleMarkdownView = useCallback(() => {
+    if (!canToggleMarkdownView) return;
+    setMarkdownViewMode((current) =>
+      current === "rendered" ? "source" : "rendered"
+    );
+  }, [canToggleMarkdownView]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
         if (isSaveable) {
-          workspace.saveActiveDocument();
+          saveActiveDocument();
         }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isSaveable, workspace.saveActiveDocument]);
+  }, [isSaveable, saveActiveDocument]);
 
   const [newDocTrigger, setNewDocTrigger] = useState(0);
 
@@ -106,7 +127,7 @@ export function AppShell() {
           isSaveable={isSaveable}
           hasProject={projectRootPath !== null}
           onCloseActiveTab={workspace.closeActiveTab}
-          onSave={() => workspace.saveActiveDocument()}
+          onSave={() => saveActiveDocument()}
           onNewDocument={handleNewDocumentFromMenu}
           onToggleExplorer={toggleExplorer}
           onToggleChat={toggleChat}
@@ -115,81 +136,83 @@ export function AppShell() {
           chatVisible={chatVisible}
         />
 
-      <div className="flex flex-1 overflow-hidden">
-        {explorerVisible && (
-          <>
-            <ExplorerSidebar
-              width={explorerWidth}
-              activeDocumentId={workspace.activeTabId}
-              onFileSelect={workspace.openDocument}
-              onCreateDocument={workspace.openDocument}
-              newDocTrigger={newDocTrigger}
-            />
-            <ResizeHandle
-              onResize={onExplorerResize}
-              onResizeEnd={onExplorerResizeEnd}
-            />
-          </>
-        )}
-        <DocumentWorkspace
-          chatWidth={chatWidth}
-          chatVisible={chatVisible}
-          onChatResize={onChatResize}
-          onChatResizeEnd={onChatResizeEnd}
-          tabs={workspace.tabs}
-          activeTabId={workspace.activeTabId}
-          activeDocument={workspace.activeDocument}
-          contentByTabId={workspace.contentByTabId}
+        <div className="flex flex-1 overflow-hidden">
+          {explorerVisible && (
+            <>
+              <ExplorerSidebar
+                width={explorerWidth}
+                activeDocumentId={workspace.activeTabId}
+                onFileSelect={workspace.openDocument}
+                onCreateDocument={workspace.openDocument}
+                newDocTrigger={newDocTrigger}
+              />
+              <ResizeHandle
+                onResize={onExplorerResize}
+                onResizeEnd={onExplorerResizeEnd}
+              />
+            </>
+          )}
+          <DocumentWorkspace
+            chatWidth={chatWidth}
+            chatVisible={chatVisible}
+            onChatResize={onChatResize}
+            onChatResizeEnd={onChatResizeEnd}
+            tabs={workspace.tabs}
+            activeTabId={workspace.activeTabId}
+            activeDocument={workspace.activeDocument}
+            contentByTabId={workspace.contentByTabId}
+            hasActiveTab={workspace.hasActiveTab}
+            dirtyTabIds={workspace.dirtyTabIds}
+            onTabSelect={workspace.selectDocument}
+            onTabClose={workspace.closeDocument}
+            onContentChange={workspace.handleContentChange}
+            onSave={saveActiveDocument}
+            isSaveable={isSaveable}
+            markdownViewMode={effectiveMarkdownViewMode}
+            onToggleMarkdownView={toggleMarkdownView}
+          />
+        </div>
+
+        <AppStatusBar
+          projectFolderName={projectRootPath ? getFolderName(projectRootPath) : ""}
+          projectRootPath={projectRootPath}
           hasActiveTab={workspace.hasActiveTab}
-          dirtyTabIds={workspace.dirtyTabIds}
-          onTabSelect={workspace.selectDocument}
-          onTabClose={workspace.closeDocument}
-          onContentChange={workspace.handleContentChange}
-          onSave={workspace.saveActiveDocument}
-          isSaveable={isSaveable}
+          activeDocumentLabel={workspace.activeDocument?.label ?? ""}
+          wordCount={
+            workspace.hasActiveTab && workspace.activeTabId
+              ? approximateWordCount(
+                  workspace.contentByTabId[workspace.activeTabId] ??
+                    PROVISIONAL_CONTENT
+                )
+              : 0
+          }
+          chatVisible={chatVisible}
+          isDirty={
+            workspace.activeTabId
+              ? workspace.dirtyTabIds.has(workspace.activeTabId)
+              : false
+          }
+          canToggleMarkdownView={canToggleMarkdownView}
+          markdownViewMode={effectiveMarkdownViewMode}
         />
+
+        {pendingCloseDoc && (
+          <UnsavedChangesDialog
+            documentName={pendingCloseDoc.label}
+            onSave={() => workspace.confirmClose("save")}
+            onDiscard={() => workspace.confirmClose("discard")}
+            onCancel={() => workspace.confirmClose("cancel")}
+          />
+        )}
+
+        {preferencesOpen && (
+          <PreferencesModal
+            initialAppearance={appearance}
+            onClose={() => setPreferencesOpen(false)}
+            onSaved={handleAppearanceSaved}
+          />
+        )}
       </div>
-
-      <AppStatusBar
-        projectFolderName={
-          projectRootPath ? getFolderName(projectRootPath) : ""
-        }
-        projectRootPath={projectRootPath}
-        hasActiveTab={workspace.hasActiveTab}
-        activeDocumentLabel={workspace.activeDocument?.label ?? ""}
-        wordCount={
-          workspace.hasActiveTab && workspace.activeTabId
-            ? approximateWordCount(
-                workspace.contentByTabId[workspace.activeTabId] ??
-                  PROVISIONAL_CONTENT
-              )
-            : 0
-        }
-        chatVisible={chatVisible}
-        isDirty={
-          workspace.activeTabId
-            ? workspace.dirtyTabIds.has(workspace.activeTabId)
-            : false
-        }
-      />
-
-      {pendingCloseDoc && (
-        <UnsavedChangesDialog
-          documentName={pendingCloseDoc.label}
-          onSave={() => workspace.confirmClose("save")}
-          onDiscard={() => workspace.confirmClose("discard")}
-          onCancel={() => workspace.confirmClose("cancel")}
-        />
-      )}
-
-      {preferencesOpen && (
-        <PreferencesModal
-          initialAppearance={appearance}
-          onClose={() => setPreferencesOpen(false)}
-          onSaved={handleAppearanceSaved}
-        />
-      )}
-    </div>
     </I18nProvider>
   );
 }

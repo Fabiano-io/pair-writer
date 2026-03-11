@@ -41,38 +41,54 @@ interface EditorToolbarProps {
   editor: Editor | null;
   onSave?: () => void;
   isSaveable?: boolean;
+  canToggleMarkdownView?: boolean;
+  markdownViewMode?: "rendered" | "source";
+  onToggleMarkdownView?: () => void;
 }
 
 export function EditorToolbar({
   editor,
   onSave,
   isSaveable = false,
+  canToggleMarkdownView = false,
+  markdownViewMode = "rendered",
+  onToggleMarkdownView,
 }: EditorToolbarProps) {
   const { t } = useTranslation();
-  if (!editor) {
-    return null;
-  }
+  const hasEditor = editor !== null;
 
-  const canUndo = editor.can().undo();
-  const canRedo = editor.can().redo();
+  const canUndo = hasEditor ? editor.can().undo() : false;
+  const canRedo = hasEditor ? editor.can().redo() : false;
+  const viewLabel =
+    markdownViewMode === "rendered"
+      ? t("status_view_rendered")
+      : t("status_view_source");
+  const toggleTitle =
+    markdownViewMode === "rendered"
+      ? t("status_toggle_to_source")
+      : t("status_toggle_to_rendered");
 
   return (
-    <div className="flex flex-wrap items-center gap-1 px-3 py-2 mb-4 border border-[var(--app-border)] rounded-lg bg-[var(--app-bg)]/80 w-full select-none">
-      {/* History + Save */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().undo().run()}
-        disabled={!canUndo}
-        title="Undo (Cmd+Z)"
-      >
-        {t("toolbar_undo")}
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().redo().run()}
-        disabled={!canRedo}
-        title="Redo (Cmd+Shift+Z)"
-      >
-        {t("toolbar_redo")}
-      </ToolbarButton>
+    <div className="flex w-full select-none flex-wrap items-center gap-1 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)]/80 px-3 py-2 mb-4">
+      {hasEditor && (
+        <>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().undo().run()}
+            disabled={!canUndo}
+            title="Undo (Cmd+Z)"
+          >
+            {t("toolbar_undo")}
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().redo().run()}
+            disabled={!canRedo}
+            title="Redo (Cmd+Shift+Z)"
+          >
+            {t("toolbar_redo")}
+          </ToolbarButton>
+        </>
+      )}
+
       <ToolbarButton
         onClick={onSave ?? (() => {})}
         disabled={!isSaveable}
@@ -81,110 +97,127 @@ export function EditorToolbar({
         {t("menu_save")}
       </ToolbarButton>
 
-      <ToolbarDivider />
+      {canToggleMarkdownView && (
+        <>
+          <ToolbarDivider />
+          <ToolbarButton
+            onClick={onToggleMarkdownView ?? (() => {})}
+            title={toggleTitle}
+            disabled={!onToggleMarkdownView}
+          >
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-1 font-mono text-[9px]">
+                {markdownViewMode === "rendered" ? "MD" : "<>"}
+              </span>
+              <span>{viewLabel}</span>
+            </span>
+          </ToolbarButton>
+        </>
+      )}
 
-      {/* Inline formatting */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        isActive={editor.isActive("bold")}
-        title={t("toolbar_bold")}
-      >
-        B
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        isActive={editor.isActive("italic")}
-        title={t("toolbar_italic")}
-      >
-        I
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        isActive={editor.isActive("underline")}
-        title={t("toolbar_underline")}
-      >
-        U
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleCode().run()}
-        isActive={editor.isActive("code")}
-        title={t("toolbar_code")}
-      >
-        {"<>"}
-      </ToolbarButton>
+      {hasEditor && (
+        <>
+          <ToolbarDivider />
 
-      <ToolbarDivider />
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            isActive={editor.isActive("bold")}
+            title={t("toolbar_bold")}
+          >
+            B
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            isActive={editor.isActive("italic")}
+            title={t("toolbar_italic")}
+          >
+            I
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            isActive={editor.isActive("underline")}
+            title={t("toolbar_underline")}
+          >
+            U
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleCode().run()}
+            isActive={editor.isActive("code")}
+            title={t("toolbar_code")}
+          >
+            {"<>"}
+          </ToolbarButton>
 
-      {/* Headings */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        isActive={editor.isActive("heading", { level: 1 })}
-        title={t("toolbar_h1")}
-      >
-        H1
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        isActive={editor.isActive("heading", { level: 2 })}
-        title={t("toolbar_h2")}
-      >
-        H2
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        isActive={editor.isActive("heading", { level: 3 })}
-        title={t("toolbar_h3")}
-      >
-        H3
-      </ToolbarButton>
+          <ToolbarDivider />
 
-      <ToolbarDivider />
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            isActive={editor.isActive("heading", { level: 1 })}
+            title={t("toolbar_h1")}
+          >
+            H1
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            isActive={editor.isActive("heading", { level: 2 })}
+            title={t("toolbar_h2")}
+          >
+            H2
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            isActive={editor.isActive("heading", { level: 3 })}
+            title={t("toolbar_h3")}
+          >
+            H3
+          </ToolbarButton>
 
-      {/* Lists */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        isActive={editor.isActive("bulletList")}
-        title={t("toolbar_bullet_list")}
-      >
-        • List
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        isActive={editor.isActive("orderedList")}
-        title={t("toolbar_ordered_list")}
-      >
-        1. List
-      </ToolbarButton>
+          <ToolbarDivider />
 
-      <ToolbarDivider />
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            isActive={editor.isActive("bulletList")}
+            title={t("toolbar_bullet_list")}
+          >
+            • List
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            isActive={editor.isActive("orderedList")}
+            title={t("toolbar_ordered_list")}
+          >
+            1. List
+          </ToolbarButton>
 
-      {/* Blocks */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        isActive={editor.isActive("blockquote")}
-        title={t("toolbar_blockquote")}
-      >
-        &quot; Quote
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        isActive={editor.isActive("codeBlock")}
-        title={t("toolbar_code_block")}
-      >
-        {`{ } Code`}
-      </ToolbarButton>
+          <ToolbarDivider />
 
-      <ToolbarDivider />
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            isActive={editor.isActive("blockquote")}
+            title={t("toolbar_blockquote")}
+          >
+            &quot; Quote
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            isActive={editor.isActive("codeBlock")}
+            title={t("toolbar_code_block")}
+          >
+            {`{ } Code`}
+          </ToolbarButton>
 
-      {/* Table (provisional support) */}
-      <ToolbarButton
-        onClick={() =>
-          editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-        }
-        title={t("toolbar_table")}
-      >
-        Table
-      </ToolbarButton>
+          <ToolbarDivider />
+
+          <ToolbarButton
+            onClick={() =>
+              editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+            }
+            title={t("toolbar_table")}
+          >
+            Table
+          </ToolbarButton>
+        </>
+      )}
     </div>
   );
 }

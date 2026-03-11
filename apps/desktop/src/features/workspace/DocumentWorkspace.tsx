@@ -6,6 +6,10 @@ import { PROVISIONAL_CONTENT } from "./workspaceDocuments";
 import type { WorkspaceDocument } from "./workspaceDocuments";
 import { useTranslation } from "../settings/i18n/I18nContext";
 
+function isMarkdownTab(tabId: string | null): boolean {
+  return tabId?.toLowerCase().endsWith(".md") ?? false;
+}
+
 interface DocumentWorkspaceProps {
   chatWidth: number;
   chatVisible: boolean;
@@ -22,6 +26,8 @@ interface DocumentWorkspaceProps {
   onContentChange: (content: string) => void;
   onSave?: () => void;
   isSaveable?: boolean;
+  markdownViewMode?: "rendered" | "source";
+  onToggleMarkdownView?: () => void;
 }
 
 export function DocumentWorkspace({
@@ -40,8 +46,12 @@ export function DocumentWorkspace({
   onContentChange,
   onSave,
   isSaveable = false,
+  markdownViewMode = "rendered",
+  onToggleMarkdownView,
 }: DocumentWorkspaceProps) {
   const { t } = useTranslation();
+  const activeIsMarkdown = isMarkdownTab(activeTabId);
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[var(--app-surface)]">
       <WorkspaceTabs
@@ -61,6 +71,9 @@ export function DocumentWorkspace({
               onContentChange={onContentChange}
               onSave={onSave}
               isSaveable={isSaveable}
+              viewMode={activeIsMarkdown ? markdownViewMode : "rendered"}
+              isMarkdownDocument={activeIsMarkdown}
+              onToggleMarkdownView={onToggleMarkdownView}
             />
             {chatVisible && (
               <>

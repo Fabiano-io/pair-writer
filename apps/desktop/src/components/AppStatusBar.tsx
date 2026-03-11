@@ -19,6 +19,8 @@ interface AppStatusBarProps {
   wordCount: number;
   chatVisible: boolean;
   isDirty: boolean;
+  canToggleMarkdownView?: boolean;
+  markdownViewMode?: "rendered" | "source";
 }
 
 export function AppStatusBar({
@@ -29,10 +31,23 @@ export function AppStatusBar({
   wordCount,
   chatVisible,
   isDirty,
+  canToggleMarkdownView = false,
+  markdownViewMode = "rendered",
 }: AppStatusBarProps) {
   const { t } = useTranslation();
   const projectLabel = projectFolderName || t("status_no_project");
-  const documentLabel = hasActiveTab ? activeDocumentLabel : t("status_no_document");
+  const documentLabel = hasActiveTab
+    ? activeDocumentLabel
+    : t("status_no_document");
+
+  const viewLabel =
+    markdownViewMode === "rendered"
+      ? t("status_view_rendered")
+      : t("status_view_source");
+  const viewTitle =
+    markdownViewMode === "rendered"
+      ? t("status_toggle_to_source")
+      : t("status_toggle_to_rendered");
 
   return (
     <div
@@ -68,9 +83,18 @@ export function AppStatusBar({
         </>
       )}
 
+      {hasActiveTab && canToggleMarkdownView && (
+        <>
+          <span className="h-2.5 w-px bg-[var(--app-border)]" aria-hidden />
+          <span title={viewTitle}>{viewLabel}</span>
+        </>
+      )}
+
       <span className="ml-auto flex items-center gap-1.5" aria-hidden>
         <span
-          className={`h-1.5 w-1.5 rounded-full bg-current ${chatVisible ? "opacity-100" : "opacity-40"}`}
+          className={`h-1.5 w-1.5 rounded-full bg-current ${
+            chatVisible ? "opacity-100" : "opacity-40"
+          }`}
         />
         <span>{chatVisible ? t("status_chat_on") : t("status_chat_off")}</span>
       </span>

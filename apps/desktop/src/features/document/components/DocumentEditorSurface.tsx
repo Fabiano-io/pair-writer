@@ -1,4 +1,11 @@
-import { useState, useCallback, useEffect } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  type RefObject,
+  type UIEvent,
+} from "react";
 import { type Editor } from "@tiptap/react";
 import { TipTapEditor } from "./TipTapEditor";
 import { EditorToolbar } from "./EditorToolbar";
@@ -13,6 +20,11 @@ interface DocumentEditorSurfaceProps {
   onSave?: () => void;
   isSaveable?: boolean;
   readOnly?: boolean;
+  canToggleMarkdownView?: boolean;
+  markdownViewMode?: "rendered" | "source";
+  onToggleMarkdownView?: () => void;
+  scrollContainerRef?: RefObject<HTMLElement | null>;
+  onScrollContainer?: (event: UIEvent<HTMLElement>) => void;
 }
 
 /**
@@ -25,22 +37,39 @@ export function DocumentEditorSurface({
   onSave,
   isSaveable = false,
   readOnly = false,
+  canToggleMarkdownView = false,
+  markdownViewMode = "rendered",
+  onToggleMarkdownView,
+  scrollContainerRef,
+  onScrollContainer,
 }: DocumentEditorSurfaceProps) {
   const { t } = useTranslation();
   const [editor, setEditor] = useState<Editor | null>(null);
-  const [commandAckUntil, setCommandAckUntil] = useState<number>(0);
+  const [showCommandAck, setShowCommandAck] = useState(false);
+  const commandAckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
   const handleEditorReady = useCallback((e: Editor) => setEditor(e), []);
 
-  const handleBubbleCommand: BubbleCommandHandler = useCallback((_payload) => {
-    setCommandAckUntil(Date.now() + 2000);
+  const handleBubbleCommand: BubbleCommandHandler = useCallback(() => {
+    setShowCommandAck(true);
+    if (commandAckTimeoutRef.current) {
+      clearTimeout(commandAckTimeoutRef.current);
+    }
+    commandAckTimeoutRef.current = setTimeout(() => {
+      setShowCommandAck(false);
+      commandAckTimeoutRef.current = null;
+    }, 2000);
   }, []);
 
   useEffect(() => {
-    if (commandAckUntil <= 0) return;
-    const duration = Math.max(0, commandAckUntil - Date.now());
-    const id = setTimeout(() => setCommandAckUntil(0), duration);
-    return () => clearTimeout(id);
-  }, [commandAckUntil]);
+    return () => {
+      if (commandAckTimeoutRef.current) {
+        clearTimeout(commandAckTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col outline-none">
@@ -50,8 +79,11 @@ export function DocumentEditorSurface({
             editor={editor}
             onSave={onSave}
             isSaveable={isSaveable}
+            canToggleMarkdownView={canToggleMarkdownView}
+            markdownViewMode={markdownViewMode}
+            onToggleMarkdownView={onToggleMarkdownView}
           />
-          {commandAckUntil > Date.now() && (
+          {showCommandAck && (
             <div
               role="status"
               aria-live="polite"
@@ -63,7 +95,11 @@ export function DocumentEditorSurface({
         </div>
       )}
 
-      <article className="min-h-0 flex-1 overflow-y-auto">
+      <article
+        ref={scrollContainerRef}
+        onScroll={onScrollContainer}
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
         <TipTapEditor
           content={content}
           onContentChange={onContentChange}

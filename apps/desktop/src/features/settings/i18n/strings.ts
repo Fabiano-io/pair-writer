@@ -52,6 +52,10 @@ const en = {
   status_words: "words",
   status_chat_on: "Chat on",
   status_chat_off: "Chat off",
+  status_view_rendered: "Rendered",
+  status_view_source: "Markdown source",
+  status_toggle_to_source: "Switch to Markdown source",
+  status_toggle_to_rendered: "Switch to rendered view",
 
   // Explorer
   explorer_title: "Explorer",
@@ -152,6 +156,10 @@ const pt: Record<StringKey, string> = {
   status_words: "palavras",
   status_chat_on: "Chat ligado",
   status_chat_off: "Chat desligado",
+  status_view_rendered: "Renderizado",
+  status_view_source: "Fonte Markdown",
+  status_toggle_to_source: "Alternar para fonte Markdown",
+  status_toggle_to_rendered: "Alternar para visualizacao renderizada",
 
   explorer_title: "Explorador",
   explorer_select_folder: "Selecione uma pasta de projeto para navegar nos arquivos",
