@@ -28,10 +28,10 @@ function BubbleMenuButton({
       title={title}
       className={`px-2 py-1.5 text-xs font-semibold rounded transition-colors ${
         variant === "ai"
-          ? "text-cyan-400 hover:bg-zinc-800/60 hover:text-cyan-300"
+          ? "text-cyan-500 hover:bg-[var(--app-surface-alt)]/70 hover:text-cyan-400"
           : isActive
-            ? "bg-zinc-800 text-zinc-50 shadow-sm"
-            : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+            ? "bg-[var(--app-surface-alt)] text-[var(--app-text)] shadow-sm"
+            : "text-[var(--app-text-muted)] hover:bg-[var(--app-surface-alt)]/70 hover:text-[var(--app-text)]"
       }`}
     >
       {children}
@@ -40,7 +40,7 @@ function BubbleMenuButton({
 }
 
 function BubbleMenuDivider() {
-  return <div className="w-px h-4 bg-zinc-800 mx-1" />;
+  return <div className="mx-1 h-4 w-px bg-[var(--app-border)]" />;
 }
 
 function RefineIcon() {
@@ -111,7 +111,7 @@ export function EditorBubbleMenu({ editor, onBubbleCommand }: EditorBubbleMenuPr
   );
 
   return (
-    <div className="editor-bubble-menu flex flex-col gap-2 p-2 border border-zinc-800 rounded-lg bg-zinc-950/95 shadow-lg select-none min-w-[280px] max-w-[420px]">
+    <div className="editor-bubble-menu flex min-w-[280px] max-w-[420px] select-none flex-col gap-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)]/95 p-2 shadow-lg">
       <div className="flex items-center gap-1 flex-wrap">
         <BubbleMenuButton
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -167,7 +167,7 @@ export function EditorBubbleMenu({ editor, onBubbleCommand }: EditorBubbleMenuPr
           onChange={(e) => setInstruction(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={t("bubble_instruction_placeholder")}
-          className="flex-1 min-w-0 px-2.5 py-1.5 text-xs rounded bg-zinc-900 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50"
+          className="flex-1 min-w-0 rounded border border-[var(--app-border)] bg-[var(--app-bg)] px-2.5 py-1.5 text-xs text-[var(--app-text)] placeholder-[var(--app-text-muted)] focus:border-cyan-500/50 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
         />
         <button
           type="button"
@@ -178,7 +178,7 @@ export function EditorBubbleMenu({ editor, onBubbleCommand }: EditorBubbleMenuPr
               ? "bg-emerald-600/80 text-white"
               : instruction.trim()
                 ? "bg-cyan-600/80 text-white hover:bg-cyan-500/80"
-                : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                : "cursor-not-allowed bg-[var(--app-surface-alt)] text-[var(--app-text-muted)]"
           }`}
         >
           {sendState === "sent" ? "✓" : t("bubble_send")}

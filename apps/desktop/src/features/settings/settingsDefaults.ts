@@ -12,7 +12,7 @@ export interface WorkspaceLayoutSettings {
 }
 
 export interface AppearanceSettings {
-  theme: "dark" | "dark-blue" | "dark-graphite";
+  theme: "dark" | "light" | "dark-blue" | "dark-graphite";
   fontPreset: "default" | "reading" | "editorial";
   language: "en" | "pt";
 }

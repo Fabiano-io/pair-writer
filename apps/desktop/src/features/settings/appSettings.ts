@@ -21,7 +21,12 @@ export async function loadSettings(): Promise<AppSettings> {
 function normalizeAppearance(a?: AppearanceSettings | null): AppearanceSettings {
   if (!a) return DEFAULT_APPEARANCE;
   const validTheme =
-    a.theme === "dark-blue" || a.theme === "dark-graphite" ? a.theme : "dark";
+    a.theme === "dark" ||
+    a.theme === "light" ||
+    a.theme === "dark-blue" ||
+    a.theme === "dark-graphite"
+      ? a.theme
+      : "dark";
   const validFontPreset =
     a.fontPreset === "reading" || a.fontPreset === "editorial"
       ? a.fontPreset

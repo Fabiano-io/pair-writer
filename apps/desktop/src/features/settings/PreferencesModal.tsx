@@ -13,8 +13,9 @@ interface PreferencesModalProps {
   onSaved: (appearance: AppearanceSettings) => void;
 }
 
-const THEMES: { id: AppearanceSettings["theme"]; labelKey: "prefs_theme_dark" | "prefs_theme_dark_blue" | "prefs_theme_dark_graphite" }[] = [
+const THEMES: { id: AppearanceSettings["theme"]; labelKey: "prefs_theme_dark" | "prefs_theme_light" | "prefs_theme_dark_blue" | "prefs_theme_dark_graphite" }[] = [
   { id: "dark", labelKey: "prefs_theme_dark" },
+  { id: "light", labelKey: "prefs_theme_light" },
   { id: "dark-blue", labelKey: "prefs_theme_dark_blue" },
   { id: "dark-graphite", labelKey: "prefs_theme_dark_graphite" },
 ];
