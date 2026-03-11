@@ -8,10 +8,6 @@ import {
 } from "react";
 import { DocumentEditorSurface } from "./components/DocumentEditorSurface";
 import { EditorToolbar } from "./components/EditorToolbar";
-import {
-  htmlToMarkdown,
-  markdownToSimpleHtml,
-} from "../project/textContentUtils";
 
 const PROVISIONAL_CONTENT = `Pair Writer is a desktop writing environment designed for structured thinking and AI-assisted content creation. It combines a focused document editor with contextual AI chat that lives alongside each document.
 
@@ -41,7 +37,7 @@ interface DocumentPaneProps {
   title: string;
   /** When provided with onContentChange, enables controlled mode (e.g. per-tab content in workspace). */
   content?: string;
-  onContentChange?: (html: string) => void;
+  onContentChange?: (content: string) => void;
   onSave?: () => void;
   isSaveable?: boolean;
   viewMode?: "rendered" | "source";
@@ -80,8 +76,7 @@ export function DocumentPane({
 
   useEffect(() => {
     if (!isMarkdownDocument || viewMode !== "source") return;
-    const next = htmlToMarkdown(content);
-    setSourceContent((current) => (current === next ? current : next));
+    setSourceContent((current) => (current === content ? current : content));
   }, [content, isMarkdownDocument, viewMode]);
 
   useLayoutEffect(() => {
@@ -131,7 +126,7 @@ export function DocumentPane({
 
   const handleSourceChange = (value: string) => {
     setSourceContent(value);
-    setContent(markdownToSimpleHtml(value));
+    setContent(value);
   };
 
   return (
@@ -175,6 +170,7 @@ export function DocumentPane({
                 onToggleMarkdownView={onToggleMarkdownView}
                 scrollContainerRef={renderedScrollRef}
                 onScrollContainer={handleRenderedScroll}
+                contentType={isMarkdownDocument ? "markdown" : "html"}
               />
             </div>
           )}

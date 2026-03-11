@@ -51,8 +51,27 @@ function isHeadingLine(line: string): boolean {
   return /^#{1,6}\s+/.test(line.trim());
 }
 
+function normalizeCodeLanguage(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const normalized = raw.trim().toLowerCase().replace(/[^a-z0-9_+-]/g, "");
+  return normalized.length > 0 ? normalized : null;
+}
+
+function parseCodeFenceLine(
+  line: string
+): { marker: "```" | "~~~"; language: string | null } | null {
+  const match = line.trim().match(/^(```|~~~)\s*([a-zA-Z0-9_+-]+)?\s*$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    marker: match[1] as "```" | "~~~",
+    language: normalizeCodeLanguage(match[2]),
+  };
+}
+
 function isCodeFenceLine(line: string): boolean {
-  return /^```/.test(line.trim());
+  return parseCodeFenceLine(line) !== null;
 }
 
 function isBlockquoteLine(line: string): boolean {
@@ -107,17 +126,26 @@ export function markdownToSimpleHtml(markdown: string): string {
       continue;
     }
 
-    if (isCodeFenceLine(trimmed)) {
+    const openingFence = parseCodeFenceLine(trimmed);
+    if (openingFence) {
       i += 1;
       const codeLines: string[] = [];
-      while (i < lines.length && !isCodeFenceLine(lines[i])) {
+      while (i < lines.length) {
+        const closingFence = parseCodeFenceLine(lines[i]);
+        if (closingFence && closingFence.marker === openingFence.marker) {
+          i += 1;
+          break;
+        }
         codeLines.push(lines[i]);
         i += 1;
       }
-      if (i < lines.length && isCodeFenceLine(lines[i])) {
-        i += 1;
-      }
-      html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+
+      const language = openingFence.language;
+      const dataLanguageAttr = language ? ` data-language="${language}"` : "";
+      const codeClassAttr = language ? ` class="language-${language}"` : "";
+      html.push(
+        `<pre class="md-code-block"${dataLanguageAttr}><code${codeClassAttr} spellcheck="false">${escapeHtml(codeLines.join("\n"))}</code></pre>`
+      );
       continue;
     }
 
@@ -335,8 +363,24 @@ function convertElementToMarkdown(node: Node): string {
       }
       return `\`${content}\``;
     }
-    case "pre":
-      return `\`\`\`\n${content.trimEnd()}\n\`\`\`\n\n`;
+    case "pre": {
+      const codeElement = element.querySelector("code") as HTMLElement | null;
+      const languageFromData = normalizeCodeLanguage(
+        element.getAttribute("data-language") ??
+          codeElement?.getAttribute("data-language") ??
+          undefined
+      );
+      const languageClassPrefix = "language-";
+      const classNames = Array.from(codeElement?.classList ?? []);
+      const languageFromClass = normalizeCodeLanguage(
+        classNames
+          .find((className) => className.startsWith(languageClassPrefix))
+          ?.slice(languageClassPrefix.length)
+      );
+      const language = languageFromData ?? languageFromClass;
+      const fenceStart = language ? `\`\`\`${language}` : "```";
+      return `${fenceStart}\n${content.trimEnd()}\n\`\`\`\n\n`;
+    }
     case "hr":
       return `---\n\n`;
     case "blockquote": {

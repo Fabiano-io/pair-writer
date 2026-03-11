@@ -25,6 +25,7 @@ interface DocumentEditorSurfaceProps {
   onToggleMarkdownView?: () => void;
   scrollContainerRef?: RefObject<HTMLElement | null>;
   onScrollContainer?: (event: UIEvent<HTMLElement>) => void;
+  contentType?: "html" | "markdown";
 }
 
 /**
@@ -42,6 +43,7 @@ export function DocumentEditorSurface({
   onToggleMarkdownView,
   scrollContainerRef,
   onScrollContainer,
+  contentType = "html",
 }: DocumentEditorSurfaceProps) {
   const { t } = useTranslation();
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -106,6 +108,7 @@ export function DocumentEditorSurface({
           onEditorReady={handleEditorReady}
           onBubbleCommand={handleBubbleCommand}
           readOnly={readOnly}
+          contentType={contentType}
         />
       </article>
     </div>

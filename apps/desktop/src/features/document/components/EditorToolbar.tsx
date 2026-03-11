@@ -1,4 +1,4 @@
-import { type Editor } from "@tiptap/react";
+import { type Editor, useEditorState } from "@tiptap/react";
 import { useTranslation } from "../../settings/i18n/useTranslation";
 
 function ToolbarButton({
@@ -57,8 +57,40 @@ export function EditorToolbar({
   const { t } = useTranslation();
   const hasEditor = editor !== null;
 
-  const canUndo = hasEditor ? editor.can().undo() : false;
-  const canRedo = hasEditor ? editor.can().redo() : false;
+  const editorState = useEditorState({
+    editor,
+    selector: ({ editor: currentEditor }) => {
+      if (!currentEditor) {
+        return null;
+      }
+
+      return {
+        canUndo: currentEditor.can().undo(),
+        canRedo: currentEditor.can().redo(),
+        canInsertTable: currentEditor
+          .can()
+          .chain()
+          .focus()
+          .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+          .run(),
+        isBold: currentEditor.isActive("bold"),
+        isItalic: currentEditor.isActive("italic"),
+        isUnderline: currentEditor.isActive("underline"),
+        isCode: currentEditor.isActive("code"),
+        isHeading1: currentEditor.isActive("heading", { level: 1 }),
+        isHeading2: currentEditor.isActive("heading", { level: 2 }),
+        isHeading3: currentEditor.isActive("heading", { level: 3 }),
+        isBulletList: currentEditor.isActive("bulletList"),
+        isOrderedList: currentEditor.isActive("orderedList"),
+        isBlockquote: currentEditor.isActive("blockquote"),
+        isCodeBlock: currentEditor.isActive("codeBlock"),
+      };
+    },
+  });
+
+  const canUndo = editorState?.canUndo ?? false;
+  const canRedo = editorState?.canRedo ?? false;
+  const canInsertTable = editorState?.canInsertTable ?? false;
   const viewLabel =
     markdownViewMode === "rendered"
       ? t("status_view_rendered")
@@ -121,28 +153,28 @@ export function EditorToolbar({
 
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
-            isActive={editor.isActive("bold")}
+            isActive={editorState?.isBold}
             title={t("toolbar_bold")}
           >
             B
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            isActive={editor.isActive("italic")}
+            isActive={editorState?.isItalic}
             title={t("toolbar_italic")}
           >
             I
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleUnderline().run()}
-            isActive={editor.isActive("underline")}
+            isActive={editorState?.isUnderline}
             title={t("toolbar_underline")}
           >
             U
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCode().run()}
-            isActive={editor.isActive("code")}
+            isActive={editorState?.isCode}
             title={t("toolbar_code")}
           >
             {"<>"}
@@ -152,21 +184,21 @@ export function EditorToolbar({
 
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            isActive={editor.isActive("heading", { level: 1 })}
+            isActive={editorState?.isHeading1}
             title={t("toolbar_h1")}
           >
             H1
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            isActive={editor.isActive("heading", { level: 2 })}
+            isActive={editorState?.isHeading2}
             title={t("toolbar_h2")}
           >
             H2
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            isActive={editor.isActive("heading", { level: 3 })}
+            isActive={editorState?.isHeading3}
             title={t("toolbar_h3")}
           >
             H3
@@ -176,14 +208,14 @@ export function EditorToolbar({
 
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            isActive={editor.isActive("bulletList")}
+            isActive={editorState?.isBulletList}
             title={t("toolbar_bullet_list")}
           >
             • List
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            isActive={editor.isActive("orderedList")}
+            isActive={editorState?.isOrderedList}
             title={t("toolbar_ordered_list")}
           >
             1. List
@@ -193,14 +225,14 @@ export function EditorToolbar({
 
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            isActive={editor.isActive("blockquote")}
+            isActive={editorState?.isBlockquote}
             title={t("toolbar_blockquote")}
           >
             &quot; Quote
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-            isActive={editor.isActive("codeBlock")}
+            isActive={editorState?.isCodeBlock}
             title={t("toolbar_code_block")}
           >
             {`{ } Code`}
@@ -210,8 +242,13 @@ export function EditorToolbar({
 
           <ToolbarButton
             onClick={() =>
-              editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+              editor
+                .chain()
+                .focus()
+                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                .run()
             }
+            disabled={!canInsertTable}
             title={t("toolbar_table")}
           >
             Table

@@ -42,6 +42,11 @@ body {
   --editor-code-text: #a5f3fc;
   --editor-pre-bg: #18181b;
   --editor-pre-code: #d4d4d8;
+  --editor-codeblock-bg: #151922;
+  --editor-codeblock-border: #30384a;
+  --editor-codeblock-header-bg: rgba(148, 163, 184, 0.08);
+  --editor-codeblock-header-text: #cbd5e1;
+  --editor-codeblock-copy-hover: rgba(148, 163, 184, 0.2);
   --editor-link: #818cf8;
   --editor-link-hover: #a5b4fc;
   --editor-table-border: #52525b;
@@ -97,6 +102,11 @@ body {
   --editor-code-text: #0f172a;
   --editor-pre-bg: #e2e8f0;
   --editor-pre-code: #0f172a;
+  --editor-codeblock-bg: #f8fafc;
+  --editor-codeblock-border: #d4dbe7;
+  --editor-codeblock-header-bg: #eef2f7;
+  --editor-codeblock-header-text: #516079;
+  --editor-codeblock-copy-hover: rgba(100, 116, 139, 0.16);
   --editor-link: #1d4ed8;
   --editor-link-hover: #1e40af;
   --editor-table-border: #cbd5e1;
@@ -317,21 +327,138 @@ body.resize-dragging * {
   padding: 0.1em 0.35em;
 }
 
-.tiptap-body .ProseMirror pre {
-  background-color: var(--editor-pre-bg);
-  border-radius: 6px;
-  padding: 1em 1.25em;
-  overflow-x: auto;
+.tiptap-body .ProseMirror .md-code-block-wrapper {
   margin-top: 1em;
   margin-bottom: 1em;
+  border: 1px solid var(--editor-codeblock-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--editor-codeblock-bg);
 }
 
-.tiptap-body .ProseMirror pre code {
+.tiptap-body .ProseMirror .md-code-block-header {
+  min-height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.2rem 0.6rem 0.2rem 1rem;
+  border-bottom: 1px solid var(--editor-codeblock-border);
+  background-color: var(--editor-codeblock-header-bg);
+}
+
+.tiptap-body .ProseMirror .md-code-block-language {
+  color: var(--editor-codeblock-header-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tiptap-body .ProseMirror .md-code-copy-btn {
+  height: 1.65rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--editor-codeblock-header-text);
+  padding: 0 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tiptap-body .ProseMirror .md-code-copy-btn:hover {
+  background-color: var(--editor-codeblock-copy-hover);
+}
+
+.tiptap-body .ProseMirror .md-code-copy-btn:focus-visible {
+  outline: 2px solid var(--editor-link);
+  outline-offset: 1px;
+}
+
+.tiptap-body .ProseMirror .md-code-copy-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.tiptap-body .ProseMirror pre.md-code-block {
+  margin: 0;
+  padding: 1rem 1.25rem 1.25rem;
+  overflow-x: auto;
   background-color: transparent;
-  color: var(--editor-text);
-  padding: 0;
-  font-size: 0.875em;
+  border: 0;
   border-radius: 0;
+  box-shadow: none;
+}
+
+.tiptap-body .ProseMirror pre.md-code-block code,
+.tiptap-body .ProseMirror pre.md-code-block [data-node-view-content] {
+  display: block;
+  background-color: transparent;
+  color: var(--editor-pre-code);
+  padding: 0;
+  font-size: 0.9em;
+  line-height: 1.72;
+  border-radius: 0;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.tiptap-body .ProseMirror .md-mermaid-preview {
+  margin: 0;
+  padding: 0.9rem 1rem 0.7rem;
+  border-bottom: 1px solid var(--editor-codeblock-border);
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), transparent);
+}
+
+.tiptap-body .ProseMirror .md-mermaid-status {
+  font-size: 0.82rem;
+  color: var(--app-text-muted);
+}
+
+.tiptap-body .ProseMirror .md-mermaid-error {
+  font-size: 0.82rem;
+  color: #ef4444;
+  white-space: pre-wrap;
+}
+
+.tiptap-body .ProseMirror .md-mermaid-canvas {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.tiptap-body .ProseMirror .md-mermaid-canvas svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.tiptap-body .ProseMirror .md-mermaid-source {
+  border-top: 1px dashed var(--editor-codeblock-border);
+}
+
+.tiptap-body .ProseMirror .md-mermaid-source > summary {
+  padding: 0.35rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  color: var(--editor-codeblock-header-text);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tiptap-body .ProseMirror .md-mermaid-source > summary:hover {
+  background-color: var(--editor-codeblock-header-bg);
+}
+
+.tiptap-body .ProseMirror pre.md-code-block.md-code-block-mermaid-source {
+  border-top: 1px solid var(--editor-codeblock-border);
 }
 
 .tiptap-body .ProseMirror a {

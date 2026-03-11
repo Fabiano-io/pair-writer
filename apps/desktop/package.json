@@ -16,9 +16,11 @@
     "@tiptap/extension-placeholder": "^3.20.1",
     "@tiptap/extension-table": "^3.20.1",
     "@tiptap/extension-underline": "^3.20.1",
+    "@tiptap/markdown": "^3.20.1",
     "@tiptap/pm": "^3.20.1",
     "@tiptap/react": "^3.20.1",
     "@tiptap/starter-kit": "^3.20.1",
+    "mermaid": "^11.13.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwindcss": "^4.2.1"

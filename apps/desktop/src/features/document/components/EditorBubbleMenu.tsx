@@ -1,7 +1,10 @@
 import { useState, useRef, useCallback } from "react";
-import { type Editor } from "@tiptap/react";
+import { type Editor, useEditorState } from "@tiptap/react";
 import { useTranslation } from "../../settings/i18n/useTranslation";
-import type { BubbleCommandPayload, BubbleCommandHandler } from "./bubbleMenuContract";
+import type {
+  BubbleCommandPayload,
+  BubbleCommandHandler,
+} from "./bubbleMenuContract";
 
 interface EditorBubbleMenuProps {
   editor: Editor;
@@ -45,7 +48,16 @@ function BubbleMenuDivider() {
 
 function RefineIcon() {
   return (
-    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="9"
+      height="9"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
     </svg>
   );
@@ -53,8 +65,16 @@ function RefineIcon() {
 
 const AI_PRESETS = [
   { type: "refine" as const, instructionKey: "Refine this", labelKey: "bubble_refine" },
-  { type: "simplify" as const, instructionKey: "Simplify this", labelKey: "bubble_simplify" },
-  { type: "formalize" as const, instructionKey: "Make this more formal", labelKey: "bubble_formalize" },
+  {
+    type: "simplify" as const,
+    instructionKey: "Simplify this",
+    labelKey: "bubble_simplify",
+  },
+  {
+    type: "formalize" as const,
+    instructionKey: "Make this more formal",
+    labelKey: "bubble_formalize",
+  },
 ] as const;
 
 /**
@@ -67,6 +87,16 @@ export function EditorBubbleMenu({ editor, onBubbleCommand }: EditorBubbleMenuPr
   const [sendState, setSendState] = useState<"idle" | "sent">("idle");
   const inputRef = useRef<HTMLInputElement>(null);
   const sendTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const editorState = useEditorState({
+    editor,
+    selector: ({ editor: currentEditor }) => ({
+      isBold: currentEditor.isActive("bold"),
+      isItalic: currentEditor.isActive("italic"),
+      isHeading2: currentEditor.isActive("heading", { level: 2 }),
+      isCode: currentEditor.isActive("code"),
+    }),
+  });
 
   const getSelectedText = useCallback(() => {
     const { from, to } = editor.state.selection;
@@ -115,28 +145,28 @@ export function EditorBubbleMenu({ editor, onBubbleCommand }: EditorBubbleMenuPr
       <div className="flex items-center gap-1 flex-wrap">
         <BubbleMenuButton
           onClick={() => editor.chain().focus().toggleBold().run()}
-          isActive={editor.isActive("bold")}
+          isActive={editorState.isBold}
           title={t("bubble_bold")}
         >
           B
         </BubbleMenuButton>
         <BubbleMenuButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={editor.isActive("italic")}
+          isActive={editorState.isItalic}
           title={t("bubble_italic")}
         >
           I
         </BubbleMenuButton>
         <BubbleMenuButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={editor.isActive("heading", { level: 2 })}
+          isActive={editorState.isHeading2}
           title={t("bubble_h2")}
         >
           H2
         </BubbleMenuButton>
         <BubbleMenuButton
           onClick={() => editor.chain().focus().toggleCode().run()}
-          isActive={editor.isActive("code")}
+          isActive={editorState.isCode}
           title={t("bubble_code")}
         >
           {"<>"}

@@ -12,12 +12,7 @@ import {
   saveFileContent,
   isSupportedFile,
 } from "../project/projectAccess";
-import {
-  markdownToSimpleHtml,
-  textToSimpleHtml,
-  htmlToMarkdown,
-  htmlToPlainText,
-} from "../project/textContentUtils";
+import { textToSimpleHtml, htmlToPlainText } from "../project/textContentUtils";
 import { loadSettings } from "../settings/appSettings";
 
 const CATALOG_IDS = new Set(WORKSPACE_DOCUMENTS.map((d) => d.id));
@@ -90,18 +85,18 @@ export function useWorkspaceDocuments() {
   const hasActiveTab = activeTabId !== null && activeDocument !== undefined;
 
   const persistDocument = useCallback(
-    async (docId: string, html: string) => {
+    async (docId: string, documentContent: string) => {
       if (CATALOG_IDS.has(docId)) {
-        await saveDocumentContent(docId, html);
+        await saveDocumentContent(docId, documentContent);
       } else if (isProjectFileId(docId)) {
         const settings = await loadSettings();
         const projectRoot = settings.projectRootPath ?? undefined;
-        const content = isMarkdownFile(docId)
-          ? htmlToMarkdown(html)
+        const contentToPersist = isMarkdownFile(docId)
+          ? documentContent
           : isPlainTextFile(docId)
-            ? htmlToPlainText(html)
-            : html;
-        await saveFileContent(docId, content, projectRoot);
+            ? htmlToPlainText(documentContent)
+            : documentContent;
+        await saveFileContent(docId, contentToPersist, projectRoot);
       }
     },
     []
@@ -109,10 +104,10 @@ export function useWorkspaceDocuments() {
 
   const saveDocument = useCallback(
     async (docId: string) => {
-      const html = contentByTabId[docId];
-      if (html === undefined) return;
-      await persistDocument(docId, html);
-      setSavedContentByTabId((prev) => ({ ...prev, [docId]: html }));
+      const content = contentByTabId[docId];
+      if (content === undefined) return;
+      await persistDocument(docId, content);
+      setSavedContentByTabId((prev) => ({ ...prev, [docId]: content }));
     },
     [contentByTabId, persistDocument]
   );
@@ -156,13 +151,13 @@ export function useWorkspaceDocuments() {
           .then((projectRoot) =>
             readFileContent(documentId, projectRoot).then((text) => {
               if (isStale(documentId)) return;
-              const html = isMarkdownFile(documentId)
-                ? markdownToSimpleHtml(text)
+              const loadedContent = isMarkdownFile(documentId)
+                ? text
                 : isPlainTextFile(documentId)
                   ? textToSimpleHtml(text)
                   : text;
-              setSavedContentByTabId((prev) => ({ ...prev, [documentId]: html }));
-              setContentByTabId((prev) => ({ ...prev, [documentId]: html }));
+              setSavedContentByTabId((prev) => ({ ...prev, [documentId]: loadedContent }));
+              setContentByTabId((prev) => ({ ...prev, [documentId]: loadedContent }));
             })
           )
           .catch(() => {
@@ -241,10 +236,10 @@ export function useWorkspaceDocuments() {
       if (action === "cancel") return;
 
       if (action === "save") {
-        const html = contentByTabId[id];
-        if (html !== undefined) {
-          await persistDocument(id, html);
-          setSavedContentByTabId((prev) => ({ ...prev, [id]: html }));
+        const content = contentByTabId[id];
+        if (content !== undefined) {
+          await persistDocument(id, content);
+          setSavedContentByTabId((prev) => ({ ...prev, [id]: content }));
         }
       }
 
