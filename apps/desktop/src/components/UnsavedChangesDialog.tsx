@@ -1,4 +1,4 @@
-import { useTranslation } from "../features/settings/i18n/I18nContext";
+import { useTranslation } from "../features/settings/i18n/useTranslation";
 
 interface UnsavedChangesDialogProps {
   documentName: string;

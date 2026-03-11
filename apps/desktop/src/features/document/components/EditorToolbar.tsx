@@ -1,5 +1,5 @@
 import { type Editor } from "@tiptap/react";
-import { useTranslation } from "../../settings/i18n/I18nContext";
+import { useTranslation } from "../../settings/i18n/useTranslation";
 
 function ToolbarButton({
   isActive,

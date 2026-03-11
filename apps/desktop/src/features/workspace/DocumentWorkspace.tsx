@@ -4,7 +4,7 @@ import { DocumentChatPane } from "../chat/DocumentChatPane";
 import { ResizeHandle } from "../../components/ResizeHandle";
 import { PROVISIONAL_CONTENT } from "./workspaceDocuments";
 import type { WorkspaceDocument } from "./workspaceDocuments";
-import { useTranslation } from "../settings/i18n/I18nContext";
+import { useTranslation } from "../settings/i18n/useTranslation";
 
 function isMarkdownTab(tabId: string | null): boolean {
   return tabId?.toLowerCase().endsWith(".md") ?? false;

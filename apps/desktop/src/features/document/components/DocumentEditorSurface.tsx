@@ -9,7 +9,7 @@ import {
 import { type Editor } from "@tiptap/react";
 import { TipTapEditor } from "./TipTapEditor";
 import { EditorToolbar } from "./EditorToolbar";
-import { useTranslation } from "../../settings/i18n/I18nContext";
+import { useTranslation } from "../../settings/i18n/useTranslation";
 import type { BubbleCommandHandler } from "./bubbleMenuContract";
 
 interface DocumentEditorSurfaceProps {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useProjectExplorer } from "./useProjectExplorer";
 import { createProjectFile } from "../project/projectAccess";
 import type { DirEntry } from "../project/projectAccess";
-import { useTranslation } from "../settings/i18n/I18nContext";
+import { useTranslation } from "../settings/i18n/useTranslation";
 
 interface ExplorerSidebarProps {
   width: number;
@@ -17,7 +17,16 @@ function getFolderName(path: string): string {
   return parts[parts.length - 1] || path;
 }
 
-const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f]/;
+const INVALID_FILENAME_CHARS = new Set(["<", ">", ":", '"', "/", "\\", "|", "?", "*"]);
+
+function hasInvalidFilenameChars(value: string): boolean {
+  for (const ch of value) {
+    const code = ch.charCodeAt(0);
+    if (code >= 0 && code <= 31) return true;
+    if (INVALID_FILENAME_CHARS.has(ch)) return true;
+  }
+  return false;
+}
 
 function TreeNode({
   entry,
@@ -163,7 +172,7 @@ export function ExplorerSidebar({
       return;
     }
 
-    if (INVALID_FILENAME_CHARS.test(trimmed)) {
+    if (hasInvalidFilenameChars(trimmed)) {
       setCreateError(t("explorer_error_invalid"));
       return;
     }

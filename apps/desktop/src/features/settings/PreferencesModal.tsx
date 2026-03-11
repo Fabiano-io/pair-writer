@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 import type { AppearanceSettings } from "./settingsDefaults";
 import { saveAppearance } from "./appSettings";
-import { useTranslation } from "./i18n/I18nContext";
+import { useTranslation } from "./i18n/useTranslation";
 
 interface PreferencesModalProps {
   initialAppearance: AppearanceSettings;

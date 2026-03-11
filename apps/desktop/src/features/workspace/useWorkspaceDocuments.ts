@@ -47,24 +47,26 @@ export function useWorkspaceDocuments() {
   const [contentByTabId, setContentByTabId] = useState<Record<string, string>>(
     {}
   );
+  const [savedContentByTabId, setSavedContentByTabId] = useState<
+    Record<string, string>
+  >({});
   const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(
     null
   );
 
-  const savedContentRef = useRef<Record<string, string>>({});
   const loadGenerationRef = useRef<Record<string, number>>({});
 
   const dirtyTabIds = useMemo(() => {
     const dirty = new Set<string>();
     for (const id of openTabIds) {
       const current = contentByTabId[id];
-      const saved = savedContentRef.current[id];
+      const saved = savedContentByTabId[id];
       if (current !== undefined && saved !== undefined && current !== saved) {
         dirty.add(id);
       }
     }
     return dirty;
-  }, [openTabIds, contentByTabId]);
+  }, [openTabIds, contentByTabId, savedContentByTabId]);
 
   const tabs = useMemo(
     () =>
@@ -110,8 +112,7 @@ export function useWorkspaceDocuments() {
       const html = contentByTabId[docId];
       if (html === undefined) return;
       await persistDocument(docId, html);
-      savedContentRef.current[docId] = html;
-      setContentByTabId((prev) => ({ ...prev }));
+      setSavedContentByTabId((prev) => ({ ...prev, [docId]: html }));
     },
     [contentByTabId, persistDocument]
   );
@@ -141,7 +142,7 @@ export function useWorkspaceDocuments() {
 
       const placeholder = PROVISIONAL_CONTENT;
       setContentByTabId((prev) => ({ ...prev, [documentId]: placeholder }));
-      savedContentRef.current[documentId] = placeholder;
+      setSavedContentByTabId((prev) => ({ ...prev, [documentId]: placeholder }));
 
       const gen = (loadGenerationRef.current[documentId] ?? 0) + 1;
       loadGenerationRef.current[documentId] = gen;
@@ -160,19 +161,19 @@ export function useWorkspaceDocuments() {
                 : isPlainTextFile(documentId)
                   ? textToSimpleHtml(text)
                   : text;
-              savedContentRef.current[documentId] = html;
+              setSavedContentByTabId((prev) => ({ ...prev, [documentId]: html }));
               setContentByTabId((prev) => ({ ...prev, [documentId]: html }));
             })
           )
           .catch(() => {
             if (isStale(documentId)) return;
-            savedContentRef.current[documentId] = placeholder;
+            setSavedContentByTabId((prev) => ({ ...prev, [documentId]: placeholder }));
           });
       } else if (isCatalog) {
         loadDocumentContent(documentId).then((html) => {
           if (isStale(documentId)) return;
           const loaded = html ?? placeholder;
-          savedContentRef.current[documentId] = loaded;
+          setSavedContentByTabId((prev) => ({ ...prev, [documentId]: loaded }));
           setContentByTabId((prev) => ({ ...prev, [documentId]: loaded }));
         });
       }
@@ -184,8 +185,13 @@ export function useWorkspaceDocuments() {
 
   const performClose = useCallback(
     (id: string) => {
-      delete savedContentRef.current[id];
       delete loadGenerationRef.current[id];
+
+      setSavedContentByTabId((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
 
       setContentByTabId((prev) => {
         const next = { ...prev };
@@ -213,7 +219,7 @@ export function useWorkspaceDocuments() {
   const closeDocument = useCallback(
     (id: string) => {
       const current = contentByTabId[id];
-      const saved = savedContentRef.current[id];
+      const saved = savedContentByTabId[id];
       const isDirty =
         current !== undefined && saved !== undefined && current !== saved;
 
@@ -223,7 +229,7 @@ export function useWorkspaceDocuments() {
         performClose(id);
       }
     },
-    [contentByTabId, performClose]
+    [contentByTabId, performClose, savedContentByTabId]
   );
 
   const confirmClose = useCallback(
@@ -238,7 +244,7 @@ export function useWorkspaceDocuments() {
         const html = contentByTabId[id];
         if (html !== undefined) {
           await persistDocument(id, html);
-          savedContentRef.current[id] = html;
+          setSavedContentByTabId((prev) => ({ ...prev, [id]: html }));
         }
       }
 

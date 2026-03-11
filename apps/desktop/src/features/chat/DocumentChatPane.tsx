@@ -1,4 +1,4 @@
-import { useTranslation } from "../settings/i18n/I18nContext";
+import { useTranslation } from "../settings/i18n/useTranslation";
 
 interface DocumentChatPaneProps {
   documentTitle: string;

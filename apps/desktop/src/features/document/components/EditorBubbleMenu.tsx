@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { type Editor } from "@tiptap/react";
-import { useTranslation } from "../../settings/i18n/I18nContext";
+import { useTranslation } from "../../settings/i18n/useTranslation";
 import type { BubbleCommandPayload, BubbleCommandHandler } from "./bubbleMenuContract";
 
 interface EditorBubbleMenuProps {

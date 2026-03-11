@@ -7,7 +7,7 @@
  * - Word count (~N words): explicitly approximate and provisional; coherent with HTML string
  *   contract and current application stage.
  */
-import { useTranslation } from "../features/settings/i18n/I18nContext";
+import { useTranslation } from "../features/settings/i18n/useTranslation";
 
 interface AppStatusBarProps {
   projectFolderName: string;

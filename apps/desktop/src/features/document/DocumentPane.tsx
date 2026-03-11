@@ -102,7 +102,9 @@ export function DocumentPane({
 
     requestAnimationFrame(() => {
       const targetElement =
-        viewMode === "rendered" ? renderedScrollRef.current : sourceTextareaRef.current;
+        viewMode === "rendered"
+          ? renderedScrollRef.current
+          : sourceTextareaRef.current;
       if (!targetElement) return;
       applyScrollRatio(targetElement, ratio);
 
@@ -135,9 +137,9 @@ export function DocumentPane({
   return (
     <main className="app-document-area flex flex-1 flex-col overflow-hidden bg-[var(--app-bg)]/20">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none">
-        <div className="mx-auto flex min-h-0 w-full max-w-[800px] flex-1 flex-col px-12 pb-16 pt-6 lg:px-20 lg:pb-24 lg:pt-8">
+        <div className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 flex-col p-8 lg:p-10">
           {showSourceMode ? (
-            <>
+            <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
               <div className="shrink-0">
                 <EditorToolbar
                   editor={null}
@@ -148,31 +150,33 @@ export function DocumentPane({
                   onToggleMarkdownView={onToggleMarkdownView}
                 />
               </div>
-              <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
+              <div className="flex min-h-0 flex-1 flex-col rounded-lg bg-[var(--app-bg)]/20">
                 <textarea
                   ref={sourceTextareaRef}
                   value={sourceContent}
                   onChange={(event) => handleSourceChange(event.target.value)}
                   onScroll={handleSourceScroll}
-                  className="h-full min-h-[420px] w-full resize-none rounded bg-[var(--app-bg)]/20 p-3 font-mono text-sm leading-relaxed text-[var(--app-text)] outline-none"
+                  className="h-full min-h-[420px] w-full resize-none rounded-lg bg-transparent p-4 font-mono text-sm leading-relaxed text-[var(--app-text)] outline-none"
                   spellCheck={false}
                 />
               </div>
-            </>
+            </div>
           ) : (
-            <DocumentEditorSurface
-              title={title}
-              content={content}
-              onTitleChange={setTitle}
-              onContentChange={setContent}
-              onSave={onSave}
-              isSaveable={isSaveable}
-              canToggleMarkdownView={isMarkdownDocument}
-              markdownViewMode={viewMode}
-              onToggleMarkdownView={onToggleMarkdownView}
-              scrollContainerRef={renderedScrollRef}
-              onScrollContainer={handleRenderedScroll}
-            />
+            <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
+              <DocumentEditorSurface
+                title={title}
+                content={content}
+                onTitleChange={setTitle}
+                onContentChange={setContent}
+                onSave={onSave}
+                isSaveable={isSaveable}
+                canToggleMarkdownView={isMarkdownDocument}
+                markdownViewMode={viewMode}
+                onToggleMarkdownView={onToggleMarkdownView}
+                scrollContainerRef={renderedScrollRef}
+                onScrollContainer={handleRenderedScroll}
+              />
+            </div>
           )}
         </div>
       </div>

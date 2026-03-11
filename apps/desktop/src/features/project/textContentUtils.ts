@@ -17,8 +17,60 @@ function renderInlineMarkdown(text: string): string {
   return escaped
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/~~([^~]+)~~/g, "<s>$1</s>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+}
+
+function isHorizontalRule(line: string): boolean {
+  return /^\s*([-*_])(?:\s*\1){2,}\s*$/.test(line);
+}
+
+function isUnorderedListLine(line: string): boolean {
+  return /^[-*+]\s+/.test(line.trim());
+}
+
+function parseTaskListLine(
+  line: string
+): { checked: boolean; text: string } | null {
+  const match = line.trim().match(/^[-*+]\s+\[( |x|X)\]\s+(.*)$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    checked: match[1].toLowerCase() === "x",
+    text: match[2],
+  };
+}
+
+function isOrderedListLine(line: string): boolean {
+  return /^\d+\.\s+/.test(line.trim());
+}
+
+function isHeadingLine(line: string): boolean {
+  return /^#{1,6}\s+/.test(line.trim());
+}
+
+function isCodeFenceLine(line: string): boolean {
+  return /^```/.test(line.trim());
+}
+
+function isBlockquoteLine(line: string): boolean {
+  return /^>\s?/.test(line.trim());
+}
+
+function splitTableRow(line: string): string[] {
+  const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  return trimmed.split("|").map((cell) => cell.trim());
+}
+
+function isTableRowLine(line: string): boolean {
+  return line.includes("|");
+}
+
+function isTableSeparatorLine(line: string): boolean {
+  const cells = splitTableRow(line);
+  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
 }
 
 /**
@@ -42,49 +94,195 @@ export function markdownToSimpleHtml(markdown: string): string {
   const normalized = markdown.replace(/\r\n/g, "\n").trim();
   if (!normalized) return "<p></p>";
 
-  const blocks = normalized.split(/\n\n+/);
-  const html = blocks.map((block) => {
-    const trimmed = block.trim();
+  const lines = normalized.split("\n");
+  const html: string[] = [];
+  let i = 0;
 
-    if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
-      const inner = trimmed.replace(/^```\w*\n?/, "").replace(/\n?```$/, "");
-      return `<pre><code>${escapeHtml(inner)}</code></pre>`;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      i += 1;
+      continue;
     }
 
-    const listLines = trimmed.split("\n");
-    const isUnorderedList = listLines.every((line) => /^[-*+]\s+/.test(line));
-    if (isUnorderedList) {
-      const items = listLines
-        .map((line) => line.replace(/^[-*+]\s+/, "").trim())
-        .map((item) => `<li>${renderInlineMarkdown(item)}</li>`)
-        .join("");
-      return `<ul>${items}</ul>`;
+    if (isCodeFenceLine(trimmed)) {
+      i += 1;
+      const codeLines: string[] = [];
+      while (i < lines.length && !isCodeFenceLine(lines[i])) {
+        codeLines.push(lines[i]);
+        i += 1;
+      }
+      if (i < lines.length && isCodeFenceLine(lines[i])) {
+        i += 1;
+      }
+      html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+      continue;
     }
 
-    const isOrderedList = listLines.every((line) => /^\d+\.\s+/.test(line));
-    if (isOrderedList) {
-      const items = listLines
-        .map((line) => line.replace(/^\d+\.\s+/, "").trim())
-        .map((item) => `<li>${renderInlineMarkdown(item)}</li>`)
-        .join("");
-      return `<ol>${items}</ol>`;
+    if (isHorizontalRule(trimmed)) {
+      html.push("<hr/>");
+      i += 1;
+      continue;
     }
 
-    const heading = trimmed.match(/^(#{1,6})\s+(.*)$/);
-    if (heading) {
-      const level = heading[1].length;
-      return `<h${level}>${renderInlineMarkdown(heading[2].trim())}</h${level}>`;
+    const taskItem = parseTaskListLine(line);
+    if (taskItem) {
+      const items: Array<{ checked: boolean; text: string }> = [];
+      while (i < lines.length) {
+        const currentTaskItem = parseTaskListLine(lines[i]);
+        if (!currentTaskItem) {
+          break;
+        }
+        items.push(currentTaskItem);
+        i += 1;
+      }
+      html.push(
+        `<ul class="md-task-list">${items
+          .map(
+            (item) =>
+              `<li data-task="true" data-checked="${item.checked ? "true" : "false"}"><span data-task-box="true">${item.checked ? "☑" : "☐"}</span><span data-task-label="true">${renderInlineMarkdown(item.text)}</span></li>`
+          )
+          .join("")}</ul>`
+      );
+      continue;
     }
 
-    if (trimmed.startsWith(">")) {
-      const quote = listLines
-        .map((line) => line.replace(/^>\s?/, ""))
-        .join("<br/>");
-      return `<blockquote>${renderInlineMarkdown(quote)}</blockquote>`;
+    if (
+      isTableRowLine(line) &&
+      i + 1 < lines.length &&
+      isTableSeparatorLine(lines[i + 1])
+    ) {
+      const headerCells = splitTableRow(line).map((cell) =>
+        renderInlineMarkdown(cell)
+      );
+      i += 2;
+
+      const dataRows: string[][] = [];
+      while (i < lines.length && lines[i].trim() && isTableRowLine(lines[i])) {
+        dataRows.push(
+          splitTableRow(lines[i]).map((cell) => renderInlineMarkdown(cell))
+        );
+        i += 1;
+      }
+
+      const thead = `<thead><tr>${headerCells
+        .map((cell) => `<th>${cell}</th>`)
+        .join("")}</tr></thead>`;
+      const tbody = `<tbody>${dataRows
+        .map(
+          (row) =>
+            `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`
+        )
+        .join("")}</tbody>`;
+      html.push(`<table>${thead}${tbody}</table>`);
+      continue;
     }
 
-    return `<p>${listLines.map((line) => renderInlineMarkdown(line)).join("<br/>")}</p>`;
-  });
+    if (isUnorderedListLine(line)) {
+      const items: string[] = [];
+      while (i < lines.length && isUnorderedListLine(lines[i])) {
+        items.push(lines[i].trim().replace(/^[-*+]\s+/, ""));
+        i += 1;
+      }
+      html.push(
+        `<ul>${items
+          .map((item) => `<li>${renderInlineMarkdown(item)}</li>`)
+          .join("")}</ul>`
+      );
+      continue;
+    }
+
+    if (isOrderedListLine(line)) {
+      const items: string[] = [];
+      while (i < lines.length && isOrderedListLine(lines[i])) {
+        items.push(lines[i].trim().replace(/^\d+\.\s+/, ""));
+        i += 1;
+      }
+      html.push(
+        `<ol>${items
+          .map((item) => `<li>${renderInlineMarkdown(item)}</li>`)
+          .join("")}</ol>`
+      );
+      continue;
+    }
+
+    if (isHeadingLine(line)) {
+      const heading = line.trim().match(/^(#{1,6})\s+(.*)$/);
+      if (heading) {
+        const level = heading[1].length;
+        html.push(
+          `<h${level}>${renderInlineMarkdown(heading[2].trim())}</h${level}>`
+        );
+      }
+      i += 1;
+
+      const paragraphLines: string[] = [];
+      while (
+        i < lines.length &&
+        lines[i].trim() &&
+        !isCodeFenceLine(lines[i]) &&
+        !isHorizontalRule(lines[i]) &&
+        !isHeadingLine(lines[i]) &&
+        !isUnorderedListLine(lines[i]) &&
+        !isOrderedListLine(lines[i]) &&
+        !isBlockquoteLine(lines[i]) &&
+        !(
+          isTableRowLine(lines[i]) &&
+          i + 1 < lines.length &&
+          isTableSeparatorLine(lines[i + 1])
+        )
+      ) {
+        paragraphLines.push(lines[i]);
+        i += 1;
+      }
+
+      if (paragraphLines.length > 0) {
+        html.push(
+          `<p>${paragraphLines
+            .map((currentLine) => renderInlineMarkdown(currentLine))
+            .join("<br/>")}</p>`
+        );
+      }
+      continue;
+    }
+
+    if (isBlockquoteLine(line)) {
+      const quoteLines: string[] = [];
+      while (i < lines.length && isBlockquoteLine(lines[i])) {
+        quoteLines.push(lines[i].trim().replace(/^>\s?/, ""));
+        i += 1;
+      }
+      html.push(
+        `<blockquote>${quoteLines
+          .map((currentLine) => renderInlineMarkdown(currentLine))
+          .join("<br/>")}</blockquote>`
+      );
+      continue;
+    }
+
+    const paragraphLines: string[] = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() &&
+      !isCodeFenceLine(lines[i]) &&
+      !isHorizontalRule(lines[i]) &&
+      !isHeadingLine(lines[i]) &&
+      !isUnorderedListLine(lines[i]) &&
+      !isOrderedListLine(lines[i]) &&
+      !isBlockquoteLine(lines[i]) &&
+      !(isTableRowLine(lines[i]) && i + 1 < lines.length && isTableSeparatorLine(lines[i + 1]))
+    ) {
+      paragraphLines.push(lines[i]);
+      i += 1;
+    }
+    html.push(
+      `<p>${paragraphLines
+        .map((currentLine) => renderInlineMarkdown(currentLine))
+        .join("<br/>")}</p>`
+    );
+  }
 
   return html.join("");
 }
@@ -127,6 +325,10 @@ function convertElementToMarkdown(node: Node): string {
     case "em":
     case "i":
       return `*${content}*`;
+    case "s":
+    case "del":
+    case "strike":
+      return `~~${content}~~`;
     case "code": {
       if (element.parentElement?.tagName.toLowerCase() === "pre") {
         return content;
@@ -135,9 +337,11 @@ function convertElementToMarkdown(node: Node): string {
     }
     case "pre":
       return `\`\`\`\n${content.trimEnd()}\n\`\`\`\n\n`;
+    case "hr":
+      return `---\n\n`;
     case "blockquote": {
       const lines = content.trim().split(/\n/).filter(Boolean);
-      return `${lines.map((line) => `> ${line}`).join("\n")}\n\n`;
+      return `${lines.map((currentLine) => `> ${currentLine}`).join("\n")}\n\n`;
     }
     case "ul": {
       const items = Array.from(element.children)
@@ -153,8 +357,63 @@ function convertElementToMarkdown(node: Node): string {
         .join("\n");
       return `${items}\n\n`;
     }
-    case "li":
+    case "li": {
+      if (element.dataset.task === "true") {
+        const labelElement = element.querySelector(
+          '[data-task-label="true"]'
+        ) as HTMLElement | null;
+        const label = (
+          labelElement
+            ? convertElementToMarkdown(labelElement)
+            : content.replace(/[☑☐]/g, "")
+        ).trim();
+        const checked =
+          element.dataset.checked === "true" ||
+          ((element.querySelector('input[type="checkbox"]') as HTMLInputElement | null)
+            ?.checked ??
+            false) ||
+          (element.textContent ?? "").includes("☑");
+        return `[${checked ? "x" : " "}] ${label}`;
+      }
       return content.replace(/\n\n+$/, "");
+    }
+    case "table": {
+      const table = element as HTMLTableElement;
+      const rowElements: HTMLTableRowElement[] = [];
+
+      if (table.tHead) {
+        rowElements.push(...Array.from(table.tHead.rows));
+      }
+      if (table.tBodies.length > 0) {
+        for (const tbody of Array.from(table.tBodies)) {
+          rowElements.push(...Array.from(tbody.rows));
+        }
+      }
+      if (rowElements.length === 0) {
+        rowElements.push(...Array.from(table.rows));
+      }
+
+      if (rowElements.length === 0) return "";
+
+      const rows = rowElements.map((row) =>
+        Array.from(row.cells).map((cell) => convertElementToMarkdown(cell).trim())
+      );
+      if (rows.length === 0) return "";
+
+      const header = rows[0];
+      const separator = header.map(() => "---");
+      const body = rows.slice(1);
+
+      const markdownRows = [
+        `| ${header.join(" | ")} |`,
+        `| ${separator.join(" | ")} |`,
+        ...body.map((row) => `| ${row.join(" | ")} |`),
+      ];
+      return `${markdownRows.join("\n")}\n\n`;
+    }
+    case "th":
+    case "td":
+      return content.replace(/\n+/g, " ").trim();
     case "a": {
       const href = element.getAttribute("href") ?? "";
       return `[${content}](${href})`;
