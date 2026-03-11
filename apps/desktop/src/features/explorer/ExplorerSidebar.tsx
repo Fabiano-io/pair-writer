@@ -1,33 +1,122 @@
-import { useMemo } from "react";
-import {
-  WORKSPACE_DOCUMENTS,
-  type WorkspaceDocument,
-} from "../workspace/workspaceDocuments";
+import { useProjectExplorer } from "./useProjectExplorer";
+import type { DirEntry } from "../project/projectAccess";
 
 interface ExplorerSidebarProps {
   width: number;
   activeDocumentId: string | null;
-  onDocumentSelect: (id: string) => void;
+  onFileSelect: (path: string) => void;
 }
 
-function groupDocuments(
-  docs: WorkspaceDocument[]
-): { group: string; items: WorkspaceDocument[] }[] {
-  const map = new Map<string, WorkspaceDocument[]>();
-  for (const doc of docs) {
-    const list = map.get(doc.group) ?? [];
-    list.push(doc);
-    map.set(doc.group, list);
+function getFolderName(path: string): string {
+  const parts = path.replace(/\\/g, "/").split("/");
+  return parts[parts.length - 1] || path;
+}
+
+function TreeNode({
+  entry,
+  depth,
+  isExpanded,
+  getChildren,
+  onToggleExpand,
+  onFileSelect,
+  isSupportedFile,
+  activeDocumentId,
+}: {
+  entry: DirEntry;
+  depth: number;
+  isExpanded: (path: string) => boolean;
+  getChildren: (path: string) => DirEntry[];
+  onToggleExpand: (path: string) => void;
+  onFileSelect: (path: string) => void;
+  isSupportedFile: (path: string) => boolean;
+  activeDocumentId: string | null;
+}) {
+  const expanded = isExpanded(entry.path);
+  const children = getChildren(entry.path);
+  const supported = entry.isDir || isSupportedFile(entry.path);
+  const isActive = entry.path === activeDocumentId;
+
+  if (entry.isDir) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => onToggleExpand(entry.path)}
+          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
+          style={{ paddingLeft: 8 + depth * 12 }}
+        >
+          <span className="shrink-0 text-xs">
+            {expanded ? "▾" : "▸"}
+          </span>
+          <span className="shrink-0 text-xs opacity-60">📁</span>
+          <span className="truncate">{entry.name}</span>
+        </button>
+        {expanded && (
+          <div>
+            {children.map((child) => (
+              <TreeNode
+                key={child.path}
+                entry={child}
+                depth={depth + 1}
+                isExpanded={isExpanded}
+                getChildren={getChildren}
+                onToggleExpand={onToggleExpand}
+                onFileSelect={onFileSelect}
+                isSupportedFile={isSupportedFile}
+                activeDocumentId={activeDocumentId}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
   }
-  return Array.from(map, ([group, items]) => ({ group, items }));
+
+  if (supported) {
+    return (
+      <button
+        type="button"
+        onClick={() => onFileSelect(entry.path)}
+        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+          isActive
+            ? "bg-zinc-800/70 text-zinc-100"
+            : "text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
+        }`}
+        style={{ paddingLeft: 8 + depth * 12 }}
+      >
+        <span className="shrink-0 text-xs opacity-60">📄</span>
+        <span className="truncate">{entry.name}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-zinc-600"
+      style={{ paddingLeft: 8 + depth * 12 }}
+      title="File type not supported"
+    >
+      <span className="shrink-0 text-xs opacity-40">📄</span>
+      <span className="truncate">{entry.name}</span>
+    </div>
+  );
 }
 
 export function ExplorerSidebar({
   width,
   activeDocumentId,
-  onDocumentSelect,
+  onFileSelect,
 }: ExplorerSidebarProps) {
-  const groups = useMemo(() => groupDocuments(WORKSPACE_DOCUMENTS), []);
+  const {
+    projectRootPath,
+    rootEntries,
+    isLoading,
+    selectProjectFolder,
+    toggleExpand,
+    isExpanded,
+    getChildren,
+    isSupportedFile,
+  } = useProjectExplorer();
 
   return (
     <aside
@@ -41,36 +130,58 @@ export function ExplorerSidebar({
         </span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
-        {groups.map(({ group, items }) => (
-          <div key={group} className="mb-4">
-            <h3 className="mb-1 px-2 text-[11px] font-semibold tracking-widest text-zinc-500 uppercase">
-              {group}
-            </h3>
-            <ul className="space-y-0.5">
-              {items.map((item) => {
-                const isActive = item.id === activeDocumentId;
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => onDocumentSelect(item.id)}
-                      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                        isActive
-                          ? "bg-zinc-800/70 text-zinc-100"
-                          : "text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
-                      }`}
-                    >
-                      <span className="text-xs opacity-60">📄</span>
-                      <span className="truncate">{item.label}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {!projectRootPath ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-6">
+            <p className="text-center text-sm text-zinc-500">
+              Select a project folder to browse files
+            </p>
+            <button
+              type="button"
+              onClick={selectProjectFolder}
+              disabled={isLoading}
+              className="rounded-md bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700 disabled:opacity-50"
+            >
+              Select project folder
+            </button>
           </div>
-        ))}
-      </nav>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
+              <span
+                className="truncate text-xs text-zinc-400"
+                title={projectRootPath}
+              >
+                {getFolderName(projectRootPath)}
+              </span>
+              <button
+                type="button"
+                onClick={selectProjectFolder}
+                className="shrink-0 text-xs text-zinc-500 hover:text-zinc-300"
+                title="Change project folder"
+              >
+                Change
+              </button>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto px-2 py-2">
+              {rootEntries.map((entry) => (
+                <TreeNode
+                  key={entry.path}
+                  entry={entry}
+                  depth={0}
+                  isExpanded={isExpanded}
+                  getChildren={getChildren}
+                  onToggleExpand={toggleExpand}
+                  onFileSelect={onFileSelect}
+                  isSupportedFile={isSupportedFile}
+                  activeDocumentId={activeDocumentId}
+                />
+              ))}
+            </nav>
+          </>
+        )}
+      </div>
     </aside>
   );
 }

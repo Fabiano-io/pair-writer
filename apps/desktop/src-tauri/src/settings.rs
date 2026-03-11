@@ -12,6 +12,9 @@ pub struct AppSettings {
     pub window: WindowSettings,
     #[serde(default)]
     pub workspace_layout: WorkspaceLayoutSettings,
+    /// Convenience only (e.g. reopen last folder). Not source of truth. User selection defines the project.
+    #[serde(default)]
+    pub project_root_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,6 +63,7 @@ impl Default for AppSettings {
             version: default_version(),
             window: WindowSettings::default(),
             workspace_layout: WorkspaceLayoutSettings::default(),
+            project_root_path: None,
         }
     }
 }

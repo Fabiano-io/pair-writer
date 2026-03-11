@@ -1,33 +1,43 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   WORKSPACE_DOCUMENTS,
-  INITIAL_OPEN_TAB_IDS,
   PROVISIONAL_CONTENT,
 } from "./workspaceDocuments";
 import {
   loadDocumentContent,
   saveDocumentContent,
 } from "./documentStorage";
+import {
+  readFileContent,
+  saveFileContent,
+  isSupportedFile,
+} from "../project/projectAccess";
+import { textToSimpleHtml, htmlToPlainText } from "../project/textContentUtils";
+import { loadSettings } from "../settings/appSettings";
 
 const SAVE_DEBOUNCE_MS = 500;
 const CATALOG_IDS = new Set(WORKSPACE_DOCUMENTS.map((d) => d.id));
 
-function createInitialContentByTabId(): Record<string, string> {
-  return INITIAL_OPEN_TAB_IDS.reduce(
-    (acc, id) => ({ ...acc, [id]: PROVISIONAL_CONTENT }),
-    {} as Record<string, string>
-  );
+/** Operational id is normalized path. Not final document identity. */
+function isProjectFileId(id: string): boolean {
+  return id.includes("/") || id.includes("\\");
+}
+
+function basename(path: string): string {
+  const parts = path.replace(/\\/g, "/").split("/");
+  return parts[parts.length - 1] ?? path;
+}
+
+function needsTextConversion(path: string): boolean {
+  const lower = path.toLowerCase();
+  return lower.endsWith(".md") || lower.endsWith(".txt");
 }
 
 export function useWorkspaceDocuments() {
-  const [openTabIds, setOpenTabIds] = useState<string[]>(
-    () => [...INITIAL_OPEN_TAB_IDS]
-  );
-  const [activeTabId, setActiveTabId] = useState<string | null>(
-    INITIAL_OPEN_TAB_IDS[0] ?? null
-  );
+  const [openTabIds, setOpenTabIds] = useState<string[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [contentByTabId, setContentByTabId] = useState<Record<string, string>>(
-    createInitialContentByTabId
+    {}
   );
 
   const loadGenerationRef = useRef<Record<string, number>>({});
@@ -37,20 +47,31 @@ export function useWorkspaceDocuments() {
   );
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const flushPendingSave = useCallback(() => {
+  const flushPendingSave = useCallback(async () => {
     if (saveTimeoutRef.current !== null) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
     const pending = pendingSaveRef.current;
-    if (pending && CATALOG_IDS.has(pending.documentId)) {
+    if (!pending) return;
+    pendingSaveRef.current = null;
+    if (CATALOG_IDS.has(pending.documentId)) {
       saveDocumentContent(pending.documentId, pending.content);
-      pendingSaveRef.current = null;
+    } else if (isProjectFileId(pending.documentId)) {
+      const settings = await loadSettings();
+      const projectRoot = settings.projectRootPath ?? undefined;
+      let content = pending.content;
+      if (needsTextConversion(pending.documentId)) {
+        content = htmlToPlainText(content);
+      }
+      await saveFileContent(pending.documentId, content, projectRoot);
     }
   }, []);
 
   useEffect(() => {
-    return () => flushPendingSave();
+    return () => {
+      void flushPendingSave();
+    };
   }, [flushPendingSave]);
 
   useEffect(() => {
@@ -60,48 +81,71 @@ export function useWorkspaceDocuments() {
   }, [flushPendingSave]);
 
   const tabs = useMemo(
-    () => WORKSPACE_DOCUMENTS.filter((d) => openTabIds.includes(d.id)),
+    () =>
+      openTabIds.map((id) => {
+        const catalogDoc = WORKSPACE_DOCUMENTS.find((d) => d.id === id);
+        if (catalogDoc) return { id: catalogDoc.id, label: catalogDoc.label };
+        return { id, label: basename(id) };
+      }),
     [openTabIds]
   );
 
   const activeDocument = useMemo(
-    () => WORKSPACE_DOCUMENTS.find((d) => d.id === activeTabId),
+    () =>
+      WORKSPACE_DOCUMENTS.find((d) => d.id === activeTabId) ?? (activeTabId ? { id: activeTabId, label: basename(activeTabId), group: "" } : undefined),
     [activeTabId]
   );
 
   const hasActiveTab = activeTabId !== null && activeDocument !== undefined;
 
-  useEffect(() => {
-    INITIAL_OPEN_TAB_IDS.forEach((id) => {
-      pristineByDocIdRef.current[id] = true;
-      const gen = (loadGenerationRef.current[id] ?? 0) + 1;
-      loadGenerationRef.current[id] = gen;
-      loadDocumentContent(id).then((html) => {
-        if (
-          html !== null &&
-          (loadGenerationRef.current[id] ?? 0) === gen &&
-          pristineByDocIdRef.current[id]
-        ) {
-          setContentByTabId((prev) => ({ ...prev, [id]: html }));
-        }
-      });
-    });
-  }, []);
-
   const openDocument = useCallback((documentId: string) => {
-    const docExists = WORKSPACE_DOCUMENTS.some((d) => d.id === documentId);
-    if (!docExists) return;
+    const isProject = isProjectFileId(documentId);
+    const isCatalog = CATALOG_IDS.has(documentId);
 
-    setOpenTabIds((prev) => {
-      if (prev.includes(documentId)) return prev;
-      return [...prev, documentId];
-    });
+    if (!isProject && !isCatalog) return;
 
-    setContentByTabId((prev) => {
-      if (prev[documentId] !== undefined) return prev;
-      pristineByDocIdRef.current[documentId] = true;
-      const gen = (loadGenerationRef.current[documentId] ?? 0) + 1;
-      loadGenerationRef.current[documentId] = gen;
+    if (openTabIds.includes(documentId)) {
+      setActiveTabId(documentId);
+      return;
+    }
+
+    setOpenTabIds((prev) => [...prev, documentId]);
+
+    if (contentByTabId[documentId] !== undefined) {
+      setActiveTabId(documentId);
+      return;
+    }
+
+    setContentByTabId((prev) => ({
+      ...prev,
+      [documentId]: PROVISIONAL_CONTENT,
+    }));
+    pristineByDocIdRef.current[documentId] = true;
+    const gen = (loadGenerationRef.current[documentId] ?? 0) + 1;
+    loadGenerationRef.current[documentId] = gen;
+
+    if (isProject && isSupportedFile(documentId)) {
+      loadSettings().then((s) => s.projectRootPath ?? undefined).then((projectRoot) =>
+        readFileContent(documentId, projectRoot)
+          .then((text) => {
+            if (
+              (loadGenerationRef.current[documentId] ?? 0) === gen &&
+              pristineByDocIdRef.current[documentId]
+            ) {
+              const html = needsTextConversion(documentId)
+                ? textToSimpleHtml(text)
+                : text;
+              setContentByTabId((prev) => ({ ...prev, [documentId]: html }));
+            }
+          })
+          .catch(() => {
+            setContentByTabId((prev) => ({
+              ...prev,
+              [documentId]: PROVISIONAL_CONTENT,
+            }));
+          })
+      );
+    } else if (isCatalog) {
       loadDocumentContent(documentId).then((html) => {
         if (
           (loadGenerationRef.current[documentId] ?? 0) === gen &&
@@ -113,11 +157,10 @@ export function useWorkspaceDocuments() {
           }));
         }
       });
-      return { ...prev, [documentId]: PROVISIONAL_CONTENT };
-    });
+    }
 
     setActiveTabId(documentId);
-  }, []);
+  }, [openTabIds, contentByTabId]);
 
   const closeDocument = useCallback(
     (id: string) => {
@@ -160,16 +203,7 @@ export function useWorkspaceDocuments() {
         }
         pendingSaveRef.current = { documentId: activeTabId, content };
         saveTimeoutRef.current = setTimeout(() => {
-          if (
-            pendingSaveRef.current &&
-            CATALOG_IDS.has(pendingSaveRef.current.documentId)
-          ) {
-            saveDocumentContent(
-              pendingSaveRef.current.documentId,
-              pendingSaveRef.current.content
-            );
-          }
-          pendingSaveRef.current = null;
+          flushPendingSave();
           saveTimeoutRef.current = null;
         }, SAVE_DEBOUNCE_MS);
       }

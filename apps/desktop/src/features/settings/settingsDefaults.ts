@@ -15,6 +15,8 @@ export interface AppSettings {
   version: number;
   window: WindowSettings;
   workspaceLayout: WorkspaceLayoutSettings;
+  /** Convenience only (e.g. reopen last folder). Not source of truth for project. User selection defines the project. */
+  projectRootPath: string | null;
 }
 
 export const EXPLORER_MIN_WIDTH = 180;
@@ -40,4 +42,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
     explorerWidth: EXPLORER_DEFAULT_WIDTH,
     chatWidth: CHAT_DEFAULT_WIDTH,
   },
+  projectRootPath: null,
 };

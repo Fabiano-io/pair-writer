@@ -27,3 +27,14 @@ export async function saveWorkspaceLayout(
     workspaceLayout: layout,
   });
 }
+
+/** Saves projectRootPath as application convenience (reopen last folder). Not source of truth. */
+export async function saveProjectRootPath(
+  path: string | null
+): Promise<void> {
+  const current = await loadSettings();
+  await saveSettings({
+    ...current,
+    projectRootPath: path,
+  });
+}

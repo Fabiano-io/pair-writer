@@ -38,7 +38,7 @@ export function AppShell() {
             <ExplorerSidebar
               width={explorerWidth}
               activeDocumentId={workspace.activeTabId}
-              onDocumentSelect={workspace.openDocument}
+              onFileSelect={workspace.openDocument}
             />
             <ResizeHandle
               onResize={onExplorerResize}
