@@ -1,15 +1,9 @@
 import { WorkspaceTabs } from "./WorkspaceTabs";
 import { DocumentPane } from "../document/DocumentPane";
 import { DocumentChatPane } from "../chat/DocumentChatPane";
-import { DocumentStatusBar } from "./DocumentStatusBar";
 import { ResizeHandle } from "../../components/ResizeHandle";
 import { PROVISIONAL_CONTENT } from "./workspaceDocuments";
 import type { WorkspaceDocument } from "./workspaceDocuments";
-
-function approximateWordCount(html: string): number {
-  const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-  return text ? text.split(" ").filter(Boolean).length : 0;
-}
 
 interface DocumentWorkspaceProps {
   chatWidth: number;
@@ -46,8 +40,6 @@ export function DocumentWorkspace({
   onSave,
   isSaveable = false,
 }: DocumentWorkspaceProps) {
-  const isDirty = activeTabId ? dirtyTabIds.has(activeTabId) : false;
-
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-zinc-900">
       <WorkspaceTabs
@@ -87,20 +79,6 @@ export function DocumentWorkspace({
           </div>
         )}
       </div>
-
-      <DocumentStatusBar
-        hasActiveTab={hasActiveTab}
-        activeDocumentLabel={activeDocument?.label ?? ""}
-        wordCount={
-          hasActiveTab
-            ? approximateWordCount(
-                contentByTabId[activeTabId!] ?? PROVISIONAL_CONTENT
-              )
-            : 0
-        }
-        chatVisible={chatVisible}
-        isDirty={isDirty}
-      />
     </div>
   );
 }

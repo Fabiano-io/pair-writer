@@ -195,10 +195,13 @@ export function ExplorerSidebar({
       className="flex shrink-0 flex-col border-r border-zinc-800 bg-zinc-950"
       style={{ width }}
     >
-      <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
-        <span className="text-base">✦</span>
+      <div
+        className="flex items-center gap-2 border-b border-zinc-800 px-4"
+        style={{ minHeight: 32 }}
+      >
+        <span className="text-base" aria-hidden>✦</span>
         <span className="text-sm font-semibold tracking-wide text-zinc-200">
-          Pair Writer
+          Explorer
         </span>
       </div>
 
@@ -221,25 +224,27 @@ export function ExplorerSidebar({
           <>
             <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
               <span
-                className="truncate text-xs text-zinc-400"
+                className="truncate text-sm font-medium text-zinc-300"
                 title={projectRootPath}
               >
                 {getFolderName(projectRootPath)}
               </span>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   onClick={startCreating}
-                  className="text-sm text-zinc-500 hover:text-zinc-300"
+                  className="rounded px-1.5 py-0.5 text-sm text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-zinc-300"
                   title="New document"
+                  aria-label="New document"
                 >
                   +
                 </button>
                 <button
                   type="button"
                   onClick={selectProjectFolder}
-                  className="text-xs text-zinc-500 hover:text-zinc-300"
+                  className="rounded px-1.5 py-0.5 text-xs text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-zinc-300"
                   title="Change project folder"
+                  aria-label="Change project folder"
                 >
                   Change
                 </button>

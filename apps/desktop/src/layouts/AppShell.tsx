@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppMenuBar } from "../components/AppMenuBar";
+import { AppStatusBar } from "../components/AppStatusBar";
 import { UnsavedChangesDialog } from "../components/UnsavedChangesDialog";
 import { ExplorerSidebar } from "../features/explorer/ExplorerSidebar";
 import { DocumentWorkspace } from "../features/workspace/DocumentWorkspace";
@@ -7,6 +8,18 @@ import { ResizeHandle } from "../components/ResizeHandle";
 import { useWorkspaceLayout } from "../features/workspace/useWorkspaceLayout";
 import { useWorkspaceDocuments } from "../features/workspace/useWorkspaceDocuments";
 import { loadSettings } from "../features/settings/appSettings";
+import { PROVISIONAL_CONTENT } from "../features/workspace/workspaceDocuments";
+
+/** Approximate word count from HTML. Explicitly provisional; coherent with HTML string contract. */
+function approximateWordCount(html: string): number {
+  const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return text ? text.split(" ").filter(Boolean).length : 0;
+}
+
+function getFolderName(path: string): string {
+  const parts = path.replace(/\\/g, "/").split("/");
+  return parts[parts.length - 1] || path;
+}
 
 export function AppShell() {
   const {
@@ -117,6 +130,29 @@ export function AppShell() {
           isSaveable={isSaveable}
         />
       </div>
+
+      <AppStatusBar
+        projectFolderName={
+          projectRootPath ? getFolderName(projectRootPath) : "No project"
+        }
+        projectRootPath={projectRootPath}
+        hasActiveTab={workspace.hasActiveTab}
+        activeDocumentLabel={workspace.activeDocument?.label ?? ""}
+        wordCount={
+          workspace.hasActiveTab && workspace.activeTabId
+            ? approximateWordCount(
+                workspace.contentByTabId[workspace.activeTabId] ??
+                  PROVISIONAL_CONTENT
+              )
+            : 0
+        }
+        chatVisible={chatVisible}
+        isDirty={
+          workspace.activeTabId
+            ? workspace.dirtyTabIds.has(workspace.activeTabId)
+            : false
+        }
+      />
 
       {pendingCloseDoc && (
         <UnsavedChangesDialog
