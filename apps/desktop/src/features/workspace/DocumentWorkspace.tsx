@@ -4,6 +4,7 @@ import { DocumentChatPane } from "../chat/DocumentChatPane";
 import { ResizeHandle } from "../../components/ResizeHandle";
 import { PROVISIONAL_CONTENT } from "./workspaceDocuments";
 import type { WorkspaceDocument } from "./workspaceDocuments";
+import { useTranslation } from "../settings/i18n/I18nContext";
 
 interface DocumentWorkspaceProps {
   chatWidth: number;
@@ -40,8 +41,9 @@ export function DocumentWorkspace({
   onSave,
   isSaveable = false,
 }: DocumentWorkspaceProps) {
+  const { t } = useTranslation();
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-zinc-900">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[var(--app-surface)]">
       <WorkspaceTabs
         tabs={tabs}
         activeTabId={activeTabId}
@@ -74,8 +76,8 @@ export function DocumentWorkspace({
             )}
           </>
         ) : (
-          <div className="flex flex-1 items-center justify-center text-sm text-zinc-600">
-            No document open
+          <div className="flex flex-1 items-center justify-center text-sm text-[var(--app-text-muted)]">
+            {t("workspace_no_document")}
           </div>
         )}
       </div>

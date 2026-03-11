@@ -23,7 +23,7 @@ export function WorkspaceTabs({
   const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
 
   return (
-    <div className="flex shrink-0 items-end gap-0 border-b border-zinc-800 bg-zinc-950 px-2 pt-2">
+    <div className="flex shrink-0 items-end gap-0 border-b border-[var(--app-border)] bg-[var(--app-bg)] px-2 pt-2">
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
         const isDirty = dirtyTabIds.has(tab.id);
@@ -38,15 +38,15 @@ export function WorkspaceTabs({
             onMouseLeave={() => setHoveredTabId(null)}
             className={`group relative flex items-center gap-2 rounded-t-lg px-4 py-2 text-sm transition-colors ${
               isActive
-                ? "bg-zinc-900 text-zinc-100 font-medium"
-                : "text-zinc-500 hover:bg-zinc-900/50 hover:text-zinc-300"
+                ? "bg-[var(--app-surface)] text-[var(--app-text)] font-medium"
+                : "text-[var(--app-text-muted)] hover:bg-[var(--app-surface)]/50 hover:text-[var(--app-text)]/80"
             }`}
           >
             <span className="truncate">{tab.label}</span>
             <span
               className={`flex h-4 w-4 items-center justify-center text-xs transition-opacity cursor-pointer select-none ${
                 isActive
-                  ? "text-zinc-500 opacity-100 hover:text-zinc-300"
+                  ? "text-[var(--app-text-muted)] opacity-100 hover:text-[var(--app-text)]/80"
                   : "opacity-0 group-hover:opacity-100"
               }`}
               onClick={(e) => {
@@ -62,7 +62,7 @@ export function WorkspaceTabs({
             </span>
 
             {isActive && (
-              <span className="absolute bottom-0 left-0 right-0 h-px bg-zinc-900" />
+              <span className="absolute bottom-0 left-0 right-0 h-px bg-[var(--app-surface)]" />
             )}
           </button>
         );

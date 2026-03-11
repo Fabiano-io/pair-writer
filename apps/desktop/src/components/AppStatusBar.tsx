@@ -7,6 +7,8 @@
  * - Word count (~N words): explicitly approximate and provisional; coherent with HTML string
  *   contract and current application stage.
  */
+import { useTranslation } from "../features/settings/i18n/I18nContext";
+
 interface AppStatusBarProps {
   projectFolderName: string;
   /** Full project path for tooltip when available */
@@ -28,12 +30,13 @@ export function AppStatusBar({
   chatVisible,
   isDirty,
 }: AppStatusBarProps) {
-  const projectLabel = projectFolderName || "No project";
-  const documentLabel = hasActiveTab ? activeDocumentLabel : "No document";
+  const { t } = useTranslation();
+  const projectLabel = projectFolderName || t("status_no_project");
+  const documentLabel = hasActiveTab ? activeDocumentLabel : t("status_no_document");
 
   return (
     <div
-      className="flex shrink-0 items-center gap-4 border-t border-zinc-800 bg-zinc-950 px-4 py-1.5 text-[10px] font-semibold text-zinc-500"
+      className="flex shrink-0 items-center gap-4 border-t border-[var(--app-border)] bg-[var(--app-bg)] px-4 py-1.5 text-[10px] font-semibold text-[var(--app-text-muted)]"
       role="status"
       style={{ minHeight: 24 }}
     >
@@ -43,24 +46,24 @@ export function AppStatusBar({
       >
         {projectLabel}
       </span>
-      <span className="h-2.5 w-px bg-zinc-700" aria-hidden />
+      <span className="h-2.5 w-px bg-[var(--app-border)]" aria-hidden />
       <span className="truncate">{documentLabel}</span>
 
       {hasActiveTab && isDirty && (
         <>
-          <span className="h-2.5 w-px bg-zinc-700" aria-hidden />
-          <span className="text-zinc-400">Edited</span>
+          <span className="h-2.5 w-px bg-[var(--app-border)]" aria-hidden />
+          <span className="text-[var(--app-text-muted)]">{t("status_edited")}</span>
         </>
       )}
 
       {hasActiveTab && (
         <>
-          <span className="h-2.5 w-px bg-zinc-700" aria-hidden />
+          <span className="h-2.5 w-px bg-[var(--app-border)]" aria-hidden />
           <span
             title="Approximate count from current HTML content (provisional)"
             aria-label="Approximate word count"
           >
-            ~{wordCount} words
+            ~{wordCount} {t("status_words")}
           </span>
         </>
       )}
@@ -69,7 +72,7 @@ export function AppStatusBar({
         <span
           className={`h-1.5 w-1.5 rounded-full bg-current ${chatVisible ? "opacity-100" : "opacity-40"}`}
         />
-        <span>Chat {chatVisible ? "on" : "off"}</span>
+        <span>{chatVisible ? t("status_chat_on") : t("status_chat_off")}</span>
       </span>
     </div>
   );

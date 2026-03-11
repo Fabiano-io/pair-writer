@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useProjectExplorer } from "./useProjectExplorer";
 import { createProjectFile } from "../project/projectAccess";
 import type { DirEntry } from "../project/projectAccess";
+import { useTranslation } from "../settings/i18n/I18nContext";
 
 interface ExplorerSidebarProps {
   width: number;
@@ -27,6 +28,7 @@ function TreeNode({
   onFileSelect,
   isSupportedFile,
   activeDocumentId,
+  unsupportedTitle,
 }: {
   entry: DirEntry;
   depth: number;
@@ -36,6 +38,7 @@ function TreeNode({
   onFileSelect: (path: string) => void;
   isSupportedFile: (path: string) => boolean;
   activeDocumentId: string | null;
+  unsupportedTitle: string;
 }) {
   const expanded = isExpanded(entry.path);
   const children = getChildren(entry.path);
@@ -48,7 +51,7 @@ function TreeNode({
         <button
           type="button"
           onClick={() => onToggleExpand(entry.path)}
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
+          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors text-[var(--app-text-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
           style={{ paddingLeft: 8 + depth * 12 }}
         >
           <span className="shrink-0 text-xs">
@@ -70,6 +73,7 @@ function TreeNode({
                 onFileSelect={onFileSelect}
                 isSupportedFile={isSupportedFile}
                 activeDocumentId={activeDocumentId}
+                unsupportedTitle={unsupportedTitle}
               />
             ))}
           </div>
@@ -85,8 +89,8 @@ function TreeNode({
         onClick={() => onFileSelect(entry.path)}
         className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
           isActive
-            ? "bg-zinc-800/70 text-zinc-100"
-            : "text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
+            ? "bg-[var(--app-surface-alt)]/70 text-[var(--app-text)]"
+            : "text-[var(--app-text-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
         }`}
         style={{ paddingLeft: 8 + depth * 12 }}
       >
@@ -98,9 +102,9 @@ function TreeNode({
 
   return (
     <div
-      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-zinc-600"
+      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--app-text-muted)]/70"
       style={{ paddingLeft: 8 + depth * 12 }}
-      title="File type not supported"
+      title={unsupportedTitle}
     >
       <span className="shrink-0 text-xs opacity-40">📄</span>
       <span className="truncate">{entry.name}</span>
@@ -115,6 +119,7 @@ export function ExplorerSidebar({
   onCreateDocument,
   newDocTrigger = 0,
 }: ExplorerSidebarProps) {
+  const { t } = useTranslation();
   const {
     projectRootPath,
     rootEntries,
@@ -154,12 +159,12 @@ export function ExplorerSidebar({
   const submitNewFile = useCallback(async () => {
     const trimmed = newFileName.trim();
     if (!trimmed) {
-      setCreateError("Name cannot be empty");
+      setCreateError(t("explorer_error_empty"));
       return;
     }
 
     if (INVALID_FILENAME_CHARS.test(trimmed)) {
-      setCreateError("Name contains invalid characters");
+      setCreateError(t("explorer_error_invalid"));
       return;
     }
 
@@ -181,50 +186,50 @@ export function ExplorerSidebar({
       const message =
         error instanceof Error ? error.message : String(error);
       if (message.includes("already exists")) {
-        setCreateError("File already exists");
+        setCreateError(t("explorer_error_exists"));
       } else {
-        setCreateError("Failed to create file");
+        setCreateError(t("explorer_error_create"));
       }
     } finally {
       submittingRef.current = false;
     }
-  }, [newFileName, projectRootPath, refreshRoot, onCreateDocument]);
+  }, [newFileName, projectRootPath, refreshRoot, onCreateDocument, t]);
 
   return (
     <aside
-      className="flex shrink-0 flex-col border-r border-zinc-800 bg-zinc-950"
+      className="flex shrink-0 flex-col border-r border-[var(--app-border)] bg-[var(--app-bg)]"
       style={{ width }}
     >
       <div
-        className="flex items-center gap-2 border-b border-zinc-800 px-4"
+        className="flex items-center gap-2 border-b border-[var(--app-border)] px-4"
         style={{ minHeight: 32 }}
       >
         <span className="text-base" aria-hidden>✦</span>
-        <span className="text-sm font-semibold tracking-wide text-zinc-200">
-          Explorer
+        <span className="text-sm font-semibold tracking-wide text-[var(--app-text)]">
+          {t("explorer_title")}
         </span>
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {!projectRootPath ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-6">
-            <p className="text-center text-sm text-zinc-500">
-              Select a project folder to browse files
+            <p className="text-center text-sm text-[var(--app-text-muted)]">
+              {t("explorer_select_folder")}
             </p>
             <button
               type="button"
               onClick={selectProjectFolder}
               disabled={isLoading}
-              className="rounded-md bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700 disabled:opacity-50"
+              className="rounded-md bg-[var(--app-surface-alt)] px-4 py-2 text-sm font-medium text-[var(--app-text)] transition-colors hover:opacity-90 disabled:opacity-50"
             >
-              Select project folder
+              {t("explorer_select_btn")}
             </button>
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
+            <div className="flex items-center justify-between gap-2 border-b border-[var(--app-border)] px-3 py-2">
               <span
-                className="truncate text-sm font-medium text-zinc-300"
+                className="truncate text-sm font-medium text-[var(--app-text)]/90"
                 title={projectRootPath}
               >
                 {getFolderName(projectRootPath)}
@@ -233,20 +238,20 @@ export function ExplorerSidebar({
                 <button
                   type="button"
                   onClick={startCreating}
-                  className="rounded px-1.5 py-0.5 text-sm text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-zinc-300"
-                  title="New document"
-                  aria-label="New document"
+                  className="rounded px-1.5 py-0.5 text-sm text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
+                  title={t("explorer_new_doc")}
+                  aria-label={t("explorer_new_doc")}
                 >
                   +
                 </button>
                 <button
                   type="button"
                   onClick={selectProjectFolder}
-                  className="rounded px-1.5 py-0.5 text-xs text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-zinc-300"
-                  title="Change project folder"
-                  aria-label="Change project folder"
+                  className="rounded px-1.5 py-0.5 text-xs text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
+                  title={t("explorer_change_folder")}
+                  aria-label={t("explorer_change_folder")}
                 >
-                  Change
+                  {t("explorer_change")}
                 </button>
               </div>
             </div>
@@ -273,8 +278,8 @@ export function ExplorerSidebar({
                     onBlur={() => {
                       if (!submittingRef.current) cancelCreating();
                     }}
-                    placeholder="Document name..."
-                    className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-600 outline-none focus:border-zinc-500"
+                    placeholder={t("explorer_doc_name_placeholder")}
+                    className="w-full rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1 text-xs text-[var(--app-text)] placeholder:text-[var(--app-text-muted)]/60 outline-none focus:border-[var(--app-surface-alt)]"
                   />
                   {createError && (
                     <p className="mt-0.5 text-[10px] text-red-400/80">
@@ -295,6 +300,7 @@ export function ExplorerSidebar({
                   onFileSelect={onFileSelect}
                   isSupportedFile={isSupportedFile}
                   activeDocumentId={activeDocumentId}
+                  unsupportedTitle={t("explorer_unsupported")}
                 />
               ))}
             </nav>

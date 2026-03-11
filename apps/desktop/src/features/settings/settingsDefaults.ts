@@ -11,12 +11,19 @@ export interface WorkspaceLayoutSettings {
   chatWidth: number;
 }
 
+export interface AppearanceSettings {
+  theme: "dark" | "dark-blue" | "dark-graphite";
+  fontPreset: "default" | "reading" | "editorial";
+  language: "en" | "pt";
+}
+
 export interface AppSettings {
   version: number;
   window: WindowSettings;
   workspaceLayout: WorkspaceLayoutSettings;
   /** Convenience only (e.g. reopen last folder). Not source of truth for project. User selection defines the project. */
   projectRootPath: string | null;
+  appearance?: AppearanceSettings;
 }
 
 export const EXPLORER_MIN_WIDTH = 180;
@@ -29,8 +36,14 @@ export const CHAT_DEFAULT_WIDTH = 340;
 
 export const MIN_DOCUMENT_WIDTH = 300;
 
+export const DEFAULT_APPEARANCE: AppearanceSettings = {
+  theme: "dark",
+  fontPreset: "default",
+  language: "en",
+};
+
 export const DEFAULT_SETTINGS: AppSettings = {
-  version: 1,
+  version: 2,
   window: {
     width: 1280,
     height: 800,
@@ -43,4 +56,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
     chatWidth: CHAT_DEFAULT_WIDTH,
   },
   projectRootPath: null,
+  appearance: DEFAULT_APPEARANCE,
 };

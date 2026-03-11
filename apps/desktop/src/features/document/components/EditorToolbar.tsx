@@ -1,4 +1,5 @@
 import { type Editor } from "@tiptap/react";
+import { useTranslation } from "../../settings/i18n/I18nContext";
 
 function ToolbarButton({
   isActive,
@@ -21,10 +22,10 @@ function ToolbarButton({
       title={title}
       className={`px-2 py-1.5 text-xs font-semibold rounded transition-colors ${
         disabled
-          ? "text-zinc-600 cursor-not-allowed"
+          ? "text-[var(--app-text-muted)]/60 cursor-not-allowed"
           : isActive
-            ? "bg-zinc-800 text-zinc-50 shadow-sm"
-            : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+            ? "bg-[var(--app-surface-alt)] text-[var(--app-text)] shadow-sm"
+            : "text-[var(--app-text-muted)] hover:bg-[var(--app-surface-alt)]/60 hover:text-[var(--app-text)]"
       }`}
     >
       {children}
@@ -33,7 +34,7 @@ function ToolbarButton({
 }
 
 function ToolbarDivider() {
-  return <div className="w-px h-4 bg-zinc-800 mx-1" />;
+  return <div className="w-px h-4 bg-[var(--app-border)] mx-1" />;
 }
 
 interface EditorToolbarProps {
@@ -47,6 +48,7 @@ export function EditorToolbar({
   onSave,
   isSaveable = false,
 }: EditorToolbarProps) {
+  const { t } = useTranslation();
   if (!editor) {
     return null;
   }
@@ -55,28 +57,28 @@ export function EditorToolbar({
   const canRedo = editor.can().redo();
 
   return (
-    <div className="flex flex-wrap items-center gap-1 px-3 py-2 mb-4 border border-zinc-800 rounded-lg bg-zinc-950/80 w-full select-none">
+    <div className="flex flex-wrap items-center gap-1 px-3 py-2 mb-4 border border-[var(--app-border)] rounded-lg bg-[var(--app-bg)]/80 w-full select-none">
       {/* History + Save */}
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!canUndo}
         title="Undo (Cmd+Z)"
       >
-        Undo
+        {t("toolbar_undo")}
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!canRedo}
         title="Redo (Cmd+Shift+Z)"
       >
-        Redo
+        {t("toolbar_redo")}
       </ToolbarButton>
       <ToolbarButton
         onClick={onSave ?? (() => {})}
         disabled={!isSaveable}
         title="Save (Cmd+S)"
       >
-        Save
+        {t("menu_save")}
       </ToolbarButton>
 
       <ToolbarDivider />
@@ -85,28 +87,28 @@ export function EditorToolbar({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive("bold")}
-        title="Bold (Cmd+B)"
+        title={t("toolbar_bold")}
       >
         B
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
         isActive={editor.isActive("italic")}
-        title="Italic (Cmd+I)"
+        title={t("toolbar_italic")}
       >
         I
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         isActive={editor.isActive("underline")}
-        title="Underline"
+        title={t("toolbar_underline")}
       >
         U
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCode().run()}
         isActive={editor.isActive("code")}
-        title="Inline Code (Cmd+E)"
+        title={t("toolbar_code")}
       >
         {"<>"}
       </ToolbarButton>
@@ -117,21 +119,21 @@ export function EditorToolbar({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         isActive={editor.isActive("heading", { level: 1 })}
-        title="Heading 1"
+        title={t("toolbar_h1")}
       >
         H1
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         isActive={editor.isActive("heading", { level: 2 })}
-        title="Heading 2"
+        title={t("toolbar_h2")}
       >
         H2
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         isActive={editor.isActive("heading", { level: 3 })}
-        title="Heading 3"
+        title={t("toolbar_h3")}
       >
         H3
       </ToolbarButton>
@@ -142,14 +144,14 @@ export function EditorToolbar({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         isActive={editor.isActive("bulletList")}
-        title="Bullet List"
+        title={t("toolbar_bullet_list")}
       >
         • List
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         isActive={editor.isActive("orderedList")}
-        title="Ordered List"
+        title={t("toolbar_ordered_list")}
       >
         1. List
       </ToolbarButton>
@@ -160,14 +162,14 @@ export function EditorToolbar({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         isActive={editor.isActive("blockquote")}
-        title="Blockquote"
+        title={t("toolbar_blockquote")}
       >
         &quot; Quote
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         isActive={editor.isActive("codeBlock")}
-        title="Code Block"
+        title={t("toolbar_code_block")}
       >
         {`{ } Code`}
       </ToolbarButton>
@@ -179,7 +181,7 @@ export function EditorToolbar({
         onClick={() =>
           editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
         }
-        title="Insert table (3x3)"
+        title={t("toolbar_table")}
       >
         Table
       </ToolbarButton>

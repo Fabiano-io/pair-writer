@@ -15,6 +15,53 @@ body {
     Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
 }
 
+/* ─── Theme variables (shell/chrome and main surfaces only; not exhaustive) ─── */
+.app-shell[data-theme="dark"],
+.app-shell[data-theme="dark-blue"],
+.app-shell[data-theme="dark-graphite"] {
+  --app-bg: #09090b;
+  --app-surface: #18181b;
+  --app-surface-alt: #27272a;
+  --app-border: #27272a;
+  --app-text: #fafafa;
+  --app-text-muted: #a1a1aa;
+  --app-hover-bg: rgba(39, 39, 42, 0.5);
+}
+
+.app-shell[data-theme="dark-blue"] {
+  --app-bg: #0f172a;
+  --app-surface: #1e293b;
+  --app-surface-alt: #334155;
+  --app-border: #334155;
+  --app-text: #f8fafc;
+  --app-text-muted: #94a3b8;
+  --app-hover-bg: rgba(51, 65, 85, 0.5);
+}
+
+.app-shell[data-theme="dark-graphite"] {
+  --app-bg: #1c1917;
+  --app-surface: #292524;
+  --app-surface-alt: #44403c;
+  --app-border: #44403c;
+  --app-text: #fafaf9;
+  --app-text-muted: #a8a29e;
+  --app-hover-bg: rgba(68, 64, 60, 0.5);
+}
+
+/* ─── Font preset (document/editorial area only; menu/status bar keep system font) ─── */
+.app-document-area {
+  font-family: var(--app-font-body, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif);
+}
+
+.app-shell[data-font-preset="reading"] .app-document-area {
+  --app-font-body: Georgia, "Times New Roman", serif;
+}
+
+.app-shell[data-font-preset="editorial"] .app-document-area {
+  --app-font-body: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+}
+
 body.resize-dragging {
   cursor: col-resize !important;
   user-select: none;

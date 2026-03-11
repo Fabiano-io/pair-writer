@@ -1,3 +1,5 @@
+import { useTranslation } from "../settings/i18n/I18nContext";
+
 interface DocumentChatPaneProps {
   documentTitle: string;
   width: number;
@@ -26,18 +28,19 @@ export function DocumentChatPane({
   documentTitle,
   width,
 }: DocumentChatPaneProps) {
+  const { t } = useTranslation();
   return (
     <aside
-      className="flex shrink-0 flex-col border-l border-zinc-800 bg-zinc-950"
+      className="flex shrink-0 flex-col border-l border-[var(--app-border)] bg-[var(--app-bg)]"
       style={{ width }}
     >
       {/* Header with document link */}
-      <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
-        <span className="text-xs text-zinc-600">💬</span>
-        <h2 className="truncate text-xs font-medium text-zinc-400">
-          Chat{" "}
-          <span className="text-zinc-500">·</span>{" "}
-          <span className="text-zinc-300">{documentTitle}</span>
+      <div className="flex items-center gap-2 border-b border-[var(--app-border)] px-4 py-3">
+        <span className="text-xs text-[var(--app-text-muted)]">💬</span>
+        <h2 className="truncate text-xs font-medium text-[var(--app-text-muted)]">
+          {t("chat_title")}{" "}
+          <span className="text-[var(--app-text-muted)]/80">·</span>{" "}
+          <span className="text-[var(--app-text)]/90">{documentTitle}</span>
         </h2>
       </div>
 
@@ -45,14 +48,14 @@ export function DocumentChatPane({
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
         {MOCK_MESSAGES.map((msg) => (
           <div key={msg.id} className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase">
-              {msg.role === "user" ? "You" : "Assistant"}
+            <span className="text-[11px] font-medium tracking-wide text-[var(--app-text-muted)] uppercase">
+              {msg.role === "user" ? t("chat_you") : t("chat_assistant")}
             </span>
             <div
               className={`rounded-lg px-3 py-2.5 text-sm leading-relaxed ${
                 msg.role === "user"
-                  ? "bg-zinc-800/60 text-zinc-200"
-                  : "bg-zinc-800/30 text-zinc-300"
+                  ? "bg-[var(--app-surface-alt)]/60 text-[var(--app-text)]"
+                  : "bg-[var(--app-surface-alt)]/30 text-[var(--app-text)]/90"
               }`}
             >
               {msg.content}
@@ -62,13 +65,13 @@ export function DocumentChatPane({
       </div>
 
       {/* Input */}
-      <div className="border-t border-zinc-800 p-3">
-        <div className="flex items-center gap-2 rounded-lg bg-zinc-800/50 px-3 py-2.5">
+      <div className="border-t border-[var(--app-border)] p-3">
+        <div className="flex items-center gap-2 rounded-lg bg-[var(--app-surface-alt)]/50 px-3 py-2.5">
           <input
             type="text"
-            placeholder="Ask about this document..."
+            placeholder={t("chat_placeholder")}
             disabled
-            className="flex-1 bg-transparent text-sm text-zinc-300 placeholder-zinc-600 outline-none disabled:cursor-default"
+            className="flex-1 bg-transparent text-sm text-[var(--app-text)]/90 placeholder-[var(--app-text-muted)]/60 outline-none disabled:cursor-default"
           />
           <button
             type="button"

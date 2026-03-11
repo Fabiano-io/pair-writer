@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "../features/settings/i18n/I18nContext";
 
 interface MenuItem {
-  label: string;
+  key: string;
+  labelKey: string;
   shortcut?: string;
   disabled?: boolean;
   action?: () => void;
 }
 
 interface MenuGroup {
-  label: string;
+  key: string;
+  labelKey: string;
   items: MenuItem[];
 }
 
@@ -21,6 +24,7 @@ interface AppMenuBarProps {
   onNewDocument: () => void;
   onToggleExplorer: () => void;
   onToggleChat: () => void;
+  onOpenPreferences: () => void;
   explorerVisible: boolean;
   chatVisible: boolean;
 }
@@ -34,9 +38,11 @@ export function AppMenuBar({
   onNewDocument,
   onToggleExplorer,
   onToggleChat,
+  onOpenPreferences,
   explorerVisible,
   chatVisible,
 }: AppMenuBarProps) {
+  const { t } = useTranslation();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
@@ -56,10 +62,12 @@ export function AppMenuBar({
 
   const menus: MenuGroup[] = [
     {
-      label: "File",
+      key: "file",
+      labelKey: "menu_file",
       items: [
         {
-          label: "New Document",
+          key: "new",
+          labelKey: "menu_new_document",
           disabled: !hasProject,
           action: () => {
             onNewDocument();
@@ -67,7 +75,8 @@ export function AppMenuBar({
           },
         },
         {
-          label: "Save",
+          key: "save",
+          labelKey: "menu_save",
           shortcut: "Ctrl+S",
           disabled: !isSaveable,
           action: () => {
@@ -76,7 +85,8 @@ export function AppMenuBar({
           },
         },
         {
-          label: "Close Tab",
+          key: "close",
+          labelKey: "menu_close_tab",
           disabled: !hasActiveTab,
           action: () => {
             onCloseActiveTab();
@@ -86,29 +96,42 @@ export function AppMenuBar({
       ],
     },
     {
-      label: "View",
+      key: "view",
+      labelKey: "menu_view",
       items: [
         {
-          label: explorerVisible ? "Hide Explorer" : "Show Explorer",
+          key: "explorer",
+          labelKey: explorerVisible ? "menu_hide_explorer" : "menu_show_explorer",
           action: () => {
             onToggleExplorer();
             close();
           },
         },
         {
-          label: chatVisible ? "Hide Chat" : "Show Chat",
+          key: "chat",
+          labelKey: chatVisible ? "menu_hide_chat" : "menu_show_chat",
           action: () => {
             onToggleChat();
+            close();
+          },
+        },
+        {
+          key: "prefs",
+          labelKey: "menu_preferences",
+          action: () => {
+            onOpenPreferences();
             close();
           },
         },
       ],
     },
     {
-      label: "Help",
+      key: "help",
+      labelKey: "menu_help",
       items: [
         {
-          label: "About Pair Writer",
+          key: "about",
+          labelKey: "menu_about",
           action: () => {
             setAboutOpen(true);
             close();
@@ -122,47 +145,45 @@ export function AppMenuBar({
     <>
       <div
         ref={barRef}
-        className="flex shrink-0 items-center gap-0 border-b border-zinc-800 bg-zinc-950 px-1"
+        className="flex shrink-0 items-center gap-0 border-b border-[var(--app-border)] bg-[var(--app-bg)] px-1"
         style={{ height: 32 }}
       >
         {menus.map((menu) => (
-          <div key={menu.label} className="relative">
+          <div key={menu.key} className="relative">
             <button
               type="button"
               className={`px-2.5 py-1 text-xs transition-colors rounded ${
-                openMenu === menu.label
-                  ? "bg-zinc-800 text-zinc-100"
-                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                openMenu === menu.key
+                  ? "bg-[var(--app-surface-alt)] text-[var(--app-text)]"
+                  : "text-[var(--app-text-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
               }`}
               onClick={() =>
-                setOpenMenu((prev) =>
-                  prev === menu.label ? null : menu.label
-                )
+                setOpenMenu((prev) => (prev === menu.key ? null : menu.key))
               }
               onMouseEnter={() => {
-                if (openMenu !== null) setOpenMenu(menu.label);
+                if (openMenu !== null) setOpenMenu(menu.key);
               }}
             >
-              {menu.label}
+              {t(menu.labelKey as never)}
             </button>
 
-            {openMenu === menu.label && (
-              <div className="absolute left-0 top-full z-50 mt-px min-w-[180px] rounded border border-zinc-700 bg-zinc-900 py-1 shadow-lg">
+            {openMenu === menu.key && (
+              <div className="absolute left-0 top-full z-50 mt-px min-w-[180px] rounded border border-[var(--app-border)] bg-[var(--app-surface)] py-1 shadow-lg">
                 {menu.items.map((item) => (
                   <button
-                    key={item.label}
+                    key={item.key}
                     type="button"
                     disabled={item.disabled}
                     onClick={item.action}
                     className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition-colors ${
                       item.disabled
-                        ? "cursor-default text-zinc-600"
-                        : "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+                        ? "cursor-default text-[var(--app-text-muted)]/60"
+                        : "text-[var(--app-text)]/80 hover:bg-[var(--app-surface-alt)] hover:text-[var(--app-text)]"
                     }`}
                   >
-                    <span>{item.label}</span>
+                    <span>{t(item.labelKey as never)}</span>
                     {item.shortcut && (
-                      <span className="ml-4 text-[10px] text-zinc-600">
+                      <span className="ml-4 text-[10px] text-[var(--app-text-muted)]/70">
                         {item.shortcut}
                       </span>
                     )}
@@ -180,24 +201,24 @@ export function AppMenuBar({
           onClick={() => setAboutOpen(false)}
         >
           <div
-            className="w-72 rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-xl"
+            className="w-72 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-sm font-semibold text-zinc-100">
-              Pair Writer
+            <h2 className="text-sm font-semibold text-[var(--app-text)]">
+              {t("about_title")}
             </h2>
-            <p className="mt-2 text-xs leading-relaxed text-zinc-400">
-              AI-assisted thinking and writing workspace.
+            <p className="mt-2 text-xs leading-relaxed text-[var(--app-text-muted)]">
+              {t("about_description")}
             </p>
-            <p className="mt-1 text-xs text-zinc-600">
-              Version 0.1.0 (preview)
+            <p className="mt-1 text-xs text-[var(--app-text-muted)]/70">
+              {t("about_version")}
             </p>
             <button
               type="button"
               onClick={() => setAboutOpen(false)}
-              className="mt-4 w-full rounded bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-700"
+              className="mt-4 w-full rounded bg-[var(--app-surface-alt)] px-3 py-1.5 text-xs text-[var(--app-text)] transition-colors hover:opacity-90"
             >
-              Close
+              {t("about_close")}
             </button>
           </div>
         </div>

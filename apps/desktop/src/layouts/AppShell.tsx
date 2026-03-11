@@ -9,6 +9,10 @@ import { useWorkspaceLayout } from "../features/workspace/useWorkspaceLayout";
 import { useWorkspaceDocuments } from "../features/workspace/useWorkspaceDocuments";
 import { loadSettings } from "../features/settings/appSettings";
 import { PROVISIONAL_CONTENT } from "../features/workspace/workspaceDocuments";
+import type { AppearanceSettings } from "../features/settings/settingsDefaults";
+import { DEFAULT_APPEARANCE } from "../features/settings/settingsDefaults";
+import { I18nProvider } from "../features/settings/i18n/I18nContext";
+import { PreferencesModal } from "../features/settings/PreferencesModal";
 
 /** Approximate word count from HTML. Explicitly provisional; coherent with HTML string contract. */
 function approximateWordCount(html: string): number {
@@ -38,9 +42,14 @@ export function AppShell() {
   const workspace = useWorkspaceDocuments();
 
   const [projectRootPath, setProjectRootPath] = useState<string | null>(null);
+  const [appearance, setAppearance] = useState<AppearanceSettings>(DEFAULT_APPEARANCE);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   useEffect(() => {
-    loadSettings().then((s) => setProjectRootPath(s.projectRootPath ?? null));
+    loadSettings().then((s) => {
+      setProjectRootPath(s.projectRootPath ?? null);
+      setAppearance(s.appearance ?? DEFAULT_APPEARANCE);
+    });
   }, []);
 
   useEffect(() => {
@@ -50,6 +59,10 @@ export function AppShell() {
       );
     }, 2000);
     return () => clearInterval(interval);
+  }, []);
+
+  const handleAppearanceSaved = useCallback((next: AppearanceSettings) => {
+    setAppearance(next);
   }, []);
 
   const isSaveable =
@@ -82,19 +95,25 @@ export function AppShell() {
     : null;
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-zinc-950 text-zinc-100">
-      <AppMenuBar
-        hasActiveTab={workspace.hasActiveTab}
-        isSaveable={isSaveable}
-        hasProject={projectRootPath !== null}
-        onCloseActiveTab={workspace.closeActiveTab}
-        onSave={() => workspace.saveActiveDocument()}
-        onNewDocument={handleNewDocumentFromMenu}
-        onToggleExplorer={toggleExplorer}
-        onToggleChat={toggleChat}
-        explorerVisible={explorerVisible}
-        chatVisible={chatVisible}
-      />
+    <I18nProvider locale={appearance.language}>
+      <div
+        className="app-shell flex h-screen w-screen flex-col bg-[var(--app-bg)] text-[var(--app-text)]"
+        data-theme={appearance.theme}
+        data-font-preset={appearance.fontPreset}
+      >
+        <AppMenuBar
+          hasActiveTab={workspace.hasActiveTab}
+          isSaveable={isSaveable}
+          hasProject={projectRootPath !== null}
+          onCloseActiveTab={workspace.closeActiveTab}
+          onSave={() => workspace.saveActiveDocument()}
+          onNewDocument={handleNewDocumentFromMenu}
+          onToggleExplorer={toggleExplorer}
+          onToggleChat={toggleChat}
+          onOpenPreferences={() => setPreferencesOpen(true)}
+          explorerVisible={explorerVisible}
+          chatVisible={chatVisible}
+        />
 
       <div className="flex flex-1 overflow-hidden">
         {explorerVisible && (
@@ -133,7 +152,7 @@ export function AppShell() {
 
       <AppStatusBar
         projectFolderName={
-          projectRootPath ? getFolderName(projectRootPath) : "No project"
+          projectRootPath ? getFolderName(projectRootPath) : ""
         }
         projectRootPath={projectRootPath}
         hasActiveTab={workspace.hasActiveTab}
@@ -162,6 +181,15 @@ export function AppShell() {
           onCancel={() => workspace.confirmClose("cancel")}
         />
       )}
+
+      {preferencesOpen && (
+        <PreferencesModal
+          initialAppearance={appearance}
+          onClose={() => setPreferencesOpen(false)}
+          onSaved={handleAppearanceSaved}
+        />
+      )}
     </div>
+    </I18nProvider>
   );
 }

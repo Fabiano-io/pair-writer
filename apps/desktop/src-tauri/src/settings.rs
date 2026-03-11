@@ -15,6 +15,39 @@ pub struct AppSettings {
     /// Convenience only (e.g. reopen last folder). Not source of truth. User selection defines the project.
     #[serde(default)]
     pub project_root_path: Option<String>,
+    #[serde(default)]
+    pub appearance: AppearanceSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppearanceSettings {
+    #[serde(default = "default_theme")]
+    pub theme: String,
+    #[serde(default = "default_font_preset")]
+    pub font_preset: String,
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_theme() -> String {
+    "dark".to_string()
+}
+fn default_font_preset() -> String {
+    "default".to_string()
+}
+fn default_language() -> String {
+    "en".to_string()
+}
+
+impl Default for AppearanceSettings {
+    fn default() -> Self {
+        Self {
+            theme: default_theme(),
+            font_preset: default_font_preset(),
+            language: default_language(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +97,7 @@ impl Default for AppSettings {
             window: WindowSettings::default(),
             workspace_layout: WorkspaceLayoutSettings::default(),
             project_root_path: None,
+            appearance: AppearanceSettings::default(),
         }
     }
 }

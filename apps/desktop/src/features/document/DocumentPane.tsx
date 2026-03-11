@@ -35,7 +35,7 @@ export function DocumentPane({
   }, [initialTitle]);
 
   return (
-    <main className="flex flex-1 flex-col overflow-hidden bg-zinc-950/20">
+    <main className="app-document-area flex flex-1 flex-col overflow-hidden bg-[var(--app-bg)]/20">
       <div className="flex flex-1 min-h-0 flex-col overflow-hidden outline-none">
         <div className="mx-auto flex w-full max-w-[800px] flex-1 min-h-0 flex-col px-12 pt-6 pb-16 lg:px-20 lg:pt-8 lg:pb-24">
           <DocumentEditorSurface
