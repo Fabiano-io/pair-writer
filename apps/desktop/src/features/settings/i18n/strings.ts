@@ -83,6 +83,7 @@ const en = {
   explorer_context_copy: "Copy",
   explorer_context_paste: "Paste",
   explorer_context_open: "Open",
+  explorer_context_rename: "Rename",
   explorer_context_new_folder: "New folder",
   explorer_context_delete: "Delete",
   explorer_context_open_disabled: "Document is already open",
@@ -216,6 +217,7 @@ const pt: Record<StringKey, string> = {
   explorer_context_copy: "Copiar",
   explorer_context_paste: "Colar",
   explorer_context_open: "Abrir",
+  explorer_context_rename: "Renomear",
   explorer_context_new_folder: "Nova pasta",
   explorer_context_delete: "Excluir",
   explorer_context_open_disabled: "Documento já está aberto",
@@ -274,5 +276,3 @@ const pt: Record<StringKey, string> = {
 };
 
 export const strings: Record<Locale, Record<StringKey, string>> = { en, pt };
-
-

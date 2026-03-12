@@ -92,6 +92,13 @@ function joinPath(path: string, name: string): string {
   return `${path}${getPathSeparator(path)}${name}`;
 }
 
+function getRenameSelectionEnd(name: string): number {
+  const lastDot = name.lastIndexOf(".");
+  // Preserve extension for common file names like "document.md".
+  // Hidden files like ".env" still select the full value.
+  if (lastDot <= 0) return name.length;
+  return lastDot;
+}
 export function ExplorerSidebar({
   width,
   activeDocumentId,
@@ -410,6 +417,13 @@ export function ExplorerSidebar({
     setMoveError(null);
   }, [contextMenuEntry, isSupportedFile, onFileSelect]);
 
+  const handleRenameFromContextMenu = useCallback(() => {
+    if (!contextMenuEntry) return;
+
+    setContextMenu(null);
+    startRenameForPath(contextMenuEntry.path);
+  }, [contextMenuEntry, startRenameForPath]);
+
   const handleCopyFromContextMenu = useCallback(() => {
     if (!contextMenuEntry || contextMenuEntry.isDir) return;
 
@@ -650,6 +664,8 @@ export function ExplorerSidebar({
 
   useEffect(() => {
     if (!renamingPath) return;
+    const renamingEntry = findEntryByPath(renamingPath);
+    const preserveExtension = Boolean(renamingEntry && !renamingEntry.isDir);
 
     let cancelled = false;
     let attempts = 0;
@@ -658,8 +674,13 @@ export function ExplorerSidebar({
       if (cancelled) return;
 
       if (renameInputRef.current) {
-        renameInputRef.current.focus();
-        renameInputRef.current.select();
+        const input = renameInputRef.current;
+        input.focus();
+
+        const selectionEnd = preserveExtension
+          ? getRenameSelectionEnd(input.value)
+          : input.value.length;
+        input.setSelectionRange(0, selectionEnd);
         return;
       }
 
@@ -674,7 +695,7 @@ export function ExplorerSidebar({
     return () => {
       cancelled = true;
     };
-  }, [renamingPath]);
+  }, [renamingPath, findEntryByPath]);
 
   useEffect(() => {
     if (!selectedEntryPath) return;
@@ -1061,9 +1082,9 @@ export function ExplorerSidebar({
     const menuWidth = 172;
     const menuHeight =
       contextMenuKind === "file"
-        ? 160
+        ? 198
         : contextMenuKind === "folder"
-          ? 210
+          ? 250
           : 160;
     const pad = 8;
 
@@ -1085,6 +1106,9 @@ export function ExplorerSidebar({
       openDocumentIds.some((openPath) => normalizePath(openPath) === normalizePath(contextFilePath))
   );
   const canOpenFromContext = Boolean(contextFilePath && isSupportedFile(contextFilePath) && !isContextFileOpen);
+  const canRenameFromContext = Boolean(
+    contextMenuEntry && (contextMenuKind === "file" || contextMenuKind === "folder")
+  );
   const canCopyFromContext = Boolean(contextMenuKind === "file" && contextMenuEntry && !contextMenuEntry.isDir);
   const canPasteFromContext = Boolean(
     projectRootPath &&
@@ -1288,6 +1312,15 @@ export function ExplorerSidebar({
               <button
                 type="button"
                 role="menuitem"
+                onClick={handleRenameFromContextMenu}
+                disabled={!canRenameFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_rename")}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
                 onClick={handleCopyFromContextMenu}
                 disabled={!canCopyFromContext}
                 className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
@@ -1318,6 +1351,15 @@ export function ExplorerSidebar({
                 className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
               >
                 {t("explorer_context_paste")}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleRenameFromContextMenu}
+                disabled={!canRenameFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_rename")}
               </button>
               <button
                 type="button"
