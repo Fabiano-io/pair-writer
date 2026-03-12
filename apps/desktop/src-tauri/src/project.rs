@@ -155,6 +155,55 @@ pub fn create_project_file(file_path: String, project_root: String) -> Result<St
 }
 
 #[tauri::command]
+pub fn create_project_folder(
+    target_dir: String,
+    project_root: String,
+    base_name: String,
+) -> Result<String, String> {
+    let target = Path::new(&target_dir);
+    let base = Path::new(&project_root);
+
+    if !base.is_dir() {
+        return Err("Project root is not a directory".to_string());
+    }
+
+    if !target.is_dir() {
+        return Err("Target path is not a directory".to_string());
+    }
+
+    if !is_valid_entry_name(&base_name) {
+        return Err("Invalid folder name".to_string());
+    }
+
+    if !path_is_within_base(target, base)? {
+        return Err("Entry is outside project directory".to_string());
+    }
+
+    let mut destination: Option<PathBuf> = None;
+    for index in 0..10_000 {
+        let candidate_name = if index == 0 {
+            base_name.clone()
+        } else {
+            format!("{} ({})", base_name, index)
+        };
+
+        let candidate = target.join(candidate_name);
+        if !candidate.exists() {
+            destination = Some(candidate);
+            break;
+        }
+    }
+
+    let destination = destination
+        .ok_or_else(|| "Could not generate destination name".to_string())?;
+
+    fs::create_dir(&destination)
+        .map_err(|e| format!("Failed to create folder: {}", e))?;
+
+    Ok(destination.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
 pub fn rename_project_entry(
     entry_path: String,
     new_name: String,
@@ -336,3 +385,4 @@ pub fn move_project_entry(
 
     Ok(destination.to_string_lossy().into_owned())
 }
+

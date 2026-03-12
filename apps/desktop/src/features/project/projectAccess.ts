@@ -108,7 +108,21 @@ export async function createProjectFile(
     projectRoot,
   });
 }
-
+/**
+ * Creates a new folder inside the target directory using an auto-generated unique name.
+ * Returns the created folder path.
+ */
+export async function createProjectFolder(
+  targetDir: string,
+  projectRoot: string,
+  baseName: string
+): Promise<string> {
+  return await invoke<string>("create_project_folder", {
+    targetDir,
+    projectRoot,
+    baseName,
+  });
+}
 /**
  * Renames a file or folder inside the project root.
  * Returns the new absolute path.
@@ -170,3 +184,5 @@ export async function pasteCopiedProjectFile(
     baseName,
   });
 }
+
+

@@ -11,6 +11,7 @@ import {
 import { useProjectExplorer } from "./useProjectExplorer";
 import {
   createProjectFile,
+  createProjectFolder,
   deleteProjectEntry,
   moveProjectEntry,
   pasteCopiedProjectFile,
@@ -22,6 +23,7 @@ import { useTranslation } from "../settings/i18n/useTranslation";
 interface ExplorerSidebarProps {
   width: number;
   activeDocumentId: string | null;
+  openDocumentIds?: string[];
   onFileSelect: (path: string) => void;
   onCreateDocument?: (filePath: string) => void;
   onDeleteDocument?: (filePath: string) => void;
@@ -79,9 +81,21 @@ function clamp(value: number, min: number, max: number): number {
   return value;
 }
 
+function getPathSeparator(path: string): "\\" | "/" {
+  return path.includes("\\") ? "\\" : "/";
+}
+
+function joinPath(path: string, name: string): string {
+  if (path.endsWith("\\") || path.endsWith("/")) {
+    return `${path}${name}`;
+  }
+  return `${path}${getPathSeparator(path)}${name}`;
+}
+
 export function ExplorerSidebar({
   width,
   activeDocumentId,
+  openDocumentIds = [],
   onFileSelect,
   onCreateDocument,
   onDeleteDocument,
@@ -124,6 +138,8 @@ export function ExplorerSidebar({
   const createInputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const explorerRef = useRef<HTMLElement>(null);
+  const treeNavRef = useRef<HTMLElement>(null);
   const creatingRef = useRef(false);
   const renamingRef = useRef(false);
   const toastTimeoutRef = useRef<number | null>(null);
@@ -158,6 +174,49 @@ export function ExplorerSidebar({
     return findEntryByPath(selectedEntryPath);
   }, [selectedEntryPath, findEntryByPath]);
 
+  const visibleTreeNodes = useMemo(() => {
+    const nodes: Array<{ entry: DirEntry; depth: number; parentPath: string | null }> = [];
+
+    const walk = (
+      entries: DirEntry[],
+      depth: number,
+      parentPath: string | null
+    ) => {
+      for (const entry of entries) {
+        nodes.push({ entry, depth, parentPath });
+
+        if (entry.isDir && isExpanded(entry.path)) {
+          walk(getChildren(entry.path), depth + 1, entry.path);
+        }
+      }
+    };
+
+    walk(rootEntries, 0, null);
+
+    return nodes;
+  }, [rootEntries, isExpanded, getChildren]);
+
+  const parentPathByEntry = useMemo(() => {
+    const map = new Map<string, string | null>();
+
+    const walk = (entries: DirEntry[], parentPath: string | null) => {
+      for (const entry of entries) {
+        map.set(entry.path, parentPath);
+
+        if (entry.isDir) {
+          const children = getChildren(entry.path);
+          if (children.length > 0) {
+            walk(children, entry.path);
+          }
+        }
+      }
+    };
+
+    walk(rootEntries, null);
+
+    return map;
+  }, [rootEntries, getChildren]);
+
   const contextMenuEntry = useMemo(() => {
     if (!contextMenu?.entryPath) return null;
     return findEntryByPath(contextMenu.entryPath);
@@ -182,7 +241,7 @@ export function ExplorerSidebar({
     }, 1800);
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     return () => {
       if (toastTimeoutRef.current !== null) {
         window.clearTimeout(toastTimeoutRef.current);
@@ -203,6 +262,43 @@ useEffect(() => {
     setRenameError(null);
     renamingRef.current = false;
   }, []);
+
+  const startRenameForPath = useCallback((path: string) => {
+    const entry = findEntryByPath(path);
+    const fallbackName = path.replace(/.*[\\/]/, "");
+
+    setSelectedEntryPath(path);
+    setRenamingPath(path);
+    setRenameValue(entry?.name ?? fallbackName);
+    setRenameError(null);
+    renamingRef.current = false;
+  }, [findEntryByPath]);
+
+  const createDocumentWithDefaultName = useCallback(async (targetDirPath: string) => {
+    if (!projectRootPath) {
+      throw new Error("Project root is not available");
+    }
+
+    const baseName = t("explorer_paste_default_name");
+
+    for (let index = 0; index < 10_000; index += 1) {
+      const candidateName =
+        index === 0 ? `${baseName}.md` : `${baseName} (${index}).md`;
+      const candidatePath = joinPath(targetDirPath, candidateName);
+
+      try {
+        return await createProjectFile(candidatePath, projectRootPath);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("already exists")) {
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new Error("Could not generate destination file name");
+  }, [projectRootPath, t]);
 
   const clearDragState = useCallback(() => {
     pointerDragStartRef.current = null;
@@ -303,6 +399,17 @@ useEffect(() => {
     });
   }, [projectRootPath]);
 
+  const handleOpenFromContextMenu = useCallback(() => {
+    if (!contextMenuEntry || contextMenuEntry.isDir) return;
+
+    if (!isSupportedFile(contextMenuEntry.path)) return;
+
+    onFileSelect(contextMenuEntry.path);
+    setSelectedEntryPath(contextMenuEntry.path);
+    setContextMenu(null);
+    setMoveError(null);
+  }, [contextMenuEntry, isSupportedFile, onFileSelect]);
+
   const handleCopyFromContextMenu = useCallback(() => {
     if (!contextMenuEntry || contextMenuEntry.isDir) return;
 
@@ -338,6 +445,49 @@ useEffect(() => {
       setMoveError(t("explorer_error_paste"));
     }
   }, [projectRootPath, copiedFilePath, contextMenu, refreshTree, t, isSupportedFile, onFileSelect, showToast]);
+
+  const handleCreateDocumentFromContextMenu = useCallback(async () => {
+    if (!projectRootPath || !contextMenu?.targetDirPath) return;
+
+    setContextMenu(null);
+    setMoveError(null);
+
+    try {
+      const createdPath = await createDocumentWithDefaultName(contextMenu.targetDirPath);
+      await refreshTree();
+      setMoveError(null);
+
+      setTimeout(() => {
+        startRenameForPath(createdPath);
+      }, 0);
+    } catch {
+      setMoveError(t("explorer_error_create"));
+    }
+  }, [projectRootPath, contextMenu, createDocumentWithDefaultName, refreshTree, startRenameForPath, t]);
+
+  const handleCreateFolderFromContextMenu = useCallback(async () => {
+    if (!projectRootPath || !contextMenu?.targetDirPath) return;
+
+    setContextMenu(null);
+    setMoveError(null);
+
+    try {
+      const createdFolderPath = await createProjectFolder(
+        contextMenu.targetDirPath,
+        projectRootPath,
+        t("explorer_folder_default_name")
+      );
+
+      await refreshTree();
+      setMoveError(null);
+
+      setTimeout(() => {
+        startRenameForPath(createdFolderPath);
+      }, 0);
+    } catch {
+      setMoveError(t("explorer_error_create_folder"));
+    }
+  }, [projectRootPath, contextMenu, refreshTree, startRenameForPath, t]);
 
   const handleRequestDeleteFromContextMenu = useCallback(() => {
     if (!contextMenuEntry) return;
@@ -501,10 +651,29 @@ useEffect(() => {
   useEffect(() => {
     if (!renamingPath) return;
 
-    setTimeout(() => {
-      renameInputRef.current?.focus();
-      renameInputRef.current?.select();
-    }, 0);
+    let cancelled = false;
+    let attempts = 0;
+
+    const focusRenameInput = () => {
+      if (cancelled) return;
+
+      if (renameInputRef.current) {
+        renameInputRef.current.focus();
+        renameInputRef.current.select();
+        return;
+      }
+
+      if (attempts < 12) {
+        attempts += 1;
+        requestAnimationFrame(focusRenameInput);
+      }
+    };
+
+    requestAnimationFrame(focusRenameInput);
+
+    return () => {
+      cancelled = true;
+    };
   }, [renamingPath]);
 
   useEffect(() => {
@@ -513,6 +682,22 @@ useEffect(() => {
 
     setSelectedEntryPath(null);
   }, [selectedEntryPath, findEntryByPath]);
+
+  useEffect(() => {
+    if (!selectedEntryPath) return;
+
+    const container = treeNavRef.current;
+    if (!container) return;
+
+    const rows = container.querySelectorAll<HTMLElement>("[data-tree-entry-path]");
+
+    for (const row of rows) {
+      if (row.dataset.treeEntryPath === selectedEntryPath) {
+        row.scrollIntoView({ block: "nearest" });
+        break;
+      }
+    }
+  }, [selectedEntryPath, visibleTreeNodes]);
 
   const submitNewFile = useCallback(async () => {
     const trimmed = newFileName.trim();
@@ -617,6 +802,7 @@ useEffect(() => {
   }, [renamingPath, projectRootPath, renameValue, findEntryByPath, cancelRename, refreshTree, onRenameDocument, t]);
 
   const handleEntryClick = useCallback((entry: DirEntry) => {
+    explorerRef.current?.focus();
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       return;
@@ -628,15 +814,11 @@ useEffect(() => {
 
     if (entry.isDir) {
       void toggleExpand(entry.path);
-      return;
     }
-
-    if (isSupportedFile(entry.path)) {
-      onFileSelect(entry.path);
-    }
-  }, [renamingPath, toggleExpand, isSupportedFile, onFileSelect]);
+  }, [renamingPath, toggleExpand]);
 
   const handleEntryOpen = useCallback((entry: DirEntry) => {
+    explorerRef.current?.focus();
     if (renamingPath) return;
 
     if (entry.isDir) {
@@ -651,6 +833,17 @@ useEffect(() => {
 
   const handleExplorerKeyDown = useCallback((event: ReactKeyboardEvent<HTMLElement>) => {
     if (isTextInputTarget(event.target)) return;
+
+    if (
+      event.key === "ArrowDown" ||
+      event.key === "ArrowUp" ||
+      event.key === "ArrowRight" ||
+      event.key === "ArrowLeft" ||
+      event.key === "Enter" ||
+      event.key === "F2"
+    ) {
+      explorerRef.current?.focus();
+    }
 
     if (event.key === "Escape" && contextMenu) {
       event.preventDefault();
@@ -674,17 +867,86 @@ useEffect(() => {
       return;
     }
 
-    if (event.key === "ArrowRight" && selectedEntry?.isDir && !isExpanded(selectedEntry.path)) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (isCreating || renamingPath || visibleTreeNodes.length === 0) return;
+
       event.preventDefault();
-      void toggleExpand(selectedEntry.path);
+
+      const currentIndex = selectedEntryPath
+        ? visibleTreeNodes.findIndex((node) => node.entry.path === selectedEntryPath)
+        : -1;
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+
+      const nextIndex =
+        currentIndex === -1
+          ? direction > 0
+            ? 0
+            : visibleTreeNodes.length - 1
+          : clamp(currentIndex + direction, 0, visibleTreeNodes.length - 1);
+
+      const nextPath = visibleTreeNodes[nextIndex]?.entry.path;
+      if (nextPath) {
+        setSelectedEntryPath(nextPath);
+      }
       return;
     }
 
-    if (event.key === "ArrowLeft" && selectedEntry?.isDir && isExpanded(selectedEntry.path)) {
-      event.preventDefault();
-      void toggleExpand(selectedEntry.path);
+    if (event.key === "ArrowRight") {
+      if (isCreating || renamingPath) return;
+
+      if (!selectedEntry) {
+        if (visibleTreeNodes.length > 0) {
+          event.preventDefault();
+          setSelectedEntryPath(visibleTreeNodes[0].entry.path);
+        }
+        return;
+      }
+
+      if (selectedEntry.isDir) {
+        event.preventDefault();
+
+        if (!isExpanded(selectedEntry.path)) {
+          void toggleExpand(selectedEntry.path);
+          return;
+        }
+
+        const children = getChildren(selectedEntry.path);
+        if (children.length > 0) {
+          setSelectedEntryPath(children[0].path);
+        }
+      }
+      return;
     }
-  }, [isCreating, renamingPath, selectedEntry, beginRename, handleEntryOpen, isExpanded, toggleExpand, contextMenu]);
+
+    if (event.key === "ArrowLeft") {
+      if (isCreating || renamingPath || !selectedEntry) return;
+
+      if (selectedEntry.isDir && isExpanded(selectedEntry.path)) {
+        event.preventDefault();
+        void toggleExpand(selectedEntry.path);
+        return;
+      }
+
+      const parentPath = parentPathByEntry.get(selectedEntry.path);
+      if (parentPath) {
+        event.preventDefault();
+        setSelectedEntryPath(parentPath);
+      }
+    }
+  }, [
+    isCreating,
+    renamingPath,
+    selectedEntry,
+    selectedEntryPath,
+    beginRename,
+    handleEntryOpen,
+    isExpanded,
+    toggleExpand,
+    contextMenu,
+    visibleTreeNodes,
+    getChildren,
+    parentPathByEntry,
+  ]);
 
   const renderTreeNode = useCallback((entry: DirEntry, depth: number) => {
     const expanded = entry.isDir ? isExpanded(entry.path) : false;
@@ -692,7 +954,6 @@ useEffect(() => {
     const supported = entry.isDir || isSupportedFile(entry.path);
     const isSelected = selectedEntryPath === entry.path;
     const isActiveDocument = activeDocumentId === entry.path;
-    const rowActive = isSelected || isActiveDocument;
     const isRenaming = renamingPath === entry.path;
 
     const isDropTarget = entry.isDir && dropTargetPath === entry.path && canDropIntoFolder(entry.path);
@@ -700,6 +961,7 @@ useEffect(() => {
     return (
       <div key={entry.path}>
         <div
+          data-tree-entry-path={entry.path}
           data-drop-folder-path={entry.isDir ? entry.path : undefined}
           onContextMenu={(event) => openContextMenuForEntry(event, entry)}
           className={`flex items-center gap-1 rounded transition-colors ${isDropTarget ? "bg-[var(--app-surface-alt)]/80 ring-1 ring-[var(--app-border)]" : ""}`}
@@ -712,7 +974,7 @@ useEffect(() => {
                 event.stopPropagation();
                 void toggleExpand(entry.path);
               }}
-              className="w-4 shrink-0 rounded text-[10px] text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
+              className="w-4 shrink-0 rounded text-[10px] text-[var(--app-text-muted)] outline-none transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)] focus:outline-none focus-visible:outline-none"
               aria-label={expanded ? "Collapse folder" : "Expand folder"}
               title={expanded ? "Collapse folder" : "Expand folder"}
             >
@@ -758,15 +1020,18 @@ useEffect(() => {
               onClick={() => handleEntryClick(entry)}
               onDoubleClick={() => {
                 if (!entry.isDir) {
-                  beginRename(entry);
+                  handleEntryOpen(entry);
                 }
               }}
               onPointerDown={!entry.isDir ? (event) => handlePointerDownOnEntry(event, entry) : undefined}
               title={!supported ? t("explorer_unsupported") : undefined}
-              className={`my-0.5 flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                rowActive
-                  ? "bg-[var(--app-surface-alt)]/70 text-[var(--app-text)]"
-                  : "text-[var(--app-text-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
+              aria-selected={isSelected}
+              className={`my-0.5 flex flex-1 items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-sm outline-none transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${
+                isSelected
+                  ? "bg-[var(--app-surface-alt)]/70 text-[var(--app-text)] ring-1 ring-[var(--app-border)]"
+                  : isActiveDocument
+                    ? "bg-[var(--app-surface-alt)]/55 text-[var(--app-text)]"
+                    : "text-[var(--app-text-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
               } ${!supported ? "opacity-70" : ""}`}
             >
               <span className="shrink-0 text-xs opacity-60">{entry.isDir ? "📁" : "📄"}</span>
@@ -781,13 +1046,25 @@ useEffect(() => {
         )}
       </div>
     );
-  }, [isExpanded, getChildren, isSupportedFile, selectedEntryPath, activeDocumentId, renamingPath, renameValue, renameError, dropTargetPath, pointerDraggedEntryPath, t, submitRename, cancelRename, handleEntryClick, beginRename, toggleExpand, handlePointerDownOnEntry, canDropIntoFolder, openContextMenuForEntry]);
+  }, [isExpanded, getChildren, isSupportedFile, selectedEntryPath, activeDocumentId, renamingPath, renameValue, renameError, dropTargetPath, pointerDraggedEntryPath, t, submitRename, cancelRename, handleEntryClick, handleEntryOpen, toggleExpand, handlePointerDownOnEntry, canDropIntoFolder, openContextMenuForEntry]);
+
+  const contextMenuKind = useMemo<"workspace" | "file" | "folder" | null>(() => {
+    if (!contextMenu) return null;
+    if (!contextMenu.entryPath) return "workspace";
+    if (!contextMenuEntry) return null;
+    return contextMenuEntry.isDir ? "folder" : "file";
+  }, [contextMenu, contextMenuEntry]);
 
   const contextMenuPosition = useMemo(() => {
     if (!contextMenu) return null;
 
     const menuWidth = 172;
-    const menuHeight = 122;
+    const menuHeight =
+      contextMenuKind === "file"
+        ? 160
+        : contextMenuKind === "folder"
+          ? 210
+          : 160;
     const pad = 8;
 
     const maxX = Math.max(pad, window.innerWidth - menuWidth - pad);
@@ -797,16 +1074,44 @@ useEffect(() => {
       x: clamp(contextMenu.x, pad, maxX),
       y: clamp(contextMenu.y, pad, maxY),
     };
-  }, [contextMenu]);
+  }, [contextMenu, contextMenuKind]);
 
-  const canCopyFromContext = Boolean(contextMenuEntry && !contextMenuEntry.isDir);
-  const canPasteFromContext = Boolean(projectRootPath && copiedFilePath && contextMenu?.targetDirPath);
-  const canDeleteFromContext = Boolean(contextMenuEntry);
+  const contextFilePath =
+    contextMenuKind === "file" && contextMenuEntry && !contextMenuEntry.isDir
+      ? contextMenuEntry.path
+      : null;
+  const isContextFileOpen = Boolean(
+    contextFilePath &&
+      openDocumentIds.some((openPath) => normalizePath(openPath) === normalizePath(contextFilePath))
+  );
+  const canOpenFromContext = Boolean(contextFilePath && isSupportedFile(contextFilePath) && !isContextFileOpen);
+  const canCopyFromContext = Boolean(contextMenuKind === "file" && contextMenuEntry && !contextMenuEntry.isDir);
+  const canPasteFromContext = Boolean(
+    projectRootPath &&
+      copiedFilePath &&
+      contextMenu?.targetDirPath &&
+      (contextMenuKind === "workspace" || contextMenuKind === "folder")
+  );
+  const canCreateDocumentFromContext = Boolean(
+    projectRootPath &&
+      contextMenu?.targetDirPath &&
+      (contextMenuKind === "workspace" || contextMenuKind === "folder")
+  );
+  const canCreateFolderFromContext = Boolean(
+    projectRootPath &&
+      contextMenu?.targetDirPath &&
+      (contextMenuKind === "workspace" || contextMenuKind === "folder")
+  );
+  const canDeleteFromContext = Boolean(
+    contextMenuKind === "file" || contextMenuKind === "folder"
+  );
 
   return (
     <aside
+      ref={explorerRef}
       className={`flex shrink-0 flex-col border-r border-[var(--app-border)] bg-[var(--app-bg)] ${pointerDraggedEntryPath ? "select-none cursor-grabbing" : ""}`}
       style={{ width }}
+      tabIndex={0}
       onKeyDown={handleExplorerKeyDown}
     >
       <div
@@ -848,15 +1153,6 @@ useEffect(() => {
               <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
-                  onClick={startCreating}
-                  className="rounded px-1.5 py-0.5 text-sm text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
-                  title={t("explorer_new_doc")}
-                  aria-label={t("explorer_new_doc")}
-                >
-                  +
-                </button>
-                <button
-                  type="button"
                   onClick={selectProjectFolder}
                   className="rounded px-1.5 py-0.5 text-xs text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
                   title={t("explorer_change_folder")}
@@ -867,7 +1163,14 @@ useEffect(() => {
               </div>
             </div>
 
-            <nav className="flex-1 overflow-y-auto px-2 py-2">
+            <nav
+              ref={treeNavRef}
+              className="flex-1 overflow-y-auto px-2 py-2"
+              onContextMenu={(event) => {
+                if (isTextInputTarget(event.target)) return;
+                openContextMenuForRoot(event);
+              }}
+            >
               {isCreating && (
                 <div className="mb-2 px-2">
                   <input
@@ -936,35 +1239,116 @@ useEffect(() => {
           role="menu"
           onContextMenu={(event) => event.preventDefault()}
         >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={handleCopyFromContextMenu}
-            disabled={!canCopyFromContext}
-            className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
-          >
-            {t("explorer_context_copy")}
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => void handlePasteFromContextMenu()}
-            disabled={!canPasteFromContext}
-            title={!canPasteFromContext ? t("explorer_context_paste_disabled") : undefined}
-            className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
-          >
-            {t("explorer_context_paste")}
-          </button>
-          <div className="my-1 h-px bg-[var(--app-border)]" />
-          <button
-            type="button"
-            role="menuitem"
-            onClick={handleRequestDeleteFromContextMenu}
-            disabled={!canDeleteFromContext}
-            className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
-          >
-            {t("explorer_context_delete")}
-          </button>
+          {contextMenuKind === "workspace" && (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handlePasteFromContextMenu()}
+                disabled={!canPasteFromContext}
+                title={!canPasteFromContext ? t("explorer_context_paste_disabled") : undefined}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_paste")}
+              </button>
+              <div className="my-1 h-px bg-[var(--app-border)]" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleCreateDocumentFromContextMenu}
+                disabled={!canCreateDocumentFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_new_doc")}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleCreateFolderFromContextMenu()}
+                disabled={!canCreateFolderFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_new_folder")}
+              </button>
+            </>
+          )}
+
+          {contextMenuKind === "file" && (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleOpenFromContextMenu}
+                disabled={!canOpenFromContext}
+                title={!canOpenFromContext ? t("explorer_context_open_disabled") : undefined}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_open")}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleCopyFromContextMenu}
+                disabled={!canCopyFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_copy")}
+              </button>
+              <div className="my-1 h-px bg-[var(--app-border)]" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleRequestDeleteFromContextMenu}
+                disabled={!canDeleteFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_delete")}
+              </button>
+            </>
+          )}
+
+          {contextMenuKind === "folder" && (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handlePasteFromContextMenu()}
+                disabled={!canPasteFromContext}
+                title={!canPasteFromContext ? t("explorer_context_paste_disabled") : undefined}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_paste")}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleRequestDeleteFromContextMenu}
+                disabled={!canDeleteFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_delete")}
+              </button>
+              <div className="my-1 h-px bg-[var(--app-border)]" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleCreateDocumentFromContextMenu}
+                disabled={!canCreateDocumentFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_new_doc")}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleCreateFolderFromContextMenu()}
+                disabled={!canCreateFolderFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_new_folder")}
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -1003,17 +1387,4 @@ useEffect(() => {
     </aside>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -50,16 +50,22 @@ export function AppShell() {
     DEFAULT_APPEARANCE
   );
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [markdownViewMode, setMarkdownViewMode] = useState<
     "rendered" | "source"
   >("rendered");
 
   useEffect(() => {
-    loadSettings().then((s) => {
-      setProjectRootPath(s.projectRootPath ?? null);
-      setAppearance(s.appearance ?? DEFAULT_APPEARANCE);
-    });
+    loadSettings()
+      .then((s) => {
+        setProjectRootPath(s.projectRootPath ?? null);
+        setAppearance(s.appearance ?? DEFAULT_APPEARANCE);
+      })
+      .finally(() => {
+        setIsBootstrapped(true);
+      });
   }, []);
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -118,7 +124,7 @@ export function AppShell() {
   return (
     <I18nProvider locale={appearance.language}>
       <div
-        className="app-shell flex h-screen w-screen flex-col bg-[var(--app-bg)] text-[var(--app-text)]"
+        className={`app-shell flex h-screen w-screen flex-col bg-[var(--app-bg)] text-[var(--app-text)] transition-opacity duration-300 ${isBootstrapped ? "opacity-100" : "opacity-0"}`}
         data-theme={appearance.theme}
         data-font-preset={appearance.fontPreset}
       >
@@ -142,6 +148,7 @@ export function AppShell() {
               <ExplorerSidebar
                 width={explorerWidth}
                 activeDocumentId={workspace.activeTabId}
+                openDocumentIds={workspace.openTabIds}
                 onFileSelect={workspace.openDocument}
                 onCreateDocument={workspace.openDocument}
                 onDeleteDocument={workspace.closeDocument}
@@ -218,6 +225,4 @@ export function AppShell() {
     </I18nProvider>
   );
 }
-
-
 

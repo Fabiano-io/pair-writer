@@ -82,11 +82,17 @@ const en = {
   explorer_error_move_exists: "A file or folder with this name already exists in destination",
   explorer_context_copy: "Copy",
   explorer_context_paste: "Paste",
+  explorer_context_open: "Open",
+  explorer_context_new_folder: "New folder",
   explorer_context_delete: "Delete",
+  explorer_context_open_disabled: "Document is already open",
   explorer_context_paste_disabled: "Copy a file first",
   explorer_copy_success: "File copied",
   explorer_paste_success: "File pasted",
   explorer_paste_default_name: "New Document",
+  explorer_folder_default_name: "New Folder",
+  explorer_folder_create_success: "Folder created",
+  explorer_error_create_folder: "Failed to create folder",
   explorer_error_paste: "Failed to paste file",
   explorer_delete_success: "Item deleted",
   explorer_error_delete: "Failed to delete item",
@@ -209,11 +215,17 @@ const pt: Record<StringKey, string> = {
   explorer_error_move_exists: "Já existe um arquivo ou pasta com esse nome na pasta de destino",
   explorer_context_copy: "Copiar",
   explorer_context_paste: "Colar",
+  explorer_context_open: "Abrir",
+  explorer_context_new_folder: "Nova pasta",
   explorer_context_delete: "Excluir",
+  explorer_context_open_disabled: "Documento já está aberto",
   explorer_context_paste_disabled: "Copie um arquivo primeiro",
   explorer_copy_success: "Arquivo copiado",
   explorer_paste_success: "Arquivo colado",
   explorer_paste_default_name: "Novo Documento",
+  explorer_folder_default_name: "Nova Pasta",
+  explorer_folder_create_success: "Pasta criada",
+  explorer_error_create_folder: "Falha ao criar pasta",
   explorer_error_paste: "Falha ao colar arquivo",
   explorer_delete_success: "Item excluído",
   explorer_error_delete: "Falha ao excluir item",
@@ -262,3 +274,5 @@ const pt: Record<StringKey, string> = {
 };
 
 export const strings: Record<Locale, Record<StringKey, string>> = { en, pt };
+
+
