@@ -144,6 +144,8 @@ export function AppShell() {
                 activeDocumentId={workspace.activeTabId}
                 onFileSelect={workspace.openDocument}
                 onCreateDocument={workspace.openDocument}
+                onDeleteDocument={workspace.closeDocument}
+                onRenameDocument={workspace.renameDocumentPath}
                 newDocTrigger={newDocTrigger}
               />
               <ResizeHandle
@@ -216,3 +218,6 @@ export function AppShell() {
     </I18nProvider>
   );
 }
+
+
+

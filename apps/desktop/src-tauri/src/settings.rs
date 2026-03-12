@@ -129,8 +129,7 @@ pub fn get_settings_path(app: &AppHandle) -> Result<PathBuf, String> {
         .app_data_dir()
         .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
 
-    fs::create_dir_all(&data_dir)
-        .map_err(|e| format!("Failed to create app data dir: {}", e))?;
+    fs::create_dir_all(&data_dir).map_err(|e| format!("Failed to create app data dir: {}", e))?;
 
     Ok(data_dir.join("settings.json"))
 }

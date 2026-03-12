@@ -514,3 +514,80 @@ body.resize-dragging * {
 .editor-bubble-menu {
   z-index: 50;
 }
+
+
+/* Mermaid contrast tuning for dark themes */
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageText,
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageText,
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageText,
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .labelText,
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .labelText,
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .labelText,
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .loopText,
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .loopText,
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .loopText,
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .noteText,
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .noteText,
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .noteText,
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg text[class*="message"],
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg text[class*="message"],
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg text[class*="message"] {
+  fill: #e5e7eb !important;
+}
+
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageLine0,
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageLine0,
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageLine0,
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageLine1,
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageLine1,
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageLine1,
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .actor-line,
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .actor-line,
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .actor-line,
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .loopLine,
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .loopLine,
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .loopLine,
+.app-shell[data-theme="dark"] .tiptap-body .ProseMirror .md-mermaid-canvas svg line[class*="message"],
+.app-shell[data-theme="dark-blue"] .tiptap-body .ProseMirror .md-mermaid-canvas svg line[class*="message"],
+.app-shell[data-theme="dark-graphite"] .tiptap-body .ProseMirror .md-mermaid-canvas svg line[class*="message"] {
+  stroke: #d1d5db !important;
+}
+
+
+/* Mermaid contrast tuning for light theme */
+
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg rect.actor,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg rect[class*="actor"] {
+  fill: #e5e7eb !important;
+  stroke: #94a3b8 !important;
+}
+
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg text.actor,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg text[class*="actor"],
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg g.actor text,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg g.actor tspan {
+  fill: #0f172a !important;
+}
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg text,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg tspan,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageText,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .labelText,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .loopText,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .noteText {
+  fill: #111827 !important;
+}
+
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageLine0,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .messageLine1,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .actor-line,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .loopLine,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg line[class*="message"],
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg path[class*="messageLine"] {
+  stroke: #1f2937 !important;
+}
+
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg .arrowheadPath,
+.app-shell[data-theme="light"] .tiptap-body .ProseMirror .md-mermaid-canvas svg marker path {
+  fill: #1f2937 !important;
+  stroke: #1f2937 !important;
+}

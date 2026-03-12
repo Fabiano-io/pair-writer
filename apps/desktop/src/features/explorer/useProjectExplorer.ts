@@ -14,8 +14,8 @@ export interface ProjectExplorerState {
   expandedPaths: Set<string>;
   isLoading: boolean;
   selectProjectFolder: () => Promise<void>;
-  refreshRoot: () => Promise<void>;
-  toggleExpand: (path: string) => void;
+  refreshTree: () => Promise<void>;
+  toggleExpand: (path: string) => Promise<void>;
   isExpanded: (path: string) => boolean;
   getChildren: (path: string) => DirEntry[];
   isSupportedFile: (path: string) => boolean;
@@ -28,6 +28,18 @@ export function useProjectExplorer(): ProjectExplorerState {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
+  const loadFolder = useCallback(async (path: string): Promise<DirEntry[]> => {
+    try {
+      const entries = await readDirectoryEntries(path);
+      setChildrenByPath((prev) => ({ ...prev, [path]: entries }));
+      return entries;
+    } catch (error) {
+      console.error("Failed to load folder:", error);
+      setChildrenByPath((prev) => ({ ...prev, [path]: [] }));
+      return [];
+    }
+  }, []);
+
   const loadRoot = useCallback(async (path: string) => {
     try {
       const entries = await readDirectoryEntries(path);
@@ -36,65 +48,86 @@ export function useProjectExplorer(): ProjectExplorerState {
     } catch (error) {
       console.error("Failed to load project root:", error);
       setRootEntries([]);
-    }
-  }, []);
-
-  const loadFolder = useCallback(async (path: string) => {
-    try {
-      const entries = await readDirectoryEntries(path);
-      setChildrenByPath((prev) => ({ ...prev, [path]: entries }));
-    } catch (error) {
-      console.error("Failed to load folder:", error);
+      setChildrenByPath((prev) => ({ ...prev, [path]: [] }));
     }
   }, []);
 
   useEffect(() => {
-    loadSettings().then((settings) => {
+    let mounted = true;
+
+    async function initialize() {
+      setIsLoading(true);
+      const settings = await loadSettings();
+      if (!mounted) return;
+
       const path = settings.projectRootPath ?? null;
       setProjectRootPath(path);
+      setChildrenByPath({});
+      setExpandedPaths(new Set());
+
       if (path) {
-        loadRoot(path);
+        await loadRoot(path);
       } else {
         setRootEntries([]);
       }
-      setIsLoading(false);
-    });
+
+      if (mounted) {
+        setIsLoading(false);
+      }
+    }
+
+    void initialize();
+
+    return () => {
+      mounted = false;
+    };
   }, [loadRoot]);
 
-  const refreshRoot = useCallback(async () => {
-    if (projectRootPath) {
-      await loadRoot(projectRootPath);
+  const refreshTree = useCallback(async () => {
+    if (!projectRootPath) return;
+
+    await loadRoot(projectRootPath);
+
+    const pathsToReload = Array.from(expandedPaths).sort(
+      (a, b) => a.length - b.length
+    );
+
+    for (const path of pathsToReload) {
+      await loadFolder(path);
     }
-  }, [projectRootPath, loadRoot]);
+  }, [projectRootPath, expandedPaths, loadRoot, loadFolder]);
 
   const selectProjectFolder = useCallback(async () => {
     const path = await pickProjectFolder();
     if (!path) return;
 
+    setIsLoading(true);
     setProjectRootPath(path);
-    setExpandedPaths(new Set());
     setChildrenByPath({});
+    setExpandedPaths(new Set());
     await saveProjectRootPath(path);
     await loadRoot(path);
+    setIsLoading(false);
   }, [loadRoot]);
 
-  const toggleExpand = useCallback(
-    (path: string) => {
-      setExpandedPaths((prev) => {
-        const next = new Set(prev);
-        if (next.has(path)) {
-          next.delete(path);
-        } else {
-          next.add(path);
-          if (!childrenByPath[path]) {
-            loadFolder(path);
-          }
-        }
-        return next;
-      });
-    },
-    [childrenByPath, loadFolder]
-  );
+  const toggleExpand = useCallback(async (path: string) => {
+    const currentlyExpanded = expandedPaths.has(path);
+    const hasLoadedChildren = path in childrenByPath;
+
+    setExpandedPaths((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+
+    if (!currentlyExpanded && !hasLoadedChildren) {
+      await loadFolder(path);
+    }
+  }, [expandedPaths, childrenByPath, loadFolder]);
 
   const isExpanded = useCallback(
     (path: string) => expandedPaths.has(path),
@@ -113,7 +146,7 @@ export function useProjectExplorer(): ProjectExplorerState {
     expandedPaths,
     isLoading,
     selectProjectFolder,
-    refreshRoot,
+    refreshTree,
     toggleExpand,
     isExpanded,
     getChildren,

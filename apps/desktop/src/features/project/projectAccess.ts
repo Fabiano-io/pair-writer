@@ -108,3 +108,65 @@ export async function createProjectFile(
     projectRoot,
   });
 }
+
+/**
+ * Renames a file or folder inside the project root.
+ * Returns the new absolute path.
+ */
+export async function renameProjectEntry(
+  entryPath: string,
+  newName: string,
+  projectRoot: string
+): Promise<string> {
+  return await invoke<string>("rename_project_entry", {
+    entryPath,
+    newName,
+    projectRoot,
+  });
+}
+
+/**
+ * Moves a file or folder to another directory inside the project root.
+ * Returns the new absolute path.
+ */
+export async function moveProjectEntry(
+  entryPath: string,
+  targetDir: string,
+  projectRoot: string
+): Promise<string> {
+  return await invoke<string>("move_project_entry", {
+    entryPath,
+    targetDir,
+    projectRoot,
+  });
+}
+/**
+ * Deletes a file or folder inside the project root.
+ */
+export async function deleteProjectEntry(
+  entryPath: string,
+  projectRoot: string
+): Promise<void> {
+  await invoke("delete_project_entry", {
+    entryPath,
+    projectRoot,
+  });
+}
+
+/**
+ * Pastes a copied file into a target directory using an auto-generated name.
+ * Returns the created file path.
+ */
+export async function pasteCopiedProjectFile(
+  entryPath: string,
+  targetDir: string,
+  projectRoot: string,
+  baseName: string
+): Promise<string> {
+  return await invoke<string>("paste_copied_project_file", {
+    entryPath,
+    targetDir,
+    projectRoot,
+    baseName,
+  });
+}

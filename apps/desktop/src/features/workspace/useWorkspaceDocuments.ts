@@ -248,6 +248,51 @@ export function useWorkspaceDocuments() {
     [pendingCloseTabId, contentByTabId, persistDocument, performClose]
   );
 
+  const renameDocumentPath = useCallback((fromId: string, toId: string) => {
+    if (fromId === toId) return;
+
+    delete loadGenerationRef.current[fromId];
+
+    setOpenTabIds((prev) => {
+      const index = prev.indexOf(fromId);
+      if (index === -1) return prev;
+
+      const next = [...prev];
+      next.splice(index, 1);
+
+      if (!next.includes(toId)) {
+        next.splice(index, 0, toId);
+      }
+
+      return next;
+    });
+
+    setContentByTabId((prev) => {
+      if (!(fromId in prev)) return prev;
+
+      const next = { ...prev };
+      if (!(toId in next)) {
+        next[toId] = next[fromId];
+      }
+      delete next[fromId];
+      return next;
+    });
+
+    setSavedContentByTabId((prev) => {
+      if (!(fromId in prev)) return prev;
+
+      const next = { ...prev };
+      if (!(toId in next)) {
+        next[toId] = next[fromId];
+      }
+      delete next[fromId];
+      return next;
+    });
+
+    setActiveTabId((prev) => (prev === fromId ? toId : prev));
+    setPendingCloseTabId((prev) => (prev === fromId ? toId : prev));
+  }, []);
+
   const closeActiveTab = useCallback(() => {
     if (activeTabId) closeDocument(activeTabId);
   }, [activeTabId, closeDocument]);
@@ -276,6 +321,7 @@ export function useWorkspaceDocuments() {
     pendingCloseTabId,
     openDocument,
     closeDocument,
+    renameDocumentPath,
     selectDocument,
     closeActiveTab,
     saveActiveDocument,

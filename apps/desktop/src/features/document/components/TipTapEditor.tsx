@@ -161,6 +161,9 @@ function CodeBlockNodeView({ node }: NodeViewProps) {
   const [isRenderingMermaid, setIsRenderingMermaid] = useState(false);
   const [mermaidSvg, setMermaidSvg] = useState<string>("");
   const [mermaidError, setMermaidError] = useState<string | null>(null);
+  const [activeMermaidTheme, setActiveMermaidTheme] = useState<"default" | "dark">(
+    () => resolveMermaidTheme()
+  );
 
   useEffect(() => {
     return () => {
@@ -168,6 +171,27 @@ function CodeBlockNodeView({ node }: NodeViewProps) {
         clearTimeout(copiedTimeoutRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const appShell = document.querySelector(".app-shell") as HTMLElement | null;
+    if (!appShell) return;
+
+    const observer = new MutationObserver(() => {
+      const nextTheme = resolveMermaidTheme();
+      setActiveMermaidTheme((currentTheme) =>
+        currentTheme === nextTheme ? currentTheme : nextTheme
+      );
+    });
+
+    observer.observe(appShell, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -198,7 +222,7 @@ function CodeBlockNodeView({ node }: NodeViewProps) {
           startOnLoad: false,
           securityLevel: "strict",
           suppressErrorRendering: true,
-          theme: resolveMermaidTheme(),
+          theme: activeMermaidTheme,
         });
 
         const renderId = `pw-mermaid-${++mermaidRenderCounter}`;
@@ -226,7 +250,7 @@ function CodeBlockNodeView({ node }: NodeViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [isMermaid, node.textContent]);
+  }, [isMermaid, node.textContent, activeMermaidTheme]);
 
   const handleCopy = async () => {
     const ok = await copyToClipboard(node.textContent ?? "");

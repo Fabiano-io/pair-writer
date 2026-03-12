@@ -37,7 +37,10 @@ fn get_document_path(app: &AppHandle, document_id: &str) -> Result<PathBuf, Stri
 }
 
 #[tauri::command]
-pub fn load_document_content(app: AppHandle, document_id: String) -> Result<Option<String>, String> {
+pub fn load_document_content(
+    app: AppHandle,
+    document_id: String,
+) -> Result<Option<String>, String> {
     let path = get_document_path(&app, &document_id)?;
     match fs::read_to_string(&path) {
         Ok(content) => Ok(Some(content)),
