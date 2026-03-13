@@ -2,10 +2,11 @@
  * Preferences modal — application appearance and language.
  * Access: View → Preferences… (provisional practical decision for this cycle, not definitive convention).
  */
-import { useCallback, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import type { AppearanceSettings } from "./settingsDefaults";
 import { saveAppearance } from "./appSettings";
 import { useTranslation } from "./i18n/useTranslation";
+import { useDialogA11y } from "../../components/useDialogA11y";
 
 interface PreferencesModalProps {
   initialAppearance: AppearanceSettings;
@@ -37,6 +38,8 @@ export function PreferencesModal({
   onSaved,
 }: PreferencesModalProps) {
   const { t } = useTranslation();
+  const titleId = useId();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [theme, setTheme] = useState(initialAppearance.theme);
   const [fontPreset, setFontPreset] = useState(initialAppearance.fontPreset);
   const [language, setLanguage] = useState(initialAppearance.language);
@@ -78,6 +81,11 @@ export function PreferencesModal({
   const handleClose = useCallback(() => {
     onClose();
   }, [onClose]);
+  const dialogRef = useDialogA11y({
+    isOpen: true,
+    onClose: handleClose,
+    initialFocusRef: closeButtonRef,
+  });
 
   return (
     <div
@@ -85,10 +93,15 @@ export function PreferencesModal({
       onClick={handleClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className="w-96 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-sm font-semibold text-[var(--app-text)]">
+        <h2 id={titleId} className="text-sm font-semibold text-[var(--app-text)]">
           {t("prefs_title")}
         </h2>
 
@@ -164,6 +177,7 @@ export function PreferencesModal({
         </div>
 
         <button
+          ref={closeButtonRef}
           type="button"
           onClick={handleClose}
           className="mt-6 w-full rounded bg-[var(--app-surface-alt)] px-3 py-1.5 text-xs text-[var(--app-text)] transition-colors hover:opacity-90"

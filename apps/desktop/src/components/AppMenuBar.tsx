@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "../features/settings/i18n/useTranslation";
+import { useDialogA11y } from "./useDialogA11y";
 
 interface MenuItem {
   key: string;
@@ -60,8 +61,16 @@ export function AppMenuBar({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
+  const aboutCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const aboutTitleId = useId();
 
   const close = useCallback(() => setOpenMenu(null), []);
+  const closeAbout = useCallback(() => setAboutOpen(false), []);
+  const aboutDialogRef = useDialogA11y({
+    isOpen: aboutOpen,
+    onClose: closeAbout,
+    initialFocusRef: aboutCloseButtonRef,
+  });
 
   useEffect(() => {
     if (!openMenu) return;
@@ -285,13 +294,18 @@ export function AppMenuBar({
       {aboutOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setAboutOpen(false)}
+          onClick={closeAbout}
         >
           <div
+            ref={aboutDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={aboutTitleId}
+            tabIndex={-1}
             className="w-72 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-sm font-semibold text-[var(--app-text)]">
+            <h2 id={aboutTitleId} className="text-sm font-semibold text-[var(--app-text)]">
               {t("about_title")}
             </h2>
             <p className="mt-2 text-xs leading-relaxed text-[var(--app-text-muted)]">
@@ -301,8 +315,9 @@ export function AppMenuBar({
               {t("about_version")}
             </p>
             <button
+              ref={aboutCloseButtonRef}
               type="button"
-              onClick={() => setAboutOpen(false)}
+              onClick={closeAbout}
               className="mt-4 w-full rounded bg-[var(--app-surface-alt)] px-3 py-1.5 text-xs text-[var(--app-text)] transition-colors hover:opacity-90"
             >
               {t("about_close")}

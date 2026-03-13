@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -19,6 +20,7 @@ import {
 } from "../project/projectAccess";
 import type { DirEntry } from "../project/projectAccess";
 import { useTranslation } from "../settings/i18n/useTranslation";
+import { useDialogA11y } from "../../components/useDialogA11y";
 
 interface ExplorerSidebarProps {
   width: number;
@@ -99,6 +101,13 @@ function getRenameSelectionEnd(name: string): number {
   if (lastDot <= 0) return name.length;
   return lastDot;
 }
+
+function getTreeItemDomId(path: string): string {
+  const normalizedPath = normalizePath(path);
+  const encodedPath = encodeURIComponent(normalizedPath).replace(/%/g, "_");
+  return `explorer-tree-item-${encodedPath}`;
+}
+
 export function ExplorerSidebar({
   width,
   activeDocumentId,
@@ -141,12 +150,14 @@ export function ExplorerSidebar({
   const [copiedFilePath, setCopiedFilePath] = useState<string | null>(null);
   const [deleteConfirmEntryPath, setDeleteConfirmEntryPath] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isTreeFocused, setIsTreeFocused] = useState(false);
 
   const createInputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
-  const explorerRef = useRef<HTMLElement>(null);
   const treeNavRef = useRef<HTMLElement>(null);
+  const deleteDialogCancelButtonRef = useRef<HTMLButtonElement>(null);
+  const deleteDialogTitleId = useId();
   const creatingRef = useRef(false);
   const renamingRef = useRef(false);
   const toastTimeoutRef = useRef<number | null>(null);
@@ -154,6 +165,14 @@ export function ExplorerSidebar({
   const pointerDraggedEntryPathRef = useRef<string | null>(null);
   const pointerDraggedEntryLabelRef = useRef("");
   const suppressClickRef = useRef(false);
+  const closeDeleteConfirmDialog = useCallback(() => {
+    setDeleteConfirmEntryPath(null);
+  }, []);
+  const deleteDialogRef = useDialogA11y({
+    isOpen: Boolean(deleteConfirmEntryPath),
+    onClose: closeDeleteConfirmDialog,
+    initialFocusRef: deleteDialogCancelButtonRef,
+  });
   const findEntryByPath = useCallback((targetPath: string): DirEntry | null => {
     const stack = [...rootEntries];
 
@@ -202,6 +221,17 @@ export function ExplorerSidebar({
 
     return nodes;
   }, [rootEntries, isExpanded, getChildren]);
+
+  const selectedTreeItemId = useMemo(() => {
+    if (!selectedEntryPath) return undefined;
+
+    const isVisible = visibleTreeNodes.some(
+      (node) => node.entry.path === selectedEntryPath,
+    );
+
+    if (!isVisible) return undefined;
+    return getTreeItemDomId(selectedEntryPath);
+  }, [selectedEntryPath, visibleTreeNodes]);
 
   const parentPathByEntry = useMemo(() => {
     const map = new Map<string, string | null>();
@@ -823,7 +853,7 @@ export function ExplorerSidebar({
   }, [renamingPath, projectRootPath, renameValue, findEntryByPath, cancelRename, refreshTree, onRenameDocument, t]);
 
   const handleEntryClick = useCallback((entry: DirEntry) => {
-    explorerRef.current?.focus();
+    treeNavRef.current?.focus();
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       return;
@@ -839,7 +869,7 @@ export function ExplorerSidebar({
   }, [renamingPath, toggleExpand]);
 
   const handleEntryOpen = useCallback((entry: DirEntry) => {
-    explorerRef.current?.focus();
+    treeNavRef.current?.focus();
     if (renamingPath) return;
 
     if (entry.isDir) {
@@ -863,7 +893,7 @@ export function ExplorerSidebar({
       event.key === "Enter" ||
       event.key === "F2"
     ) {
-      explorerRef.current?.focus();
+      treeNavRef.current?.focus();
     }
 
     if (event.key === "Escape" && contextMenu) {
@@ -976,12 +1006,19 @@ export function ExplorerSidebar({
     const isSelected = selectedEntryPath === entry.path;
     const isActiveDocument = activeDocumentId === entry.path;
     const isRenaming = renamingPath === entry.path;
+    const treeItemId = getTreeItemDomId(entry.path);
 
     const isDropTarget = entry.isDir && dropTargetPath === entry.path && canDropIntoFolder(entry.path);
 
     return (
-      <div key={entry.path}>
+      <div key={entry.path} role="none">
         <div
+          id={treeItemId}
+          role="treeitem"
+          aria-level={depth + 1}
+          aria-expanded={entry.isDir ? expanded : undefined}
+          aria-selected={isSelected}
+          aria-disabled={!supported || undefined}
           data-tree-entry-path={entry.path}
           data-drop-folder-path={entry.isDir ? entry.path : undefined}
           onContextMenu={(event) => openContextMenuForEntry(event, entry)}
@@ -993,11 +1030,13 @@ export function ExplorerSidebar({
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
+                treeNavRef.current?.focus();
                 void toggleExpand(entry.path);
               }}
               className="w-4 shrink-0 rounded text-[10px] text-[var(--app-text-muted)] outline-none transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)] focus:outline-none focus-visible:outline-none"
               aria-label={expanded ? "Collapse folder" : "Expand folder"}
               title={expanded ? "Collapse folder" : "Expand folder"}
+              tabIndex={-1}
             >
               {expanded ? "▾" : "▸"}
             </button>
@@ -1046,10 +1085,10 @@ export function ExplorerSidebar({
               }}
               onPointerDown={!entry.isDir ? (event) => handlePointerDownOnEntry(event, entry) : undefined}
               title={!supported ? t("explorer_unsupported") : undefined}
-              aria-selected={isSelected}
+              tabIndex={-1}
               className={`my-0.5 flex flex-1 items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-sm outline-none transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${
                 isSelected
-                  ? "bg-[var(--app-surface-alt)]/70 text-[var(--app-text)] ring-1 ring-[var(--app-border)]"
+                  ? `bg-[var(--app-surface-alt)]/70 text-[var(--app-text)] ${isTreeFocused ? "ring-1 ring-[var(--app-border)]" : ""}`
                   : isActiveDocument
                     ? "bg-[var(--app-surface-alt)]/55 text-[var(--app-text)]"
                     : "text-[var(--app-text-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
@@ -1060,14 +1099,14 @@ export function ExplorerSidebar({
             </button>
           )}
         </div>
-        {entry.isDir && expanded && (
-          <div>
+        {entry.isDir && expanded && children.length > 0 && (
+          <div role="group">
             {children.map((child) => renderTreeNode(child, depth + 1))}
           </div>
         )}
       </div>
     );
-  }, [isExpanded, getChildren, isSupportedFile, selectedEntryPath, activeDocumentId, renamingPath, renameValue, renameError, dropTargetPath, pointerDraggedEntryPath, t, submitRename, cancelRename, handleEntryClick, handleEntryOpen, toggleExpand, handlePointerDownOnEntry, canDropIntoFolder, openContextMenuForEntry]);
+  }, [isExpanded, getChildren, isSupportedFile, selectedEntryPath, activeDocumentId, renamingPath, renameValue, renameError, dropTargetPath, t, submitRename, cancelRename, handleEntryClick, handleEntryOpen, toggleExpand, handlePointerDownOnEntry, canDropIntoFolder, openContextMenuForEntry, isTreeFocused]);
 
   const contextMenuKind = useMemo<"workspace" | "file" | "folder" | null>(() => {
     if (!contextMenu) return null;
@@ -1132,11 +1171,8 @@ export function ExplorerSidebar({
 
   return (
     <aside
-      ref={explorerRef}
       className={`flex shrink-0 flex-col border-r border-[var(--app-border)] bg-[var(--app-bg)] outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${pointerDraggedEntryPath ? "select-none cursor-grabbing" : ""}`}
       style={{ width }}
-      tabIndex={0}
-      onKeyDown={handleExplorerKeyDown}
     >
       <div
         className="flex items-center gap-2 border-b border-[var(--app-border)] px-4"
@@ -1189,7 +1225,19 @@ export function ExplorerSidebar({
 
             <nav
               ref={treeNavRef}
-              className="flex-1 overflow-y-auto px-2 py-2"
+              role="tree"
+              aria-label={t("explorer_title")}
+              aria-activedescendant={selectedTreeItemId}
+              aria-multiselectable={false}
+              tabIndex={0}
+              className="flex-1 overflow-y-auto px-2 py-2 outline-none focus:outline-none focus-visible:outline-none"
+              onKeyDown={handleExplorerKeyDown}
+              onFocus={() => setIsTreeFocused(true)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setIsTreeFocused(false);
+                }
+              }}
               onContextMenu={(event) => {
                 if (isTextInputTarget(event.target)) return;
                 openContextMenuForRoot(event);
@@ -1395,16 +1443,28 @@ export function ExplorerSidebar({
       )}
 
       {deleteConfirmEntry && (
-        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]">
-          <div className="w-full max-w-md rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-[var(--app-text)]">{t("explorer_delete_title")}</h3>
+        <div
+          className="fixed inset-0 z-[210] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]"
+          onClick={closeDeleteConfirmDialog}
+        >
+          <div
+            ref={deleteDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={deleteDialogTitleId}
+            tabIndex={-1}
+            className="w-full max-w-md rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 id={deleteDialogTitleId} className="text-base font-semibold text-[var(--app-text)]">{t("explorer_delete_title")}</h3>
             <p className="mt-2 text-sm text-[var(--app-text-muted)]">
               {t("explorer_delete_message")} <strong className="text-[var(--app-text)]">{deleteConfirmEntry.name}</strong>?
             </p>
             <div className="mt-5 flex items-center justify-end gap-2">
               <button
+                ref={deleteDialogCancelButtonRef}
                 type="button"
-                onClick={() => setDeleteConfirmEntryPath(null)}
+                onClick={closeDeleteConfirmDialog}
                 className="rounded-md border border-[var(--app-border)] px-3 py-1.5 text-sm text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
               >
                 {t("explorer_delete_cancel")}

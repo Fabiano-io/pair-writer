@@ -1,4 +1,6 @@
+import { useCallback, useId, useRef } from "react";
 import { useTranslation } from "../features/settings/i18n/useTranslation";
+import { useDialogA11y } from "./useDialogA11y";
 
 interface UnsavedChangesDialogProps {
   documentName: string;
@@ -14,16 +16,32 @@ export function UnsavedChangesDialog({
   onCancel,
 }: UnsavedChangesDialogProps) {
   const { t } = useTranslation();
+  const titleId = useId();
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const handleClose = useCallback(() => {
+    onCancel();
+  }, [onCancel]);
+  const dialogRef = useDialogA11y({
+    isOpen: true,
+    onClose: handleClose,
+    initialFocusRef: cancelButtonRef,
+  });
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onCancel}
+      onClick={handleClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className="w-80 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-sm font-semibold text-[var(--app-text)]">
+        <h2 id={titleId} className="text-sm font-semibold text-[var(--app-text)]">
           {t("unsaved_title")}
         </h2>
         <p className="mt-2 text-xs leading-relaxed text-[var(--app-text-muted)]">
@@ -33,8 +51,9 @@ export function UnsavedChangesDialog({
 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
+            ref={cancelButtonRef}
             type="button"
-            onClick={onCancel}
+            onClick={handleClose}
             className="rounded px-3 py-1.5 text-xs text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-surface-alt)] hover:text-[var(--app-text)]"
           >
             {t("unsaved_cancel")}
