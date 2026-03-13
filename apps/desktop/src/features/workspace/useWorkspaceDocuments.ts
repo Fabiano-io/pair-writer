@@ -12,7 +12,6 @@ import {
   saveFileContent,
   isSupportedFile,
 } from "../project/projectAccess";
-import { textToSimpleHtml, htmlToPlainText } from "../project/textContentUtils";
 import { loadSettings } from "../settings/appSettings";
 
 const CATALOG_IDS = new Set(WORKSPACE_DOCUMENTS.map((d) => d.id));
@@ -26,13 +25,6 @@ function basename(path: string): string {
   return parts[parts.length - 1] ?? path;
 }
 
-function isMarkdownFile(path: string): boolean {
-  return path.toLowerCase().endsWith(".md");
-}
-
-function isPlainTextFile(path: string): boolean {
-  return path.toLowerCase().endsWith(".txt");
-}
 
 export type CloseConfirmAction = "save" | "discard" | "cancel";
 
@@ -91,12 +83,7 @@ export function useWorkspaceDocuments() {
       } else if (isProjectFileId(docId)) {
         const settings = await loadSettings();
         const projectRoot = settings.projectRootPath ?? undefined;
-        const contentToPersist = isMarkdownFile(docId)
-          ? documentContent
-          : isPlainTextFile(docId)
-            ? htmlToPlainText(documentContent)
-            : documentContent;
-        await saveFileContent(docId, contentToPersist, projectRoot);
+        await saveFileContent(docId, documentContent, projectRoot);
       }
     },
     []
@@ -151,11 +138,7 @@ export function useWorkspaceDocuments() {
           .then((projectRoot) =>
             readFileContent(documentId, projectRoot).then((text) => {
               if (isStale(documentId)) return;
-              const loadedContent = isMarkdownFile(documentId)
-                ? text
-                : isPlainTextFile(documentId)
-                  ? textToSimpleHtml(text)
-                  : text;
+              const loadedContent = text;
               setSavedContentByTabId((prev) => ({ ...prev, [documentId]: loadedContent }));
               setContentByTabId((prev) => ({ ...prev, [documentId]: loadedContent }));
             })

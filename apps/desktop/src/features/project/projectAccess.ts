@@ -7,12 +7,50 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 
-/** Supported file extensions for opening in editor (.md, .txt, .html). */
-export const SUPPORTED_FILE_EXTENSIONS = [".md", ".txt", ".html"] as const;
+/** Supported file extensions for opening in editor. */
+export const MARKDOWN_FILE_EXTENSIONS = [".md"] as const;
+export const PLAIN_TEXT_FILE_EXTENSIONS = [
+  ".txt",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".csv",
+  ".tsv",
+  ".log",
+  ".ini",
+  ".toml",
+  ".xml",
+  ".env",
+  ".properties",
+] as const;
+export const JSON_YAML_FILE_EXTENSIONS = [".json", ".yaml", ".yml"] as const;
+export const RICH_HTML_FILE_EXTENSIONS = [".html"] as const;
+
+export const SUPPORTED_FILE_EXTENSIONS = [
+  ...MARKDOWN_FILE_EXTENSIONS,
+  ...PLAIN_TEXT_FILE_EXTENSIONS,
+  ...RICH_HTML_FILE_EXTENSIONS,
+] as const;
+
+function hasAnyFileExtension(path: string, extensions: readonly string[]): boolean {
+  const lower = path.toLowerCase();
+  return extensions.some((ext) => lower.endsWith(ext));
+}
+
+export function isMarkdownFile(path: string): boolean {
+  return hasAnyFileExtension(path, MARKDOWN_FILE_EXTENSIONS);
+}
+
+export function isPlainTextFile(path: string): boolean {
+  return hasAnyFileExtension(path, PLAIN_TEXT_FILE_EXTENSIONS);
+}
+
+export function isJsonYamlFile(path: string): boolean {
+  return hasAnyFileExtension(path, JSON_YAML_FILE_EXTENSIONS);
+}
 
 export function isSupportedFile(path: string): boolean {
-  const lower = path.toLowerCase();
-  return SUPPORTED_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+  return hasAnyFileExtension(path, SUPPORTED_FILE_EXTENSIONS);
 }
 
 export interface DirEntry {

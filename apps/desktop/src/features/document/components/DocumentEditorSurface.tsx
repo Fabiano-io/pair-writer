@@ -11,6 +11,18 @@ import { TipTapEditor } from "./TipTapEditor";
 import { EditorToolbar } from "./EditorToolbar";
 import { useTranslation } from "../../settings/i18n/useTranslation";
 import type { BubbleCommandHandler } from "./bubbleMenuContract";
+import {
+  APP_EDITOR_COPY_EVENT,
+  APP_EDITOR_CUT_EVENT,
+  APP_EDITOR_PASTE_EVENT,
+  APP_EDITOR_REDO_EVENT,
+  APP_EDITOR_UNDO_EVENT,
+} from "../editorCommandEvents";
+import {
+  copyEditorSelection,
+  cutEditorSelection,
+  pasteIntoEditor,
+} from "../editorClipboard";
 
 interface DocumentEditorSurfaceProps {
   title?: string;
@@ -72,6 +84,48 @@ export function DocumentEditorSurface({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!editor || readOnly) return;
+
+    const handleUndo = () => {
+      if (editor.can().undo()) {
+        editor.chain().focus().undo().run();
+      }
+    };
+
+    const handleRedo = () => {
+      if (editor.can().redo()) {
+        editor.chain().focus().redo().run();
+      }
+    };
+
+    const handleCut = () => {
+      void cutEditorSelection(editor);
+    };
+
+    const handleCopy = () => {
+      void copyEditorSelection(editor);
+    };
+
+    const handlePaste = () => {
+      void pasteIntoEditor(editor);
+    };
+
+    window.addEventListener(APP_EDITOR_UNDO_EVENT, handleUndo);
+    window.addEventListener(APP_EDITOR_REDO_EVENT, handleRedo);
+    window.addEventListener(APP_EDITOR_CUT_EVENT, handleCut);
+    window.addEventListener(APP_EDITOR_COPY_EVENT, handleCopy);
+    window.addEventListener(APP_EDITOR_PASTE_EVENT, handlePaste);
+
+    return () => {
+      window.removeEventListener(APP_EDITOR_UNDO_EVENT, handleUndo);
+      window.removeEventListener(APP_EDITOR_REDO_EVENT, handleRedo);
+      window.removeEventListener(APP_EDITOR_CUT_EVENT, handleCut);
+      window.removeEventListener(APP_EDITOR_COPY_EVENT, handleCopy);
+      window.removeEventListener(APP_EDITOR_PASTE_EVENT, handlePaste);
+    };
+  }, [editor, readOnly]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col outline-none">

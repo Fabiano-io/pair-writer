@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AppMenuBar } from "../components/AppMenuBar";
 import { AppStatusBar } from "../components/AppStatusBar";
 import { UnsavedChangesDialog } from "../components/UnsavedChangesDialog";
@@ -7,12 +8,20 @@ import { DocumentWorkspace } from "../features/workspace/DocumentWorkspace";
 import { ResizeHandle } from "../components/ResizeHandle";
 import { useWorkspaceLayout } from "../features/workspace/useWorkspaceLayout";
 import { useWorkspaceDocuments } from "../features/workspace/useWorkspaceDocuments";
-import { loadSettings } from "../features/settings/appSettings";
+import { loadSettings, saveProjectRootPath } from "../features/settings/appSettings";
 import { PROVISIONAL_CONTENT } from "../features/workspace/workspaceDocuments";
 import type { AppearanceSettings } from "../features/settings/settingsDefaults";
 import { DEFAULT_APPEARANCE } from "../features/settings/settingsDefaults";
 import { I18nProvider } from "../features/settings/i18n/I18nContext";
 import { PreferencesModal } from "../features/settings/PreferencesModal";
+import {
+  dispatchEditorCopy,
+  dispatchEditorCut,
+  dispatchEditorPaste,
+  dispatchEditorRedo,
+  dispatchEditorUndo,
+} from "../features/document/editorCommandEvents";
+import { pickProjectFolder } from "../features/project/projectAccess";
 
 /** Approximate word count from HTML. Explicitly provisional; coherent with HTML string contract. */
 function approximateWordCount(html: string): number {
@@ -66,7 +75,6 @@ export function AppShell() {
       });
   }, []);
 
-
   useEffect(() => {
     const interval = setInterval(() => {
       loadSettings().then((s) => setProjectRootPath(s.projectRootPath ?? null));
@@ -117,6 +125,26 @@ export function AppShell() {
     setNewDocTrigger((n) => n + 1);
   }, [explorerVisible, toggleExplorer]);
 
+  const handleOpenProjectFromMenu = useCallback(async () => {
+    const path = await pickProjectFolder();
+    if (!path) return;
+
+    await saveProjectRootPath(path);
+    setProjectRootPath(path);
+
+    if (!explorerVisible) {
+      toggleExplorer();
+    }
+  }, [explorerVisible, toggleExplorer]);
+
+  const handleExitAppFromMenu = useCallback(async () => {
+    try {
+      await getCurrentWindow().close();
+    } catch (error) {
+      console.error("Failed to close app window:", error);
+    }
+  }, []);
+
   const pendingCloseDoc = workspace.pendingCloseTabId
     ? workspace.tabs.find((t) => t.id === workspace.pendingCloseTabId)
     : null;
@@ -132,7 +160,18 @@ export function AppShell() {
           hasActiveTab={workspace.hasActiveTab}
           isSaveable={isSaveable}
           hasProject={projectRootPath !== null}
+          onOpenProject={() => {
+            void handleOpenProjectFromMenu();
+          }}
+          onExitApp={() => {
+            void handleExitAppFromMenu();
+          }}
           onCloseActiveTab={workspace.closeActiveTab}
+          onCut={dispatchEditorCut}
+          onCopy={dispatchEditorCopy}
+          onPaste={dispatchEditorPaste}
+          onUndo={dispatchEditorUndo}
+          onRedo={dispatchEditorRedo}
           onSave={() => saveActiveDocument()}
           onNewDocument={handleNewDocumentFromMenu}
           onToggleExplorer={toggleExplorer}
@@ -146,6 +185,7 @@ export function AppShell() {
           {explorerVisible && (
             <>
               <ExplorerSidebar
+                key={`explorer-${projectRootPath ?? "none"}`}
                 width={explorerWidth}
                 activeDocumentId={workspace.activeTabId}
                 openDocumentIds={workspace.openTabIds}
@@ -225,4 +265,3 @@ export function AppShell() {
     </I18nProvider>
   );
 }
-

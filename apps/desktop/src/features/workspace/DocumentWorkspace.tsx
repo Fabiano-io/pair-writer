@@ -5,9 +5,22 @@ import { ResizeHandle } from "../../components/ResizeHandle";
 import { PROVISIONAL_CONTENT } from "./workspaceDocuments";
 import type { WorkspaceDocument } from "./workspaceDocuments";
 import { useTranslation } from "../settings/i18n/useTranslation";
+import {
+  isJsonYamlFile,
+  isMarkdownFile,
+  isPlainTextFile,
+} from "../project/projectAccess";
 
 function isMarkdownTab(tabId: string | null): boolean {
-  return tabId?.toLowerCase().endsWith(".md") ?? false;
+  return tabId ? isMarkdownFile(tabId) : false;
+}
+
+function isPlainTextTab(tabId: string | null): boolean {
+  return tabId ? isPlainTextFile(tabId) : false;
+}
+
+function isJsonYamlTab(tabId: string | null): boolean {
+  return tabId ? isJsonYamlFile(tabId) : false;
 }
 
 interface DocumentWorkspaceProps {
@@ -51,6 +64,13 @@ export function DocumentWorkspace({
 }: DocumentWorkspaceProps) {
   const { t } = useTranslation();
   const activeIsMarkdown = isMarkdownTab(activeTabId);
+  const activeIsPlainText = isPlainTextTab(activeTabId);
+  const activeHasLineNumbers = isJsonYamlTab(activeTabId);
+  const activeViewMode = activeIsMarkdown
+    ? markdownViewMode
+    : activeIsPlainText
+      ? "source"
+      : "rendered";
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[var(--app-surface)]">
@@ -71,9 +91,13 @@ export function DocumentWorkspace({
               onContentChange={onContentChange}
               onSave={onSave}
               isSaveable={isSaveable}
-              viewMode={activeIsMarkdown ? markdownViewMode : "rendered"}
+              viewMode={activeViewMode}
               isMarkdownDocument={activeIsMarkdown}
-              onToggleMarkdownView={onToggleMarkdownView}
+              isPlainTextDocument={activeIsPlainText}
+              showSourceLineNumbers={activeHasLineNumbers}
+              onToggleMarkdownView={
+                activeIsPlainText ? undefined : onToggleMarkdownView
+              }
             />
             {chatVisible && (
               <>

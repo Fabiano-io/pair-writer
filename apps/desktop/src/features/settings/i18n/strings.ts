@@ -10,11 +10,19 @@ export type StringKey = keyof typeof en;
 const en = {
   // Menu
   menu_file: "File",
+  menu_edit: "Edit",
   menu_view: "View",
   menu_help: "Help",
+  menu_open_project: "Open Project",
   menu_new_document: "New Document",
+  menu_undo: "Undo",
+  menu_redo: "Redo",
+  menu_cut: "Cut",
+  menu_copy: "Copy",
+  menu_paste: "Paste",
   menu_save: "Save",
   menu_close_tab: "Close Tab",
+  menu_exit: "Exit",
   menu_show_explorer: "Show Explorer",
   menu_hide_explorer: "Hide Explorer",
   menu_show_chat: "Show Chat",
@@ -114,6 +122,9 @@ const en = {
   // Editor toolbar
   toolbar_undo: "Undo",
   toolbar_redo: "Redo",
+  toolbar_cut: "Cut",
+  toolbar_copy: "Copy",
+  toolbar_paste: "Paste",
   toolbar_bold: "Bold (Cmd+B)",
   toolbar_italic: "Italic (Cmd+I)",
   toolbar_underline: "Underline",
@@ -148,11 +159,19 @@ const en = {
 
 const pt: Record<StringKey, string> = {
   menu_file: "Arquivo",
+  menu_edit: "Editar",
   menu_view: "Exibir",
   menu_help: "Ajuda",
+  menu_open_project: "Abrir projeto",
   menu_new_document: "Novo documento",
+  menu_undo: "Desfazer",
+  menu_redo: "Refazer",
+  menu_cut: "Recortar",
+  menu_copy: "Copiar",
+  menu_paste: "Colar",
   menu_save: "Salvar",
   menu_close_tab: "Fechar aba",
+  menu_exit: "Sair",
   menu_show_explorer: "Exibir explorador",
   menu_hide_explorer: "Ocultar explorador",
   menu_show_chat: "Exibir chat",
@@ -245,6 +264,9 @@ const pt: Record<StringKey, string> = {
 
   toolbar_undo: "Desfazer",
   toolbar_redo: "Refazer",
+  toolbar_cut: "Recortar",
+  toolbar_copy: "Copiar",
+  toolbar_paste: "Colar",
   toolbar_bold: "Negrito (Cmd+B)",
   toolbar_italic: "Itálico (Cmd+I)",
   toolbar_underline: "Sublinhado",
@@ -276,3 +298,7 @@ const pt: Record<StringKey, string> = {
 };
 
 export const strings: Record<Locale, Record<StringKey, string>> = { en, pt };
+
+
+
+

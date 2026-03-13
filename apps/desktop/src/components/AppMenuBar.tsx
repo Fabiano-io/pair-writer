@@ -19,7 +19,14 @@ interface AppMenuBarProps {
   hasActiveTab: boolean;
   isSaveable: boolean;
   hasProject: boolean;
+  onOpenProject: () => void;
+  onExitApp: () => void;
   onCloseActiveTab: () => void;
+  onCut: () => void;
+  onCopy: () => void;
+  onPaste: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   onSave: () => void;
   onNewDocument: () => void;
   onToggleExplorer: () => void;
@@ -33,7 +40,14 @@ export function AppMenuBar({
   hasActiveTab,
   isSaveable,
   hasProject,
+  onOpenProject,
+  onExitApp,
   onCloseActiveTab,
+  onCut,
+  onCopy,
+  onPaste,
+  onUndo,
+  onRedo,
   onSave,
   onNewDocument,
   onToggleExplorer,
@@ -66,6 +80,15 @@ export function AppMenuBar({
       labelKey: "menu_file",
       items: [
         {
+          key: "open_project",
+          labelKey: "menu_open_project",
+          shortcut: "Ctrl+O",
+          action: () => {
+            onOpenProject();
+            close();
+          },
+        },
+        {
           key: "new",
           labelKey: "menu_new_document",
           disabled: !hasProject,
@@ -90,6 +113,70 @@ export function AppMenuBar({
           disabled: !hasActiveTab,
           action: () => {
             onCloseActiveTab();
+            close();
+          },
+        },
+        {
+          key: "exit",
+          labelKey: "menu_exit",
+          action: () => {
+            onExitApp();
+            close();
+          },
+        },
+      ],
+    },
+    {
+      key: "edit",
+      labelKey: "menu_edit",
+      items: [
+        {
+          key: "undo",
+          labelKey: "menu_undo",
+          shortcut: "Ctrl+Z",
+          disabled: !hasActiveTab,
+          action: () => {
+            onUndo();
+            close();
+          },
+        },
+        {
+          key: "redo",
+          labelKey: "menu_redo",
+          shortcut: "Ctrl+Y",
+          disabled: !hasActiveTab,
+          action: () => {
+            onRedo();
+            close();
+          },
+        },
+        {
+          key: "cut",
+          labelKey: "menu_cut",
+          shortcut: "Ctrl+X",
+          disabled: !hasActiveTab,
+          action: () => {
+            onCut();
+            close();
+          },
+        },
+        {
+          key: "copy",
+          labelKey: "menu_copy",
+          shortcut: "Ctrl+C",
+          disabled: !hasActiveTab,
+          action: () => {
+            onCopy();
+            close();
+          },
+        },
+        {
+          key: "paste",
+          labelKey: "menu_paste",
+          shortcut: "Ctrl+V",
+          disabled: !hasActiveTab,
+          action: () => {
+            onPaste();
             close();
           },
         },

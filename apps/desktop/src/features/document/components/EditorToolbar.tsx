@@ -1,4 +1,9 @@
 import { type Editor, useEditorState } from "@tiptap/react";
+import {
+  copyEditorSelection,
+  cutEditorSelection,
+  pasteIntoEditor,
+} from "../editorClipboard";
 import { useTranslation } from "../../settings/i18n/useTranslation";
 
 function ToolbarButton({
@@ -44,6 +49,16 @@ interface EditorToolbarProps {
   canToggleMarkdownView?: boolean;
   markdownViewMode?: "rendered" | "source";
   onToggleMarkdownView?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onCut?: () => void | Promise<void>;
+  onCopy?: () => void | Promise<void>;
+  onPaste?: () => void | Promise<void>;
+  canCut?: boolean;
+  canCopy?: boolean;
+  canPaste?: boolean;
 }
 
 export function EditorToolbar({
@@ -53,6 +68,16 @@ export function EditorToolbar({
   canToggleMarkdownView = false,
   markdownViewMode = "rendered",
   onToggleMarkdownView,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  onCut,
+  onCopy,
+  onPaste,
+  canCut,
+  canCopy,
+  canPaste,
 }: EditorToolbarProps) {
   const { t } = useTranslation();
   const hasEditor = editor !== null;
@@ -67,6 +92,8 @@ export function EditorToolbar({
       return {
         canUndo: currentEditor.can().undo(),
         canRedo: currentEditor.can().redo(),
+        hasSelection:
+          currentEditor.state.selection.from !== currentEditor.state.selection.to,
         canInsertTable: currentEditor
           .can()
           .chain()
@@ -88,9 +115,69 @@ export function EditorToolbar({
     },
   });
 
-  const canUndo = editorState?.canUndo ?? false;
-  const canRedo = editorState?.canRedo ?? false;
+  const internalCanUndo = editorState?.canUndo ?? false;
+  const internalCanRedo = editorState?.canRedo ?? false;
+  const internalHasSelection = editorState?.hasSelection ?? false;
   const canInsertTable = editorState?.canInsertTable ?? false;
+
+  const hasExternalUndoRedo =
+    !hasEditor && (onUndo !== undefined || onRedo !== undefined);
+  const canRunUndo = hasEditor ? internalCanUndo : (canUndo ?? Boolean(onUndo));
+  const canRunRedo = hasEditor ? internalCanRedo : (canRedo ?? Boolean(onRedo));
+  const shouldShowUndoRedo = hasEditor || hasExternalUndoRedo;
+
+  const hasExternalClipboard =
+    !hasEditor && (onCut !== undefined || onCopy !== undefined || onPaste !== undefined);
+  const canRunCut = hasEditor ? internalHasSelection : (canCut ?? Boolean(onCut));
+  const canRunCopy = hasEditor ? internalHasSelection : (canCopy ?? Boolean(onCopy));
+  const canRunPaste = hasEditor ? true : (canPaste ?? Boolean(onPaste));
+  const shouldShowClipboard = hasEditor || hasExternalClipboard;
+
+  const handleUndo = () => {
+    if (hasEditor && editor) {
+      editor.chain().focus().undo().run();
+      return;
+    }
+
+    onUndo?.();
+  };
+
+  const handleRedo = () => {
+    if (hasEditor && editor) {
+      editor.chain().focus().redo().run();
+      return;
+    }
+
+    onRedo?.();
+  };
+
+  const handleCut = async () => {
+    if (hasEditor && editor) {
+      await cutEditorSelection(editor);
+      return;
+    }
+
+    await onCut?.();
+  };
+
+  const handleCopy = async () => {
+    if (hasEditor && editor) {
+      await copyEditorSelection(editor);
+      return;
+    }
+
+    await onCopy?.();
+  };
+
+  const handlePaste = async () => {
+    if (hasEditor && editor) {
+      await pasteIntoEditor(editor);
+      return;
+    }
+
+    await onPaste?.();
+  };
+
   const viewLabel =
     markdownViewMode === "rendered"
       ? t("status_view_rendered")
@@ -102,21 +189,53 @@ export function EditorToolbar({
 
   return (
     <div className="flex w-full select-none flex-wrap items-center gap-1 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)]/80 px-3 py-2 mb-4">
-      {hasEditor && (
+      {shouldShowUndoRedo && (
         <>
           <ToolbarButton
-            onClick={() => editor.chain().focus().undo().run()}
-            disabled={!canUndo}
-            title="Undo (Cmd+Z)"
+            onClick={handleUndo}
+            disabled={!canRunUndo}
+            title="Undo (Ctrl+Z)"
           >
             {t("toolbar_undo")}
           </ToolbarButton>
           <ToolbarButton
-            onClick={() => editor.chain().focus().redo().run()}
-            disabled={!canRedo}
-            title="Redo (Cmd+Shift+Z)"
+            onClick={handleRedo}
+            disabled={!canRunRedo}
+            title="Redo (Ctrl+Y)"
           >
             {t("toolbar_redo")}
+          </ToolbarButton>
+        </>
+      )}
+
+      {shouldShowClipboard && (
+        <>
+          <ToolbarButton
+            onClick={() => {
+              void handleCut();
+            }}
+            disabled={!canRunCut}
+            title="Cut (Ctrl+X)"
+          >
+            {t("toolbar_cut")}
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => {
+              void handleCopy();
+            }}
+            disabled={!canRunCopy}
+            title="Copy (Ctrl+C)"
+          >
+            {t("toolbar_copy")}
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => {
+              void handlePaste();
+            }}
+            disabled={!canRunPaste}
+            title="Paste (Ctrl+V)"
+          >
+            {t("toolbar_paste")}
           </ToolbarButton>
         </>
       )}
@@ -124,7 +243,7 @@ export function EditorToolbar({
       <ToolbarButton
         onClick={onSave ?? (() => {})}
         disabled={!isSaveable}
-        title="Save (Cmd+S)"
+        title="Save (Ctrl+S)"
       >
         {t("menu_save")}
       </ToolbarButton>
