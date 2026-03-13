@@ -1133,7 +1133,7 @@ export function ExplorerSidebar({
   return (
     <aside
       ref={explorerRef}
-      className={`flex shrink-0 flex-col border-r border-[var(--app-border)] bg-[var(--app-bg)] ${pointerDraggedEntryPath ? "select-none cursor-grabbing" : ""}`}
+      className={`flex shrink-0 flex-col border-r border-[var(--app-border)] bg-[var(--app-bg)] outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${pointerDraggedEntryPath ? "select-none cursor-grabbing" : ""}`}
       style={{ width }}
       tabIndex={0}
       onKeyDown={handleExplorerKeyDown}
