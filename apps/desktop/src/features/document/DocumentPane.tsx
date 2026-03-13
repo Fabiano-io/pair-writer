@@ -82,8 +82,8 @@ export function DocumentPane({
   const [sourceContent, setSourceContent] = useState("");
 
   const renderedScrollRef = useRef<HTMLElement | null>(null);
+  const sourceScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const sourceTextareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const sourceLineNumbersRef = useRef<HTMLPreElement | null>(null);
   const renderedScrollRatioRef = useRef(0);
   const sourceScrollRatioRef = useRef(0);
   const previousViewModeRef = useRef<"rendered" | "source">(viewMode);
@@ -100,11 +100,6 @@ export function DocumentPane({
     },
     [setContent]
   );
-
-  const syncLineNumbersOffset = useCallback((scrollTop: number) => {
-    if (!sourceLineNumbersRef.current) return;
-    sourceLineNumbersRef.current.style.transform = `translateY(-${scrollTop}px)`;
-  }, []);
 
   useEffect(() => {
     setTitle(initialTitle);
@@ -136,7 +131,7 @@ export function DocumentPane({
       const targetElement =
         viewMode === "rendered"
           ? renderedScrollRef.current
-          : sourceTextareaRef.current;
+          : sourceScrollContainerRef.current;
       if (!targetElement) return;
       applyScrollRatio(targetElement, ratio);
 
@@ -144,24 +139,17 @@ export function DocumentPane({
         renderedScrollRatioRef.current = ratio;
       } else {
         sourceScrollRatioRef.current = ratio;
-        if (sourceTextareaRef.current) {
-          syncLineNumbersOffset(sourceTextareaRef.current.scrollTop);
-        }
       }
     });
-  }, [isMarkdownDocument, viewMode, syncLineNumbersOffset]);
+  }, [isMarkdownDocument, viewMode]);
 
   const handleRenderedScroll = useCallback((event: UIEvent<HTMLElement>) => {
     renderedScrollRatioRef.current = getScrollRatio(event.currentTarget);
   }, []);
 
-  const handleSourceScroll = useCallback(
-    (event: UIEvent<HTMLTextAreaElement>) => {
-      sourceScrollRatioRef.current = getScrollRatio(event.currentTarget);
-      syncLineNumbersOffset(event.currentTarget.scrollTop);
-    },
-    [syncLineNumbersOffset]
-  );
+  const handleSourceScroll = useCallback((event: UIEvent<HTMLElement>) => {
+    sourceScrollRatioRef.current = getScrollRatio(event.currentTarget);
+  }, []);
 
   const showSourceMode =
     viewMode === "source" && (isMarkdownDocument || isPlainTextDocument);
@@ -210,17 +198,31 @@ export function DocumentPane({
     await pasteIntoTextarea(textarea, applySourceContent);
   }, [applySourceContent]);
 
-  useEffect(() => {
-    if (!showSourceMode) {
-      syncLineNumbersOffset(0);
-      return;
-    }
+  const resizeSourceTextarea = useCallback(() => {
+    const textarea = sourceTextareaRef.current;
+    if (!textarea) return;
 
-    requestAnimationFrame(() => {
-      if (!sourceTextareaRef.current) return;
-      syncLineNumbersOffset(sourceTextareaRef.current.scrollTop);
-    });
-  }, [showSourceMode, syncLineNumbersOffset, sourceContent]);
+    textarea.style.height = "auto";
+    const minHeight = 560;
+    const nextHeight = Math.max(minHeight, textarea.scrollHeight);
+    textarea.style.height = `${nextHeight}px`;
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!showSourceMode) return;
+    resizeSourceTextarea();
+  }, [showSourceMode, sourceContent, shouldShowSourceLineNumbers, resizeSourceTextarea]);
+
+  useEffect(() => {
+    if (!showSourceMode) return;
+
+    const handleResize = () => resizeSourceTextarea();
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [showSourceMode, resizeSourceTextarea]);
 
   useEffect(() => {
     if (!showSourceMode) return;
@@ -266,90 +268,98 @@ export function DocumentPane({
   return (
     <main className="app-document-area flex flex-1 flex-col overflow-hidden bg-[var(--app-bg)]/20">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none">
-        <div className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 flex-col p-8 lg:p-10">
-          {showSourceMode ? (
-            <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
-              <div className="relative z-30 shrink-0">
-                <EditorToolbar
-                  editor={null}
-                  onSave={onSave}
-                  isSaveable={isSaveable}
-                  canToggleMarkdownView={isMarkdownDocument || isPlainTextDocument}
-                  markdownViewMode={viewMode}
-                  onToggleMarkdownView={
-                    isPlainTextDocument ? undefined : onToggleMarkdownView
-                  }
-                  onUndo={dispatchEditorUndo}
-                  onRedo={dispatchEditorRedo}
-                  onCut={dispatchEditorCut}
-                  onCopy={dispatchEditorCopy}
-                  onPaste={dispatchEditorPaste}
-                  canUndo
-                  canRedo
-                  canCut
-                  canCopy
-                  canPaste
-                />
-              </div>
-              <div className="flex min-h-0 flex-1 flex-col rounded-lg bg-[var(--app-bg)]/20">
-                {shouldShowSourceLineNumbers ? (
-                  <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-[var(--app-border)]/40 bg-[var(--app-bg)]/10">
-                    <div
-                      className="relative shrink-0 overflow-hidden border-r border-[var(--app-border)]/40 bg-[var(--app-bg)]/30"
-                      style={{
-                        width: `${sourceLineGutterWidth}px`,
-                        minWidth: `${sourceLineGutterWidth}px`,
-                      }}
-                    >
-                      <pre
-                        ref={sourceLineNumbersRef}
-                        aria-hidden
-                        className="pointer-events-none m-0 select-none px-2 py-4 text-right font-mono text-[14px] leading-[1.85] tabular-nums text-[var(--app-text-muted)]/80"
+        {showSourceMode ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="relative z-30 shrink-0 border-b border-[var(--app-border)] bg-[var(--app-surface)]">
+              <EditorToolbar
+                editor={null}
+                onSave={onSave}
+                isSaveable={isSaveable}
+                canToggleMarkdownView={isMarkdownDocument || isPlainTextDocument}
+                markdownViewMode={viewMode}
+                onToggleMarkdownView={
+                  isPlainTextDocument ? undefined : onToggleMarkdownView
+                }
+                onUndo={dispatchEditorUndo}
+                onRedo={dispatchEditorRedo}
+                onCut={dispatchEditorCut}
+                onCopy={dispatchEditorCopy}
+                onPaste={dispatchEditorPaste}
+                canUndo
+                canRedo
+                canCut
+                canCopy
+                canPaste
+              />
+            </div>
+
+            <div
+              ref={sourceScrollContainerRef}
+              onScroll={handleSourceScroll}
+              className="min-h-0 flex-1 overflow-y-auto bg-[var(--app-bg)]/16 px-3 py-4 sm:px-4 sm:py-5"
+            >
+              <div className="mx-auto flex min-h-full w-full max-w-[1040px] flex-col border border-[var(--app-border)] bg-[var(--app-surface)]">
+                <div className="flex min-h-full flex-col bg-[var(--app-bg)]/10">
+                  {shouldShowSourceLineNumbers ? (
+                    <div className="flex min-h-[560px] border-y border-[var(--app-border)]/35 bg-transparent">
+                      <div
+                        className="relative shrink-0 overflow-hidden border-r border-[var(--app-border)]/40 bg-[var(--app-bg)]/25"
+                        style={{
+                          width: `${sourceLineGutterWidth}px`,
+                          minWidth: `${sourceLineGutterWidth}px`,
+                        }}
                       >
-                        {sourceLineNumbers}
-                      </pre>
+                        <pre
+                          aria-hidden
+                          className="pointer-events-none m-0 select-none px-2 py-4 text-right font-mono text-[14px] leading-[1.85] tabular-nums text-[var(--app-text-muted)]/80"
+                        >
+                          {sourceLineNumbers}
+                        </pre>
+                      </div>
+                      <textarea
+                        ref={sourceTextareaRef}
+                        value={sourceContent}
+                        onChange={(event) => handleSourceChange(event.target.value)}
+                        className="w-full min-h-[560px] resize-none overflow-y-hidden bg-transparent p-6 font-mono text-[14px] leading-[1.85] text-[var(--app-text)] outline-none sm:p-8"
+                        spellCheck={false}
+                        wrap="off"
+                      />
                     </div>
+                  ) : (
                     <textarea
                       ref={sourceTextareaRef}
                       value={sourceContent}
                       onChange={(event) => handleSourceChange(event.target.value)}
-                      onScroll={handleSourceScroll}
-                      className="h-full min-h-[420px] w-full resize-none bg-transparent p-4 font-mono text-[14px] leading-[1.85] text-[var(--app-text)] outline-none"
+                      className="w-full min-h-[560px] resize-none overflow-y-hidden bg-transparent p-6 font-mono text-[14px] leading-[1.85] text-[var(--app-text)] outline-none sm:p-8"
                       spellCheck={false}
-                      wrap="off"
                     />
-                  </div>
-                ) : (
-                  <textarea
-                    ref={sourceTextareaRef}
-                    value={sourceContent}
-                    onChange={(event) => handleSourceChange(event.target.value)}
-                    onScroll={handleSourceScroll}
-                    className="h-full min-h-[420px] w-full resize-none rounded-lg bg-transparent p-4 font-mono text-[14px] leading-[1.85] text-[var(--app-text)] outline-none"
-                    spellCheck={false}
-                  />
-                )}
+                  )}
+                </div>
+                <div
+                  aria-hidden
+                  className="h-14 shrink-0 border-t border-[var(--app-border)]/70 bg-[var(--app-surface)]"
+                />
               </div>
             </div>
-          ) : (
-            <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
-              <DocumentEditorSurface
-                title={title}
-                content={content}
-                onTitleChange={setTitle}
-                onContentChange={setContent}
-                onSave={onSave}
-                isSaveable={isSaveable}
-                canToggleMarkdownView={isMarkdownDocument}
-                markdownViewMode={viewMode}
-                onToggleMarkdownView={onToggleMarkdownView}
-                scrollContainerRef={renderedScrollRef}
-                onScrollContainer={handleRenderedScroll}
-                contentType={isMarkdownDocument ? "markdown" : "html"}
-              />
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <DocumentEditorSurface
+              title={title}
+              content={content}
+              onTitleChange={setTitle}
+              onContentChange={setContent}
+              onSave={onSave}
+              isSaveable={isSaveable}
+              canToggleMarkdownView={isMarkdownDocument}
+              markdownViewMode={viewMode}
+              onToggleMarkdownView={onToggleMarkdownView}
+              scrollContainerRef={renderedScrollRef}
+              onScrollContainer={handleRenderedScroll}
+              contentType={isMarkdownDocument ? "markdown" : "html"}
+            />
+          </div>
+        )}
       </div>
     </main>
   );

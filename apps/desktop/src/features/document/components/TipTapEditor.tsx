@@ -469,7 +469,7 @@ export function TipTapEditor({
     <div className="flex min-h-full flex-col w-full">
       <EditorContent
         editor={editor}
-        className="tiptap-body w-full min-h-[500px] text-base leading-relaxed"
+        className="tiptap-body w-full min-h-full px-6 py-8 text-base leading-relaxed sm:px-8 sm:py-10"
       />
       {!readOnly && editor && (
         <BubbleMenu

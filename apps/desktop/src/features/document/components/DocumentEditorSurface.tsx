@@ -130,7 +130,7 @@ export function DocumentEditorSurface({
   return (
     <div className="flex min-h-0 flex-1 flex-col outline-none">
       {!readOnly && (
-        <div className="relative z-30 shrink-0">
+        <div className="relative z-30 shrink-0 border-b border-[var(--app-border)] bg-[var(--app-surface)]">
           <EditorToolbar
             editor={editor}
             onSave={onSave}
@@ -143,7 +143,7 @@ export function DocumentEditorSurface({
             <div
               role="status"
               aria-live="polite"
-              className="mt-2 px-3 py-1.5 text-xs text-zinc-500 bg-zinc-800/60 rounded-md w-fit"
+              className="border-t border-[var(--app-border)] px-3 py-1.5 text-xs text-[var(--app-text-muted)] bg-[var(--app-bg)]/35"
             >
               {t("bubble_command_prepared")}
             </div>
@@ -154,16 +154,22 @@ export function DocumentEditorSurface({
       <article
         ref={scrollContainerRef}
         onScroll={onScrollContainer}
-        className="relative z-0 min-h-0 flex-1 overflow-y-auto"
+        className="relative z-0 min-h-0 flex-1 overflow-y-auto bg-[var(--app-bg)]/16 px-3 py-4 sm:px-4 sm:py-5"
       >
-        <TipTapEditor
-          content={content}
-          onContentChange={onContentChange}
-          onEditorReady={handleEditorReady}
-          onBubbleCommand={handleBubbleCommand}
-          readOnly={readOnly}
-          contentType={contentType}
-        />
+        <div className="mx-auto flex min-h-full w-full max-w-[1040px] flex-col border border-[var(--app-border)] bg-[var(--app-surface)]">
+          <TipTapEditor
+            content={content}
+            onContentChange={onContentChange}
+            onEditorReady={handleEditorReady}
+            onBubbleCommand={handleBubbleCommand}
+            readOnly={readOnly}
+            contentType={contentType}
+          />
+          <div
+            aria-hidden
+            className="h-14 shrink-0 border-t border-[var(--app-border)]/70 bg-[var(--app-surface)]"
+          />
+        </div>
       </article>
     </div>
   );

@@ -517,7 +517,7 @@ export function EditorToolbar({
   const saveLabel = t("menu_save");
 
   return (
-    <div className="relative z-40 isolate mb-4 flex w-full select-none flex-wrap items-center gap-1 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)]/82 px-3 py-2 backdrop-blur-sm">
+    <div className="relative z-40 isolate flex w-full select-none flex-wrap items-center gap-1 rounded-none border-0 bg-transparent px-3 py-2">
       {shouldShowUndoRedo && (
         <>
           <ToolbarButton
