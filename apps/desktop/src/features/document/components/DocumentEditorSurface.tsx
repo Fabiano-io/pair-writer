@@ -130,7 +130,7 @@ export function DocumentEditorSurface({
   return (
     <div className="flex min-h-0 flex-1 flex-col outline-none">
       {!readOnly && (
-        <div className="shrink-0">
+        <div className="relative z-30 shrink-0">
           <EditorToolbar
             editor={editor}
             onSave={onSave}
@@ -154,7 +154,7 @@ export function DocumentEditorSurface({
       <article
         ref={scrollContainerRef}
         onScroll={onScrollContainer}
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="relative z-0 min-h-0 flex-1 overflow-y-auto"
       >
         <TipTapEditor
           content={content}

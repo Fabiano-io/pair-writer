@@ -269,7 +269,7 @@ export function DocumentPane({
         <div className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 flex-col p-8 lg:p-10">
           {showSourceMode ? (
             <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
-              <div className="shrink-0">
+              <div className="relative z-30 shrink-0">
                 <EditorToolbar
                   editor={null}
                   onSave={onSave}
