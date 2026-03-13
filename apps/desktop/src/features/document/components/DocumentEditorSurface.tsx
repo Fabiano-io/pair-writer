@@ -167,7 +167,7 @@ export function DocumentEditorSurface({
           />
           <div
             aria-hidden
-            className="h-14 shrink-0 border-t border-[var(--app-border)]/70 bg-[var(--app-surface)]"
+            className="h-10 shrink-0 border-t border-[var(--app-border)]/65 bg-[var(--app-bg)]/10"
           />
         </div>
       </article>
