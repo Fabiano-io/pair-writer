@@ -5,7 +5,7 @@ mod settings;
 use documents::{load_document_content, save_document_content};
 use project::{
     create_project_file, create_project_folder, delete_project_entry, move_project_entry, paste_copied_project_file,
-    read_directory_entries, read_file_content, rename_project_entry, save_file_content,
+    read_directory_entries, read_file_binary, read_file_content, rename_project_entry, save_file_content,
 };
 use settings::{get_settings_path, read_settings_from_disk, write_settings_to_disk};
 use std::sync::Mutex;
@@ -75,6 +75,7 @@ pub fn run() {
             save_document_content,
             read_directory_entries,
             read_file_content,
+            read_file_binary,
             save_file_content,
             create_project_file,
             create_project_folder,

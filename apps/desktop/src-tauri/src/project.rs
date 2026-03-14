@@ -100,6 +100,26 @@ pub fn read_file_content(
 }
 
 #[tauri::command]
+pub fn read_file_binary(
+    file_path: String,
+    project_root: Option<String>,
+) -> Result<Vec<u8>, String> {
+    let path = Path::new(&file_path);
+    if !path.is_file() {
+        return Err("Path is not a file".to_string());
+    }
+
+    if let Some(ref root) = project_root {
+        let base = Path::new(root);
+        if !path_is_within_base(path, base)? {
+            return Err("File is outside project directory".to_string());
+        }
+    }
+
+    fs::read(path).map_err(|e| format!("Failed to read file: {}", e))
+}
+
+#[tauri::command]
 pub fn save_file_content(
     file_path: String,
     content: String,

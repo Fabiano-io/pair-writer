@@ -7,6 +7,7 @@ import { useTranslation } from "../settings/i18n/useTranslation";
 import {
   isJsonYamlFile,
   isMarkdownFile,
+  isPdfFile,
   isPlainTextFile,
 } from "../project/projectAccess";
 
@@ -20,6 +21,10 @@ function isPlainTextTab(tabId: string | null): boolean {
 
 function isJsonYamlTab(tabId: string | null): boolean {
   return tabId ? isJsonYamlFile(tabId) : false;
+}
+
+function isPdfTab(tabId: string | null): boolean {
+  return tabId ? isPdfFile(tabId) : false;
 }
 
 interface DocumentWorkspaceProps {
@@ -65,6 +70,7 @@ export function DocumentWorkspace({
   const activeIsMarkdown = isMarkdownTab(activeTabId);
   const activeIsPlainText = isPlainTextTab(activeTabId);
   const activeHasLineNumbers = isJsonYamlTab(activeTabId);
+  const activeIsPdf = isPdfTab(activeTabId);
   const activeViewMode = activeIsMarkdown
     ? markdownViewMode
     : activeIsPlainText
@@ -94,6 +100,8 @@ export function DocumentWorkspace({
               viewMode={activeViewMode}
               isMarkdownDocument={activeIsMarkdown}
               isPlainTextDocument={activeIsPlainText}
+              isPdfDocument={activeIsPdf}
+              documentPath={activeTabId}
               showSourceLineNumbers={activeHasLineNumbers}
               onToggleMarkdownView={
                 activeIsPlainText ? undefined : onToggleMarkdownView

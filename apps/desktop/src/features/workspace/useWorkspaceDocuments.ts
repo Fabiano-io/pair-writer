@@ -9,6 +9,7 @@ import {
 import {
   readFileContent,
   saveFileContent,
+  isPdfFile,
   isSupportedFile,
 } from "../project/projectAccess";
 import { loadSettings } from "../settings/appSettings";
@@ -80,6 +81,7 @@ export function useWorkspaceDocuments() {
       if (CATALOG_IDS.has(docId)) {
         await saveDocumentContent(docId, documentContent);
       } else if (isProjectFileId(docId)) {
+        if (isPdfFile(docId)) return;
         const settings = await loadSettings();
         const projectRoot = settings.projectRootPath ?? undefined;
         await saveFileContent(docId, documentContent, projectRoot);
@@ -131,7 +133,9 @@ export function useWorkspaceDocuments() {
       const isStale = (id: string) =>
         (loadGenerationRef.current[id] ?? 0) !== gen;
 
-      if (isProject && isSupportedFile(documentId)) {
+      if (isProject && isPdfFile(documentId)) {
+        // PDF is binary and handled by dedicated read-only preview.
+      } else if (isProject && isSupportedFile(documentId)) {
         loadSettings()
           .then((s) => s.projectRootPath ?? undefined)
           .then((projectRoot) =>

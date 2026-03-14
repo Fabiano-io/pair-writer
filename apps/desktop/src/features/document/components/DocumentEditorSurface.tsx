@@ -167,6 +167,7 @@ export function DocumentEditorSurface({
             onBubbleCommand={handleBubbleCommand}
             readOnly={readOnly}
             contentType={contentType}
+            scrollContainerRef={scrollContainerRef}
           />
         </div>
       </article>

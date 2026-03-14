@@ -10,6 +10,7 @@ import {
 } from "react";
 import { DocumentEditorSurface } from "./components/DocumentEditorSurface";
 import { EditorToolbar } from "./components/EditorToolbar";
+import { PdfDocumentView } from "./components/PdfDocumentView";
 import {
   APP_EDITOR_COPY_EVENT,
   APP_EDITOR_CUT_EVENT,
@@ -46,8 +47,30 @@ function applyScrollRatio(
   element.scrollTop = maxScroll * ratio;
 }
 
+function resolveLineHeightPx(styles: CSSStyleDeclaration): number {
+  const rawLineHeight = styles.lineHeight ?? "";
+  const fontSize = Number.parseFloat(styles.fontSize || "16") || 16;
+
+  if (!rawLineHeight || rawLineHeight === "normal") {
+    return Math.max(1, fontSize * 1.5);
+  }
+
+  if (rawLineHeight.endsWith("px")) {
+    const value = Number.parseFloat(rawLineHeight);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+
+  const unitlessValue = Number.parseFloat(rawLineHeight);
+  if (Number.isFinite(unitlessValue) && unitlessValue > 0) {
+    return unitlessValue * fontSize;
+  }
+
+  return Math.max(1, fontSize * 1.5);
+}
+
 interface DocumentPaneProps {
   documentId?: string | null;
+  documentPath?: string | null;
   title: string;
   /** When provided with onContentChange, enables controlled mode (e.g. per-tab content in workspace). */
   content?: string;
@@ -57,12 +80,14 @@ interface DocumentPaneProps {
   viewMode?: "rendered" | "source";
   isMarkdownDocument?: boolean;
   isPlainTextDocument?: boolean;
+  isPdfDocument?: boolean;
   showSourceLineNumbers?: boolean;
   onToggleMarkdownView?: () => void;
 }
 
 export function DocumentPane({
   documentId = null,
+  documentPath = null,
   title: initialTitle,
   content: controlledContent,
   onContentChange: onControlledContentChange,
@@ -71,12 +96,14 @@ export function DocumentPane({
   viewMode = "rendered",
   isMarkdownDocument = false,
   isPlainTextDocument = false,
+  isPdfDocument = false,
   showSourceLineNumbers = false,
   onToggleMarkdownView,
 }: DocumentPaneProps) {
   const [title, setTitle] = useState(initialTitle);
   const [localContent, setLocalContent] = useState("");
   const [sourceContent, setSourceContent] = useState("");
+  const [sourceDisplayLineCount, setSourceDisplayLineCount] = useState(1);
 
   const renderedScrollRef = useRef<HTMLElement | null>(null);
   const sourceScrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -226,13 +253,19 @@ export function DocumentPane({
 
   const showSourceMode =
     viewMode === "source" && (isMarkdownDocument || isPlainTextDocument);
+  const showPdfMode = isPdfDocument && Boolean(documentPath);
 
   const shouldShowSourceLineNumbers =
     showSourceMode && showSourceLineNumbers && isPlainTextDocument;
 
-  const sourceLineCount = useMemo(
+  const sourceContentLineCount = useMemo(
     () => Math.max(1, sourceContent.split(/\r\n|\n|\r/).length),
     [sourceContent]
+  );
+
+  const sourceLineCount = useMemo(
+    () => Math.max(sourceContentLineCount, sourceDisplayLineCount),
+    [sourceContentLineCount, sourceDisplayLineCount]
   );
 
   const sourceLineNumbers = useMemo(
@@ -276,9 +309,36 @@ export function DocumentPane({
     if (!textarea) return;
 
     textarea.style.height = "auto";
-    const minHeight = 560;
+    const scrollContainer = sourceScrollContainerRef.current;
+    const scrollContainerStyles = scrollContainer
+      ? window.getComputedStyle(scrollContainer)
+      : null;
+    const containerVerticalPadding = scrollContainerStyles
+      ? (Number.parseFloat(scrollContainerStyles.paddingTop || "0") || 0) +
+        (Number.parseFloat(scrollContainerStyles.paddingBottom || "0") || 0)
+      : 0;
+    const viewportMinHeight = scrollContainer
+      ? Math.max(0, scrollContainer.clientHeight - containerVerticalPadding - 2)
+      : 0;
+    const minHeight = Math.max(560, viewportMinHeight);
     const nextHeight = Math.max(minHeight, textarea.scrollHeight);
     textarea.style.height = `${nextHeight}px`;
+
+    const textareaStyles = window.getComputedStyle(textarea);
+    const resolvedLineHeight = resolveLineHeightPx(textareaStyles);
+    const verticalPadding =
+      (Number.parseFloat(textareaStyles.paddingTop || "0") || 0) +
+      (Number.parseFloat(textareaStyles.paddingBottom || "0") || 0);
+    const renderedHeight = textarea.clientHeight || nextHeight;
+    const drawableHeight = Math.max(0, renderedHeight - verticalPadding);
+    const visualLineCount = Math.max(
+      1,
+      Math.ceil(drawableHeight / resolvedLineHeight)
+    );
+
+    setSourceDisplayLineCount((currentCount) =>
+      currentCount === visualLineCount ? currentCount : visualLineCount
+    );
   }, []);
 
   useLayoutEffect(() => {
@@ -345,6 +405,16 @@ export function DocumentPane({
   }, [showSourceMode, documentId, focusSourceAtStart]);
 
   useEffect(() => {
+    setSourceDisplayLineCount(1);
+  }, [documentId]);
+
+  useEffect(() => {
+    renderedScrollRatioRef.current = 0;
+    sourceScrollRatioRef.current = 0;
+    previousViewModeRef.current = viewMode;
+  }, [documentId, viewMode]);
+
+  useEffect(() => {
     return () => {
       if (sourceFocusRafRef.current !== null) {
         window.cancelAnimationFrame(sourceFocusRafRef.current);
@@ -356,6 +426,16 @@ export function DocumentPane({
     sourceInitialFocusPendingRef.current = false;
     applySourceContent(value);
   };
+
+  if (showPdfMode && documentPath) {
+    return (
+      <main className="app-document-area flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]/20">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[var(--app-border)]/70 outline-none">
+          <PdfDocumentView filePath={documentPath} />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="app-document-area flex flex-1 flex-col overflow-hidden bg-[var(--app-bg)]/20">

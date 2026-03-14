@@ -25,11 +25,13 @@ export const PLAIN_TEXT_FILE_EXTENSIONS = [
 ] as const;
 export const JSON_YAML_FILE_EXTENSIONS = [".json", ".yaml", ".yml"] as const;
 export const RICH_HTML_FILE_EXTENSIONS = [".html"] as const;
+export const PDF_FILE_EXTENSIONS = [".pdf"] as const;
 
 export const SUPPORTED_FILE_EXTENSIONS = [
   ...MARKDOWN_FILE_EXTENSIONS,
   ...PLAIN_TEXT_FILE_EXTENSIONS,
   ...RICH_HTML_FILE_EXTENSIONS,
+  ...PDF_FILE_EXTENSIONS,
 ] as const;
 
 function hasAnyFileExtension(path: string, extensions: readonly string[]): boolean {
@@ -47,6 +49,10 @@ export function isPlainTextFile(path: string): boolean {
 
 export function isJsonYamlFile(path: string): boolean {
   return hasAnyFileExtension(path, JSON_YAML_FILE_EXTENSIONS);
+}
+
+export function isPdfFile(path: string): boolean {
+  return hasAnyFileExtension(path, PDF_FILE_EXTENSIONS);
 }
 
 export function isSupportedFile(path: string): boolean {
@@ -108,6 +114,26 @@ export async function readFileContent(
     });
   } catch (error) {
     console.error("Failed to read file content:", error);
+    throw error;
+  }
+}
+
+/**
+ * Reads file content as raw binary.
+ * Optionally validates that file is within project root.
+ */
+export async function readFileBinary(
+  filePath: string,
+  projectRoot?: string | null
+): Promise<Uint8Array> {
+  try {
+    const bytes = await invoke<number[]>("read_file_binary", {
+      filePath,
+      projectRoot: projectRoot ?? null,
+    });
+    return new Uint8Array(bytes);
+  } catch (error) {
+    console.error("Failed to read file binary:", error);
     throw error;
   }
 }

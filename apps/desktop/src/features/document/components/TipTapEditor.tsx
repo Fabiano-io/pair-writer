@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { mergeAttributes } from "@tiptap/core";
 import {
   useEditor,
@@ -397,6 +397,7 @@ interface TipTapEditorProps {
   onBubbleCommand?: BubbleCommandHandler;
   readOnly?: boolean;
   contentType?: "html" | "markdown";
+  scrollContainerRef?: RefObject<HTMLElement | null>;
 }
 
 export function TipTapEditor({
@@ -407,8 +408,40 @@ export function TipTapEditor({
   onBubbleCommand,
   readOnly = false,
   contentType = "html",
+  scrollContainerRef,
 }: TipTapEditorProps) {
   const isMarkdownContent = contentType === "markdown";
+
+  const scrollContainerToBoundary = useCallback(
+    (boundary: "start" | "end") => {
+      const container = scrollContainerRef?.current;
+      if (!container) return;
+
+      if (boundary === "start") {
+        container.scrollTo({ top: 0 });
+        return;
+      }
+
+      const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+      container.scrollTo({ top: maxScroll });
+    },
+    [scrollContainerRef]
+  );
+
+  const scheduleScrollContainerToBoundary = useCallback(
+    (boundary: "start" | "end") => {
+      const applyScroll = () => {
+        scrollContainerToBoundary(boundary);
+      };
+
+      window.requestAnimationFrame(() => {
+        applyScroll();
+        // Run twice to override delayed internal scroll adjustments from ProseMirror.
+        window.requestAnimationFrame(applyScroll);
+      });
+    },
+    [scrollContainerToBoundary]
+  );
 
   const editor = useEditor({
     extensions: [
@@ -482,6 +515,31 @@ export function TipTapEditor({
       window.cancelAnimationFrame(rafId);
     };
   }, [editor, documentId, readOnly]);
+
+  useEffect(() => {
+    if (!editor || readOnly || !isMarkdownContent) return;
+
+    const handleBoundaryNavigation = (event: KeyboardEvent) => {
+      const hasBoundaryModifier = event.ctrlKey || event.metaKey;
+      if (!hasBoundaryModifier || event.altKey) return;
+      if (event.key !== "Home" && event.key !== "End") return;
+
+      event.preventDefault();
+
+      const isHome = event.key === "Home";
+      editor.commands.focus(isHome ? "start" : "end", {
+        scrollIntoView: false,
+      });
+      scheduleScrollContainerToBoundary(isHome ? "start" : "end");
+    };
+
+    const dom = editor.view.dom;
+    dom.addEventListener("keydown", handleBoundaryNavigation, true);
+
+    return () => {
+      dom.removeEventListener("keydown", handleBoundaryNavigation, true);
+    };
+  }, [editor, readOnly, isMarkdownContent, scheduleScrollContainerToBoundary]);
 
   return (
     <div className="flex min-h-full flex-col w-full">
