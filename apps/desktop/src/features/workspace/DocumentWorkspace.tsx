@@ -85,6 +85,7 @@ export function DocumentWorkspace({
         {hasActiveTab ? (
           <>
             <DocumentPane
+              documentId={activeTabId}
               title={activeDocument!.label}
               content={contentByTabId[activeTabId!] ?? ""}
               onContentChange={onContentChange}

@@ -13,7 +13,6 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
 import { CodeBlock } from "@tiptap/extension-code-block";
-import { Placeholder } from "@tiptap/extension-placeholder";
 import { TableKit } from "@tiptap/extension-table";
 import { EditorBubbleMenu } from "./EditorBubbleMenu";
 import type { BubbleCommandHandler } from "./bubbleMenuContract";
@@ -391,6 +390,7 @@ const StyledCodeBlock = CodeBlock.extend({
 });
 
 interface TipTapEditorProps {
+  documentId?: string | null;
   content?: string;
   onContentChange?: (content: string) => void;
   onEditorReady?: (editor: Editor) => void;
@@ -400,6 +400,7 @@ interface TipTapEditorProps {
 }
 
 export function TipTapEditor({
+  documentId = null,
   content = "",
   onContentChange,
   onEditorReady,
@@ -418,7 +419,6 @@ export function TipTapEditor({
           class: "md-code-block",
         },
       }),
-      Placeholder.configure({ placeholder: "Start writing..." }),
       TableKit,
       Markdown.configure({
         markedOptions: {
@@ -446,6 +446,10 @@ export function TipTapEditor({
   useEffect(() => {
     if (!editor) return;
     const nextContent = content ?? "";
+    const focusAtStart = () => {
+      if (readOnly) return;
+      editor.commands.focus("start");
+    };
 
     if (isMarkdownContent) {
       const current = editor.getMarkdown();
@@ -456,14 +460,28 @@ export function TipTapEditor({
 
       const parsed = markdownManager.parse(nextContent);
       editor.commands.setContent(parsed, { emitUpdate: false });
+      focusAtStart();
       return;
     }
 
     const current = editor.getHTML();
     if (current !== nextContent) {
       editor.commands.setContent(nextContent, { emitUpdate: false });
+      focusAtStart();
     }
-  }, [editor, content, isMarkdownContent]);
+  }, [editor, content, isMarkdownContent, readOnly]);
+
+  useEffect(() => {
+    if (!editor || readOnly) return;
+
+    const rafId = window.requestAnimationFrame(() => {
+      editor.commands.focus("start");
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [editor, documentId, readOnly]);
 
   return (
     <div className="flex min-h-full flex-col w-full">

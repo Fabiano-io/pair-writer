@@ -25,6 +25,7 @@ import {
 } from "../editorClipboard";
 
 interface DocumentEditorSurfaceProps {
+  documentId?: string | null;
   title?: string;
   content?: string;
   onTitleChange?: (title: string) => void;
@@ -45,6 +46,7 @@ interface DocumentEditorSurfaceProps {
  * Props title/onTitleChange retained for possible future reintroduction.
  */
 export function DocumentEditorSurface({
+  documentId = null,
   content,
   onContentChange,
   onSave,
@@ -158,6 +160,7 @@ export function DocumentEditorSurface({
       >
         <div className="mx-auto flex min-h-full w-full max-w-[1040px] flex-col border border-[var(--app-border)] bg-[var(--app-surface)]">
           <TipTapEditor
+            documentId={documentId}
             content={content}
             onContentChange={onContentChange}
             onEditorReady={handleEditorReady}

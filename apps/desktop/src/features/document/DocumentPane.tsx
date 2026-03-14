@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type UIEvent,
 } from "react";
 import { DocumentEditorSurface } from "./components/DocumentEditorSurface";
@@ -46,6 +47,7 @@ function applyScrollRatio(
 }
 
 interface DocumentPaneProps {
+  documentId?: string | null;
   title: string;
   /** When provided with onContentChange, enables controlled mode (e.g. per-tab content in workspace). */
   content?: string;
@@ -60,6 +62,7 @@ interface DocumentPaneProps {
 }
 
 export function DocumentPane({
+  documentId = null,
   title: initialTitle,
   content: controlledContent,
   onContentChange: onControlledContentChange,
@@ -81,6 +84,8 @@ export function DocumentPane({
   const renderedScrollRatioRef = useRef(0);
   const sourceScrollRatioRef = useRef(0);
   const previousViewModeRef = useRef<"rendered" | "source">(viewMode);
+  const sourceInitialFocusPendingRef = useRef(false);
+  const sourceFocusRafRef = useRef<number | null>(null);
 
   const isControlled =
     controlledContent !== undefined && onControlledContentChange !== undefined;
@@ -95,6 +100,24 @@ export function DocumentPane({
     [setContent]
   );
 
+  const focusSourceAtStart = useCallback(() => {
+    if (sourceFocusRafRef.current !== null) {
+      window.cancelAnimationFrame(sourceFocusRafRef.current);
+      sourceFocusRafRef.current = null;
+    }
+
+    sourceFocusRafRef.current = window.requestAnimationFrame(() => {
+      const textarea = sourceTextareaRef.current;
+      if (!textarea) return;
+
+      textarea.focus();
+      textarea.setSelectionRange(0, 0);
+      textarea.scrollTop = 0;
+      sourceScrollContainerRef.current?.scrollTo({ top: 0 });
+      sourceFocusRafRef.current = null;
+    });
+  }, []);
+
   useEffect(() => {
     setTitle(initialTitle);
   }, [initialTitle]);
@@ -102,8 +125,24 @@ export function DocumentPane({
   useEffect(() => {
     if (viewMode !== "source") return;
     if (!isMarkdownDocument && !isPlainTextDocument) return;
-    setSourceContent((current) => (current === content ? current : content));
-  }, [content, isMarkdownDocument, isPlainTextDocument, viewMode]);
+
+    const nextContent = content ?? "";
+    setSourceContent((current) => {
+      if (current === nextContent) return current;
+
+      if (sourceInitialFocusPendingRef.current) {
+        focusSourceAtStart();
+
+        // Keep pending when transitioning through temporary empty content.
+        // This guarantees focus is also applied when the real file content arrives.
+        if (nextContent.length > 0) {
+          sourceInitialFocusPendingRef.current = false;
+        }
+      }
+
+      return nextContent;
+    });
+  }, [content, isMarkdownDocument, isPlainTextDocument, viewMode, focusSourceAtStart]);
 
   useLayoutEffect(() => {
     if (!isMarkdownDocument) {
@@ -144,6 +183,46 @@ export function DocumentPane({
   const handleSourceScroll = useCallback((event: UIEvent<HTMLElement>) => {
     sourceScrollRatioRef.current = getScrollRatio(event.currentTarget);
   }, []);
+
+  const scrollSourceContainerToBoundary = useCallback(
+    (boundary: "start" | "end") => {
+      const container = sourceScrollContainerRef.current;
+      if (!container) return;
+
+      if (boundary === "start") {
+        container.scrollTo({ top: 0 });
+        return;
+      }
+
+      const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+      container.scrollTo({ top: maxScroll });
+    },
+    []
+  );
+
+  const handleSourceKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+      const hasBoundaryModifier = event.ctrlKey || event.metaKey;
+      if (!hasBoundaryModifier || event.altKey) return;
+
+      if (event.key !== "Home" && event.key !== "End") return;
+
+      event.preventDefault();
+      sourceInitialFocusPendingRef.current = false;
+
+      const textarea = event.currentTarget;
+      const isHome = event.key === "Home";
+      const caretPosition = isHome ? 0 : textarea.value.length;
+
+      textarea.focus();
+      textarea.setSelectionRange(caretPosition, caretPosition);
+
+      window.requestAnimationFrame(() => {
+        scrollSourceContainerToBoundary(isHome ? "start" : "end");
+      });
+    },
+    [scrollSourceContainerToBoundary]
+  );
 
   const showSourceMode =
     viewMode === "source" && (isMarkdownDocument || isPlainTextDocument);
@@ -255,7 +334,26 @@ export function DocumentPane({
     };
   }, [showSourceMode, handleSourceCut, handleSourceCopy, handleSourcePaste]);
 
+  useEffect(() => {
+    if (!showSourceMode) {
+      sourceInitialFocusPendingRef.current = false;
+      return;
+    }
+
+    sourceInitialFocusPendingRef.current = true;
+    focusSourceAtStart();
+  }, [showSourceMode, documentId, focusSourceAtStart]);
+
+  useEffect(() => {
+    return () => {
+      if (sourceFocusRafRef.current !== null) {
+        window.cancelAnimationFrame(sourceFocusRafRef.current);
+      }
+    };
+  }, []);
+
   const handleSourceChange = (value: string) => {
+    sourceInitialFocusPendingRef.current = false;
     applySourceContent(value);
   };
 
@@ -314,6 +412,7 @@ export function DocumentPane({
                         ref={sourceTextareaRef}
                         value={sourceContent}
                         onChange={(event) => handleSourceChange(event.target.value)}
+                        onKeyDown={handleSourceKeyDown}
                         className="w-full min-h-[560px] resize-none overflow-y-hidden bg-transparent p-6 font-mono text-[14px] leading-[1.85] text-[var(--app-text)] outline-none sm:p-8"
                         spellCheck={false}
                         wrap="off"
@@ -324,6 +423,7 @@ export function DocumentPane({
                       ref={sourceTextareaRef}
                       value={sourceContent}
                       onChange={(event) => handleSourceChange(event.target.value)}
+                      onKeyDown={handleSourceKeyDown}
                       className="w-full min-h-[560px] resize-none overflow-y-hidden bg-transparent p-6 font-mono text-[14px] leading-[1.85] text-[var(--app-text)] outline-none sm:p-8"
                       spellCheck={false}
                     />
@@ -335,6 +435,7 @@ export function DocumentPane({
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
             <DocumentEditorSurface
+              documentId={documentId}
               title={title}
               content={content}
               onTitleChange={setTitle}
