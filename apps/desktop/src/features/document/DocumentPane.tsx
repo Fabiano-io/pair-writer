@@ -27,12 +27,6 @@ import {
   pasteIntoTextarea,
 } from "./editorClipboard";
 
-const PROVISIONAL_CONTENT = `Pair Writer is a desktop writing environment designed for structured thinking and AI-assisted content creation. It combines a focused document editor with contextual AI chat that lives alongside each document.
-
-The core experience prioritizes rendered content over raw markup, delivering an editorial feel that keeps writers immersed in their ideas rather than formatting syntax.
-
-[This is a transitional plain text area. The real TipTap rich-text engine will replace this space.]`;
-
 function getScrollRatio(element: {
   scrollTop: number;
   scrollHeight: number;
@@ -78,7 +72,7 @@ export function DocumentPane({
   onToggleMarkdownView,
 }: DocumentPaneProps) {
   const [title, setTitle] = useState(initialTitle);
-  const [localContent, setLocalContent] = useState(PROVISIONAL_CONTENT);
+  const [localContent, setLocalContent] = useState("");
   const [sourceContent, setSourceContent] = useState("");
 
   const renderedScrollRef = useRef<HTMLElement | null>(null);
@@ -335,12 +329,6 @@ export function DocumentPane({
                     />
                   )}
                 </div>
-                {isMarkdownDocument && (
-                  <div
-                    aria-hidden
-                    className="h-10 shrink-0 border-t border-[var(--app-border)]/65 bg-[var(--app-bg)]/10"
-                  />
-                )}
               </div>
             </div>
           </div>

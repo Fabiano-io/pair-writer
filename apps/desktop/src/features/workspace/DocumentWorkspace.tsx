@@ -2,7 +2,6 @@ import { WorkspaceTabs } from "./WorkspaceTabs";
 import { DocumentPane } from "../document/DocumentPane";
 import { DocumentChatPane } from "../chat/DocumentChatPane";
 import { ResizeHandle } from "../../components/ResizeHandle";
-import { PROVISIONAL_CONTENT } from "./workspaceDocuments";
 import type { WorkspaceDocument } from "./workspaceDocuments";
 import { useTranslation } from "../settings/i18n/useTranslation";
 import {
@@ -87,7 +86,7 @@ export function DocumentWorkspace({
           <>
             <DocumentPane
               title={activeDocument!.label}
-              content={contentByTabId[activeTabId!] ?? PROVISIONAL_CONTENT}
+              content={contentByTabId[activeTabId!] ?? ""}
               onContentChange={onContentChange}
               onSave={onSave}
               isSaveable={isSaveable}

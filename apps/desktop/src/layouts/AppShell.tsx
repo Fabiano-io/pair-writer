@@ -9,7 +9,6 @@ import { ResizeHandle } from "../components/ResizeHandle";
 import { useWorkspaceLayout } from "../features/workspace/useWorkspaceLayout";
 import { useWorkspaceDocuments } from "../features/workspace/useWorkspaceDocuments";
 import { loadSettings, saveProjectRootPath } from "../features/settings/appSettings";
-import { PROVISIONAL_CONTENT } from "../features/workspace/workspaceDocuments";
 import type { AppearanceSettings } from "../features/settings/settingsDefaults";
 import { DEFAULT_APPEARANCE } from "../features/settings/settingsDefaults";
 import { I18nProvider } from "../features/settings/i18n/I18nContext";
@@ -230,8 +229,7 @@ export function AppShell() {
           wordCount={
             workspace.hasActiveTab && workspace.activeTabId
               ? approximateWordCount(
-                  workspace.contentByTabId[workspace.activeTabId] ??
-                    PROVISIONAL_CONTENT
+                  workspace.contentByTabId[workspace.activeTabId] ?? ""
                 )
               : 0
           }

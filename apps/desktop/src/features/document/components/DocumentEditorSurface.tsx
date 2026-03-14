@@ -165,10 +165,6 @@ export function DocumentEditorSurface({
             readOnly={readOnly}
             contentType={contentType}
           />
-          <div
-            aria-hidden
-            className="h-10 shrink-0 border-t border-[var(--app-border)]/65 bg-[var(--app-bg)]/10"
-          />
         </div>
       </article>
     </div>

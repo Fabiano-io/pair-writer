@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   WORKSPACE_DOCUMENTS,
-  PROVISIONAL_CONTENT,
 } from "./workspaceDocuments";
 import {
   loadDocumentContent,
@@ -122,7 +121,7 @@ export function useWorkspaceDocuments() {
         return;
       }
 
-      const placeholder = PROVISIONAL_CONTENT;
+      const placeholder = "";
       setContentByTabId((prev) => ({ ...prev, [documentId]: placeholder }));
       setSavedContentByTabId((prev) => ({ ...prev, [documentId]: placeholder }));
 
