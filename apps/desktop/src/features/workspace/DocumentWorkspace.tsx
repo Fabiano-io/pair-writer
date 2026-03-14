@@ -5,6 +5,7 @@ import { ResizeHandle } from "../../components/ResizeHandle";
 import type { WorkspaceDocument } from "./workspaceDocuments";
 import { useTranslation } from "../settings/i18n/useTranslation";
 import {
+  isDocxFile,
   isJsonYamlFile,
   isMarkdownFile,
   isPdfFile,
@@ -25,6 +26,10 @@ function isJsonYamlTab(tabId: string | null): boolean {
 
 function isPdfTab(tabId: string | null): boolean {
   return tabId ? isPdfFile(tabId) : false;
+}
+
+function isDocxTab(tabId: string | null): boolean {
+  return tabId ? isDocxFile(tabId) : false;
 }
 
 interface DocumentWorkspaceProps {
@@ -71,6 +76,7 @@ export function DocumentWorkspace({
   const activeIsPlainText = isPlainTextTab(activeTabId);
   const activeHasLineNumbers = isJsonYamlTab(activeTabId);
   const activeIsPdf = isPdfTab(activeTabId);
+  const activeIsDocx = isDocxTab(activeTabId);
   const activeViewMode = activeIsMarkdown
     ? markdownViewMode
     : activeIsPlainText
@@ -101,6 +107,7 @@ export function DocumentWorkspace({
               isMarkdownDocument={activeIsMarkdown}
               isPlainTextDocument={activeIsPlainText}
               isPdfDocument={activeIsPdf}
+              isDocxDocument={activeIsDocx}
               documentPath={activeTabId}
               showSourceLineNumbers={activeHasLineNumbers}
               onToggleMarkdownView={

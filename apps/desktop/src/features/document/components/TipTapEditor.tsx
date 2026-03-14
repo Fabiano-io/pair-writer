@@ -12,12 +12,14 @@ import {
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
-import { CodeBlock } from "@tiptap/extension-code-block";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { TableKit } from "@tiptap/extension-table";
+import { common, createLowlight } from "lowlight";
 import { EditorBubbleMenu } from "./EditorBubbleMenu";
 import type { BubbleCommandHandler } from "./bubbleMenuContract";
 
 type MermaidApi = typeof import("mermaid").default;
+const lowlight = createLowlight(common);
 
 let mermaidApiPromise: Promise<MermaidApi> | null = null;
 let mermaidRenderCounter = 0;
@@ -330,7 +332,7 @@ function CodeBlockNodeView({ node }: NodeViewProps) {
   );
 }
 
-const StyledCodeBlock = CodeBlock.extend({
+const StyledCodeBlock = CodeBlockLowlight.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -447,6 +449,7 @@ export function TipTapEditor({
     extensions: [
       StarterKit.configure({ codeBlock: false }),
       StyledCodeBlock.configure({
+        lowlight,
         languageClassPrefix: "language-",
         HTMLAttributes: {
           class: "md-code-block",

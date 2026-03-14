@@ -26,12 +26,14 @@ export const PLAIN_TEXT_FILE_EXTENSIONS = [
 export const JSON_YAML_FILE_EXTENSIONS = [".json", ".yaml", ".yml"] as const;
 export const RICH_HTML_FILE_EXTENSIONS = [".html"] as const;
 export const PDF_FILE_EXTENSIONS = [".pdf"] as const;
+export const DOCX_FILE_EXTENSIONS = [".docx"] as const;
 
 export const SUPPORTED_FILE_EXTENSIONS = [
   ...MARKDOWN_FILE_EXTENSIONS,
   ...PLAIN_TEXT_FILE_EXTENSIONS,
   ...RICH_HTML_FILE_EXTENSIONS,
   ...PDF_FILE_EXTENSIONS,
+  ...DOCX_FILE_EXTENSIONS,
 ] as const;
 
 function hasAnyFileExtension(path: string, extensions: readonly string[]): boolean {
@@ -53,6 +55,10 @@ export function isJsonYamlFile(path: string): boolean {
 
 export function isPdfFile(path: string): boolean {
   return hasAnyFileExtension(path, PDF_FILE_EXTENSIONS);
+}
+
+export function isDocxFile(path: string): boolean {
+  return hasAnyFileExtension(path, DOCX_FILE_EXTENSIONS);
 }
 
 export function isSupportedFile(path: string): boolean {
@@ -134,6 +140,26 @@ export async function readFileBinary(
     return new Uint8Array(bytes);
   } catch (error) {
     console.error("Failed to read file binary:", error);
+    throw error;
+  }
+}
+
+/**
+ * Converts DOCX file to PDF using backend engines (Office/LibreOffice) and returns PDF bytes.
+ * Optionally validates that file is within project root.
+ */
+export async function renderDocxAsPdf(
+  filePath: string,
+  projectRoot?: string | null
+): Promise<Uint8Array> {
+  try {
+    const bytes = await invoke<number[]>("render_docx_as_pdf", {
+      filePath,
+      projectRoot: projectRoot ?? null,
+    });
+    return new Uint8Array(bytes);
+  } catch (error) {
+    console.error("Failed to render DOCX as PDF:", error);
     throw error;
   }
 }

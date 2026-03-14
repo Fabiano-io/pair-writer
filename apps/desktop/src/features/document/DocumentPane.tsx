@@ -9,6 +9,7 @@ import {
   type UIEvent,
 } from "react";
 import { DocumentEditorSurface } from "./components/DocumentEditorSurface";
+import { DocxDocumentView } from "./components/DocxDocumentView";
 import { EditorToolbar } from "./components/EditorToolbar";
 import { PdfDocumentView } from "./components/PdfDocumentView";
 import {
@@ -81,6 +82,7 @@ interface DocumentPaneProps {
   isMarkdownDocument?: boolean;
   isPlainTextDocument?: boolean;
   isPdfDocument?: boolean;
+  isDocxDocument?: boolean;
   showSourceLineNumbers?: boolean;
   onToggleMarkdownView?: () => void;
 }
@@ -97,6 +99,7 @@ export function DocumentPane({
   isMarkdownDocument = false,
   isPlainTextDocument = false,
   isPdfDocument = false,
+  isDocxDocument = false,
   showSourceLineNumbers = false,
   onToggleMarkdownView,
 }: DocumentPaneProps) {
@@ -187,12 +190,19 @@ export function DocumentPane({
 
     previousViewModeRef.current = viewMode;
 
-    requestAnimationFrame(() => {
+    const rafIds: number[] = [];
+    let timeoutId: number | null = null;
+    let cancelled = false;
+
+    const applyToTarget = () => {
+      if (cancelled) return;
+
       const targetElement =
         viewMode === "rendered"
           ? renderedScrollRef.current
           : sourceScrollContainerRef.current;
       if (!targetElement) return;
+
       applyScrollRatio(targetElement, ratio);
 
       if (viewMode === "rendered") {
@@ -200,7 +210,33 @@ export function DocumentPane({
       } else {
         sourceScrollRatioRef.current = ratio;
       }
-    });
+    };
+
+    // Re-apply across a few frames because rendered mode may settle asynchronously.
+    const scheduleFrames = (remaining: number) => {
+      const rafId = window.requestAnimationFrame(() => {
+        applyToTarget();
+        if (remaining > 1) {
+          scheduleFrames(remaining - 1);
+        }
+      });
+      rafIds.push(rafId);
+    };
+
+    scheduleFrames(4);
+    timeoutId = window.setTimeout(() => {
+      applyToTarget();
+    }, 120);
+
+    return () => {
+      cancelled = true;
+      for (const rafId of rafIds) {
+        window.cancelAnimationFrame(rafId);
+      }
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
   }, [isMarkdownDocument, viewMode]);
 
   const handleRenderedScroll = useCallback((event: UIEvent<HTMLElement>) => {
@@ -254,6 +290,7 @@ export function DocumentPane({
   const showSourceMode =
     viewMode === "source" && (isMarkdownDocument || isPlainTextDocument);
   const showPdfMode = isPdfDocument && Boolean(documentPath);
+  const showDocxMode = isDocxDocument && Boolean(documentPath);
 
   const shouldShowSourceLineNumbers =
     showSourceMode && showSourceLineNumbers && isPlainTextDocument;
@@ -400,9 +437,15 @@ export function DocumentPane({
       return;
     }
 
+    // For markdown, preserve scroll/caret context when toggling rendered <-> source.
+    if (isMarkdownDocument) {
+      sourceInitialFocusPendingRef.current = false;
+      return;
+    }
+
     sourceInitialFocusPendingRef.current = true;
     focusSourceAtStart();
-  }, [showSourceMode, documentId, focusSourceAtStart]);
+  }, [showSourceMode, documentId, isMarkdownDocument, focusSourceAtStart]);
 
   useEffect(() => {
     setSourceDisplayLineCount(1);
@@ -412,7 +455,7 @@ export function DocumentPane({
     renderedScrollRatioRef.current = 0;
     sourceScrollRatioRef.current = 0;
     previousViewModeRef.current = viewMode;
-  }, [documentId, viewMode]);
+  }, [documentId]);
 
   useEffect(() => {
     return () => {
@@ -432,6 +475,16 @@ export function DocumentPane({
       <main className="app-document-area flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]/20">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[var(--app-border)]/70 outline-none">
           <PdfDocumentView filePath={documentPath} />
+        </div>
+      </main>
+    );
+  }
+
+  if (showDocxMode && documentPath) {
+    return (
+      <main className="app-document-area flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]/20">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[var(--app-border)]/70 outline-none">
+          <DocxDocumentView filePath={documentPath} />
         </div>
       </main>
     );

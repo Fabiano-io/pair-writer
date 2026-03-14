@@ -56,6 +56,13 @@ body {
   --editor-table-cell-text: #d4d4d8;
   --editor-selected-cell-bg: rgba(63, 63, 70, 0.5);
   --editor-placeholder: #52525b;
+  --editor-syntax-keyword: #93c5fd;
+  --editor-syntax-string: #6ee7b7;
+  --editor-syntax-number: #f9a8d4;
+  --editor-syntax-function: #fbbf24;
+  --editor-syntax-type: #67e8f9;
+  --editor-syntax-comment: #94a3b8;
+  --editor-syntax-deletion: #fca5a5;
 }
 
 .app-shell[data-theme="dark-blue"] {
@@ -66,6 +73,13 @@ body {
   --app-text: #f8fafc;
   --app-text-muted: #94a3b8;
   --app-hover-bg: rgba(51, 65, 85, 0.5);
+  --editor-syntax-keyword: #a5b4fc;
+  --editor-syntax-string: #5eead4;
+  --editor-syntax-number: #f9a8d4;
+  --editor-syntax-function: #fbbf24;
+  --editor-syntax-type: #7dd3fc;
+  --editor-syntax-comment: #94a3b8;
+  --editor-syntax-deletion: #fda4af;
 }
 
 .app-shell[data-theme="dark-graphite"] {
@@ -76,6 +90,13 @@ body {
   --app-text: #fafaf9;
   --app-text-muted: #a8a29e;
   --app-hover-bg: rgba(68, 64, 60, 0.5);
+  --editor-syntax-keyword: #93c5fd;
+  --editor-syntax-string: #6ee7b7;
+  --editor-syntax-number: #fdba74;
+  --editor-syntax-function: #fcd34d;
+  --editor-syntax-type: #67e8f9;
+  --editor-syntax-comment: #a8a29e;
+  --editor-syntax-deletion: #fda4af;
 }
 
 .app-shell[data-theme="light"] {
@@ -116,6 +137,13 @@ body {
   --editor-table-cell-text: #1f2937;
   --editor-selected-cell-bg: rgba(148, 163, 184, 0.3);
   --editor-placeholder: #6b7280;
+  --editor-syntax-keyword: #1d4ed8;
+  --editor-syntax-string: #0f766e;
+  --editor-syntax-number: #b45309;
+  --editor-syntax-function: #7c3aed;
+  --editor-syntax-type: #0f766e;
+  --editor-syntax-comment: #64748b;
+  --editor-syntax-deletion: #dc2626;
 }
 
 /* ─── Font preset (document/editorial area only; menu/status bar keep system font) ─── */
@@ -406,6 +434,53 @@ body.resize-dragging * {
   border-radius: 0;
   tab-size: 2;
   white-space: pre;
+}
+
+.tiptap-body .ProseMirror pre.md-code-block .hljs-keyword,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-selector-tag,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-literal,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-section,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-link {
+  color: var(--editor-syntax-keyword);
+}
+
+.tiptap-body .ProseMirror pre.md-code-block .hljs-string,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-attribute,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-symbol,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-bullet,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-addition,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-template-tag,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-template-variable {
+  color: var(--editor-syntax-string);
+}
+
+.tiptap-body .ProseMirror pre.md-code-block .hljs-number,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-meta {
+  color: var(--editor-syntax-number);
+}
+
+.tiptap-body .ProseMirror pre.md-code-block .hljs-built_in,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-title.class_,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-title.function_ {
+  color: var(--editor-syntax-function);
+}
+
+.tiptap-body .ProseMirror pre.md-code-block .hljs-type,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-title,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-name,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-variable.language_,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-variable.constant_ {
+  color: var(--editor-syntax-type);
+}
+
+.tiptap-body .ProseMirror pre.md-code-block .hljs-comment,
+.tiptap-body .ProseMirror pre.md-code-block .hljs-quote {
+  color: var(--editor-syntax-comment);
+  font-style: italic;
+}
+
+.tiptap-body .ProseMirror pre.md-code-block .hljs-deletion {
+  color: var(--editor-syntax-deletion);
 }
 
 .tiptap-body .ProseMirror .md-mermaid-preview {
