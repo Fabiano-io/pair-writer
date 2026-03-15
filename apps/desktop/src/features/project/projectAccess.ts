@@ -165,6 +165,52 @@ export async function renderDocxAsPdf(
 }
 
 /**
+ * Exports text-based document content as a PDF file.
+ * The backend writes the PDF to outputFilePath and returns the final path.
+ */
+export async function exportTextDocumentAsPdf(
+  sourceFilePath: string,
+  outputFilePath: string,
+  content: string,
+  projectRoot?: string | null
+): Promise<string> {
+  try {
+    return await invoke<string>("export_text_document_as_pdf", {
+      sourceFilePath,
+      outputFilePath,
+      content,
+      projectRoot: projectRoot ?? null,
+    });
+  } catch (error) {
+    console.error("Failed to export document as PDF:", error);
+    throw error;
+  }
+}
+
+/**
+ * Exports rendered HTML document content as a PDF file using browser print engine.
+ * The backend writes the PDF to outputFilePath and returns the final path.
+ */
+export async function exportHtmlDocumentAsPdf(
+  sourceFilePath: string,
+  outputFilePath: string,
+  htmlContent: string,
+  projectRoot?: string | null
+): Promise<string> {
+  try {
+    return await invoke<string>("export_html_document_as_pdf", {
+      sourceFilePath,
+      outputFilePath,
+      htmlContent,
+      projectRoot: projectRoot ?? null,
+    });
+  } catch (error) {
+    console.error("Failed to export rendered HTML as PDF:", error);
+    throw error;
+  }
+}
+
+/**
  * Writes content to file.
  * Optionally validates that file is within project root.
  */
@@ -181,6 +227,27 @@ export async function saveFileContent(
     });
   } catch (error) {
     console.error("Failed to save file content:", error);
+    throw error;
+  }
+}
+
+/**
+ * Writes binary content to file.
+ * Optionally validates that file is within project root.
+ */
+export async function saveFileBinary(
+  filePath: string,
+  bytes: Uint8Array,
+  projectRoot?: string | null
+): Promise<void> {
+  try {
+    await invoke("save_file_binary", {
+      filePath,
+      bytes: Array.from(bytes),
+      projectRoot: projectRoot ?? null,
+    });
+  } catch (error) {
+    console.error("Failed to save binary file:", error);
     throw error;
   }
 }

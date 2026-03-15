@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { save } from "@tauri-apps/plugin-dialog";
 import { AppMenuBar } from "../components/AppMenuBar";
 import { AppStatusBar } from "../components/AppStatusBar";
 import { UnsavedChangesDialog } from "../components/UnsavedChangesDialog";
@@ -20,7 +21,15 @@ import {
   dispatchEditorRedo,
   dispatchEditorUndo,
 } from "../features/document/editorCommandEvents";
-import { pickProjectFolder } from "../features/project/projectAccess";
+import {
+  exportTextDocumentAsPdf,
+  isDocxFile,
+  isMarkdownFile,
+  isPdfFile,
+  isPlainTextFile,
+  pickProjectFolder,
+} from "../features/project/projectAccess";
+import { exportMarkdownDocumentAsPdf } from "../features/project/markdownPdfExport";
 
 /** Approximate word count from HTML. Explicitly provisional; coherent with HTML string contract. */
 function approximateWordCount(html: string): number {
@@ -31,10 +40,6 @@ function approximateWordCount(html: string): number {
 function getFolderName(path: string): string {
   const parts = path.replace(/\\/g, "/").split("/");
   return parts[parts.length - 1] || path;
-}
-
-function isMarkdownDocument(tabId: string | null): boolean {
-  return tabId?.toLowerCase().endsWith(".md") ?? false;
 }
 
 export function AppShell() {
@@ -92,10 +97,18 @@ export function AppShell() {
     workspace.activeTabId !== null &&
     workspace.dirtyTabIds.has(workspace.activeTabId);
 
-  const canToggleMarkdownView = isMarkdownDocument(workspace.activeTabId);
+  const canToggleMarkdownView = workspace.activeTabId
+    ? isMarkdownFile(workspace.activeTabId)
+    : false;
   const effectiveMarkdownViewMode = canToggleMarkdownView
     ? markdownViewMode
     : "rendered";
+  const canExportPdf =
+    workspace.activeTabId !== null &&
+    (isMarkdownFile(workspace.activeTabId) ||
+      isPlainTextFile(workspace.activeTabId)) &&
+    !isPdfFile(workspace.activeTabId) &&
+    !isDocxFile(workspace.activeTabId);
 
   const toggleMarkdownView = useCallback(() => {
     if (!canToggleMarkdownView) return;
@@ -144,6 +157,52 @@ export function AppShell() {
     }
   }, []);
 
+  const handleExportPdfFromMenu = useCallback(async () => {
+    const sourcePath = workspace.activeTabId;
+    if (!sourcePath) return;
+
+    const isExportable = isMarkdownFile(sourcePath) || isPlainTextFile(sourcePath);
+    if (!isExportable) return;
+
+    try {
+      const currentContent = workspace.contentByTabId[sourcePath] ?? "";
+      const sourceName = sourcePath.replace(/\\/g, "/").split("/").pop() ?? "document";
+      const baseName = sourceName.replace(/\.[^/.]+$/, "");
+      const outputPath = await save({
+        title: "Export as PDF",
+        defaultPath: `${baseName}.pdf`,
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+
+      if (!outputPath) return;
+
+      const settings = await loadSettings();
+      const projectRoot = settings.projectRootPath ?? undefined;
+
+      if (isMarkdownFile(sourcePath)) {
+        await exportMarkdownDocumentAsPdf(
+          sourcePath,
+          outputPath,
+          currentContent,
+          sourceName,
+          projectRoot
+        );
+        return;
+      }
+
+      await exportTextDocumentAsPdf(sourcePath, outputPath, currentContent, projectRoot);
+    } catch (error) {
+      console.error("Failed to export PDF:", error);
+      const reason =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : "";
+      window.alert(`Failed to export PDF.${reason ? ` ${reason}` : ""}`);
+    }
+  }, [workspace.activeTabId, workspace.contentByTabId]);
+
   const pendingCloseDoc = workspace.pendingCloseTabId
     ? workspace.tabs.find((t) => t.id === workspace.pendingCloseTabId)
     : null;
@@ -157,10 +216,14 @@ export function AppShell() {
       >
         <AppMenuBar
           hasActiveTab={workspace.hasActiveTab}
+          canExportPdf={canExportPdf}
           isSaveable={isSaveable}
           hasProject={projectRootPath !== null}
           onOpenProject={() => {
             void handleOpenProjectFromMenu();
+          }}
+          onExportPdf={() => {
+            void handleExportPdfFromMenu();
           }}
           onExitApp={() => {
             void handleExitAppFromMenu();

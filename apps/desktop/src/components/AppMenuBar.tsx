@@ -18,9 +18,11 @@ interface MenuGroup {
 
 interface AppMenuBarProps {
   hasActiveTab: boolean;
+  canExportPdf: boolean;
   isSaveable: boolean;
   hasProject: boolean;
   onOpenProject: () => void;
+  onExportPdf: () => void;
   onExitApp: () => void;
   onCloseActiveTab: () => void;
   onCut: () => void;
@@ -39,9 +41,11 @@ interface AppMenuBarProps {
 
 export function AppMenuBar({
   hasActiveTab,
+  canExportPdf,
   isSaveable,
   hasProject,
   onOpenProject,
+  onExportPdf,
   onExitApp,
   onCloseActiveTab,
   onCut,
@@ -113,6 +117,15 @@ export function AppMenuBar({
           disabled: !isSaveable,
           action: () => {
             onSave();
+            close();
+          },
+        },
+        {
+          key: "export_pdf",
+          labelKey: "menu_export_pdf",
+          disabled: !canExportPdf,
+          action: () => {
+            onExportPdf();
             close();
           },
         },

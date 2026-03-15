@@ -3,9 +3,12 @@
 //! a practical decision of the current application, not final product architecture.
 
 use std::fs;
+use std::fs::File;
+use std::io::BufWriter;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use printpdf::{Mm, PdfDocument, PdfSaveOptions};
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -294,6 +297,784 @@ fn render_docx_to_pdf_bytes(input_path: &Path) -> Result<Vec<u8>, String> {
     }
 }
 
+fn ensure_pdf_extension(path: &Path) -> PathBuf {
+    match path.extension().and_then(|value| value.to_str()) {
+        Some(ext) if ext.eq_ignore_ascii_case("pdf") => path.to_path_buf(),
+        _ => path.with_extension("pdf"),
+    }
+}
+
+fn resolve_browser_pdf_engines() -> Vec<PathBuf> {
+    let mut engines: Vec<PathBuf> = Vec::new();
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(program_files_x86) = std::env::var("ProgramFiles(x86)") {
+            engines.push(
+                PathBuf::from(&program_files_x86)
+                    .join("Microsoft")
+                    .join("Edge")
+                    .join("Application")
+                    .join("msedge.exe"),
+            );
+        }
+        if let Ok(program_files) = std::env::var("ProgramFiles") {
+            engines.push(
+                PathBuf::from(&program_files)
+                    .join("Microsoft")
+                    .join("Edge")
+                    .join("Application")
+                    .join("msedge.exe"),
+            );
+            engines.push(
+                PathBuf::from(&program_files)
+                    .join("Google")
+                    .join("Chrome")
+                    .join("Application")
+                    .join("chrome.exe"),
+            );
+        }
+        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+            engines.push(
+                PathBuf::from(&local_app_data)
+                    .join("Google")
+                    .join("Chrome")
+                    .join("Application")
+                    .join("chrome.exe"),
+            );
+        }
+        engines.push(PathBuf::from("msedge"));
+        engines.push(PathBuf::from("chrome"));
+        engines.push(PathBuf::from("chromium"));
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        engines.push(PathBuf::from("microsoft-edge"));
+        engines.push(PathBuf::from("google-chrome"));
+        engines.push(PathBuf::from("chromium"));
+        engines.push(PathBuf::from("chromium-browser"));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        engines.push(PathBuf::from(
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        ));
+        engines.push(PathBuf::from(
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        ));
+        engines.push(PathBuf::from("google-chrome"));
+        engines.push(PathBuf::from("microsoft-edge"));
+    }
+
+    engines
+}
+
+fn resolve_node_executables() -> Vec<PathBuf> {
+    let mut executables: Vec<PathBuf> = Vec::new();
+
+    #[cfg(target_os = "windows")]
+    {
+        executables.push(PathBuf::from(r"C:\Program Files\nodejs\node.exe"));
+        executables.push(PathBuf::from("node.exe"));
+        executables.push(PathBuf::from("node"));
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        executables.push(PathBuf::from("node"));
+    }
+
+    executables
+}
+
+fn resolve_playwright_render_script_path() -> Result<PathBuf, String> {
+    let script_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or_else(|| "Failed to resolve desktop application root".to_string())?
+        .join("scripts")
+        .join("render-html-to-pdf.mjs");
+
+    if !script_path.is_file() {
+        return Err(format!(
+            "Playwright PDF render script was not found: {}",
+            script_path.to_string_lossy()
+        ));
+    }
+
+    Ok(script_path)
+}
+
+fn render_html_to_pdf_with_browser(output_pdf_path: &Path, html_content: &str) -> Result<(), String> {
+    let workdir = create_docx_preview_workdir()?;
+    let html_path = workdir.join("rendered-export.html");
+    fs::write(&html_path, html_content)
+        .map_err(|e| format!("Failed to create temporary HTML export file: {}", e))?;
+
+    if let Some(parent) = output_pdf_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create output directory: {}", e))?;
+    }
+
+    let output_pdf = output_pdf_path.to_string_lossy().to_string();
+    let script_path = resolve_playwright_render_script_path()?;
+    let desktop_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or_else(|| "Failed to resolve desktop application root".to_string())?;
+
+    let mut last_error = String::new();
+    let mut any_browser_found = false;
+    let mut any_node_found = false;
+
+    for node_executable in resolve_node_executables() {
+        if node_executable.is_absolute() && !node_executable.exists() {
+            continue;
+        }
+
+        any_node_found = true;
+
+        for engine in resolve_browser_pdf_engines() {
+            if engine.is_absolute() && !engine.exists() {
+                continue;
+            }
+
+            any_browser_found = true;
+
+            let output = match Command::new(&node_executable)
+                .arg(&script_path)
+                .arg(&html_path)
+                .arg(&output_pdf)
+                .arg(&engine)
+                .current_dir(desktop_root)
+                .output()
+            {
+                Ok(output) => output,
+                Err(error) => {
+                    last_error = format!(
+                        "Failed to start {:?} with {:?}: {}",
+                        node_executable, engine, error
+                    );
+                    continue;
+                }
+            };
+
+            if output.status.success() && output_pdf_path.is_file() {
+                let _ = fs::remove_dir_all(&workdir);
+                return Ok(());
+            }
+
+            let details = command_output_to_text(&output);
+            last_error = if details.is_empty() {
+                format!(
+                    "Playwright PDF render failed with {:?} + {:?} (status: {})",
+                    node_executable, engine, output.status
+                )
+            } else {
+                format!(
+                    "Playwright PDF render failed with {:?} + {:?} (status: {}, {})",
+                    node_executable, engine, output.status, details
+                )
+            };
+        }
+    }
+
+    let _ = fs::remove_dir_all(&workdir);
+
+    if !any_node_found {
+        return Err("Node.js was not found. Install Node.js to enable Markdown PDF export.".to_string());
+    }
+
+    if !any_browser_found {
+        return Err(
+            "No compatible browser engine found. Install Microsoft Edge or Google Chrome."
+                .to_string(),
+        );
+    }
+
+    if last_error.is_empty() {
+        return Err("Failed to render HTML to PDF via browser engine".to_string());
+    }
+
+    Err(last_error)
+}
+
+fn resolve_export_font_path() -> Option<PathBuf> {
+    #[cfg(target_os = "windows")]
+    {
+        let candidates = [
+            r"C:\Windows\Fonts\segoeui.ttf",
+            r"C:\Windows\Fonts\arial.ttf",
+            r"C:\Windows\Fonts\calibri.ttf",
+        ];
+        for candidate in candidates {
+            let path = PathBuf::from(candidate);
+            if path.exists() {
+                return Some(path);
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let candidates = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        ];
+        for candidate in candidates {
+            let path = PathBuf::from(candidate);
+            if path.exists() {
+                return Some(path);
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let candidates = [
+            "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+        ];
+        for candidate in candidates {
+            let path = PathBuf::from(candidate);
+            if path.exists() {
+                return Some(path);
+            }
+        }
+    }
+
+    None
+}
+
+fn wrap_text_line(line: &str, max_chars: usize) -> Vec<String> {
+    if max_chars == 0 {
+        return vec![line.to_string()];
+    }
+
+    let normalized = line.replace('\t', "  ").replace('\u{0000}', "");
+    if normalized.is_empty() {
+        return vec![String::new()];
+    }
+
+    let chars: Vec<char> = normalized.chars().collect();
+    if chars.len() <= max_chars {
+        return vec![normalized];
+    }
+
+    let mut wrapped = Vec::new();
+    let mut start = 0usize;
+
+    while start < chars.len() {
+        let hard_end = usize::min(start + max_chars, chars.len());
+        if hard_end == chars.len() {
+            wrapped.push(chars[start..hard_end].iter().collect());
+            break;
+        }
+
+        let mut break_at = hard_end;
+        let search_start = start + (max_chars / 2);
+        for index in (search_start..hard_end).rev() {
+            if chars[index].is_whitespace() {
+                break_at = index + 1;
+                break;
+            }
+        }
+
+        if break_at <= start {
+            break_at = hard_end;
+        }
+
+        wrapped.push(
+            chars[start..break_at]
+                .iter()
+                .collect::<String>()
+                .trim_end()
+                .to_string(),
+        );
+        start = break_at;
+    }
+
+    if wrapped.is_empty() {
+        wrapped.push(String::new());
+    }
+
+    wrapped
+}
+
+#[derive(Clone, Copy)]
+enum MarkdownLineStyle {
+    Body,
+    Heading(u8),
+    Quote,
+    Code,
+}
+
+struct MarkdownRenderLine {
+    text: String,
+    style: MarkdownLineStyle,
+}
+
+fn is_horizontal_rule_markdown(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.len() < 3 {
+        return false;
+    }
+    if !(trimmed.chars().all(|c| c == '-' || c == '_' || c == '*')) {
+        return false;
+    }
+    let first = trimmed.chars().next().unwrap_or('-');
+    trimmed.chars().all(|c| c == first)
+}
+
+fn is_code_fence_markdown(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.starts_with("```") || trimmed.starts_with("~~~")
+}
+
+fn parse_markdown_heading(line: &str) -> Option<(u8, String)> {
+    let trimmed = line.trim_start();
+    let bytes = trimmed.as_bytes();
+    let mut level = 0usize;
+    while level < bytes.len() && bytes[level] == b'#' && level < 6 {
+        level += 1;
+    }
+    if level == 0 || level >= bytes.len() || bytes[level] != b' ' {
+        return None;
+    }
+
+    let text = trimmed[level + 1..].trim().to_string();
+    Some((level as u8, text))
+}
+
+fn split_markdown_table_row(line: &str) -> Vec<String> {
+    line.trim()
+        .trim_matches('|')
+        .split('|')
+        .map(|cell| cell.trim().to_string())
+        .collect()
+}
+
+fn is_markdown_table_separator(line: &str) -> bool {
+    let cells = split_markdown_table_row(line);
+    !cells.is_empty()
+        && cells.iter().all(|cell| {
+            let candidate = cell.trim().trim_matches(':');
+            candidate.len() >= 3 && candidate.chars().all(|c| c == '-')
+        })
+}
+
+fn markdown_to_render_lines(markdown: &str) -> Vec<MarkdownRenderLine> {
+    let normalized = markdown.replace("\r\n", "\n").replace('\r', "\n");
+    let source_lines: Vec<&str> = normalized.split('\n').collect();
+    let mut lines: Vec<MarkdownRenderLine> = Vec::new();
+    let mut index = 0usize;
+    let mut in_code_fence = false;
+
+    while index < source_lines.len() {
+        let line = source_lines[index];
+        let trimmed = line.trim();
+
+        if in_code_fence {
+            if is_code_fence_markdown(trimmed) {
+                in_code_fence = false;
+                lines.push(MarkdownRenderLine {
+                    text: String::new(),
+                    style: MarkdownLineStyle::Body,
+                });
+                index += 1;
+                continue;
+            }
+
+            lines.push(MarkdownRenderLine {
+                text: line.replace('\t', "  "),
+                style: MarkdownLineStyle::Code,
+            });
+            index += 1;
+            continue;
+        }
+
+        if trimmed.is_empty() {
+            lines.push(MarkdownRenderLine {
+                text: String::new(),
+                style: MarkdownLineStyle::Body,
+            });
+            index += 1;
+            continue;
+        }
+
+        if is_code_fence_markdown(trimmed) {
+            in_code_fence = true;
+            index += 1;
+            continue;
+        }
+
+        if let Some((level, text)) = parse_markdown_heading(line) {
+            lines.push(MarkdownRenderLine {
+                text,
+                style: MarkdownLineStyle::Heading(level),
+            });
+            index += 1;
+            continue;
+        }
+
+        if is_horizontal_rule_markdown(line) {
+            lines.push(MarkdownRenderLine {
+                text: "────────────────────────────────────────".to_string(),
+                style: MarkdownLineStyle::Body,
+            });
+            index += 1;
+            continue;
+        }
+
+        if line.trim_start().starts_with('>') {
+            let quote = line.trim_start().trim_start_matches('>').trim_start();
+            lines.push(MarkdownRenderLine {
+                text: format!("| {}", quote),
+                style: MarkdownLineStyle::Quote,
+            });
+            index += 1;
+            continue;
+        }
+
+        let unordered = line.trim_start();
+        if unordered.starts_with("- ") || unordered.starts_with("* ") || unordered.starts_with("+ ")
+        {
+            let item = unordered[2..].trim_start();
+            lines.push(MarkdownRenderLine {
+                text: format!("• {}", item),
+                style: MarkdownLineStyle::Body,
+            });
+            index += 1;
+            continue;
+        }
+
+        if let Some(dot_index) = unordered.find('.') {
+            let (left, right) = unordered.split_at(dot_index);
+            if !left.is_empty()
+                && left.chars().all(|c| c.is_ascii_digit())
+                && right.starts_with(". ")
+            {
+                let item = right[2..].trim_start();
+                lines.push(MarkdownRenderLine {
+                    text: format!("{}. {}", left, item),
+                    style: MarkdownLineStyle::Body,
+                });
+                index += 1;
+                continue;
+            }
+        }
+
+        if line.contains('|')
+            && (index + 1) < source_lines.len()
+            && is_markdown_table_separator(source_lines[index + 1])
+        {
+            let headers = split_markdown_table_row(line);
+            lines.push(MarkdownRenderLine {
+                text: headers.join(" | "),
+                style: MarkdownLineStyle::Body,
+            });
+            lines.push(MarkdownRenderLine {
+                text: "────────────────────────────────────────".to_string(),
+                style: MarkdownLineStyle::Body,
+            });
+
+            index += 2;
+            while index < source_lines.len() {
+                let row = source_lines[index].trim();
+                if row.is_empty() || !row.contains('|') {
+                    break;
+                }
+                lines.push(MarkdownRenderLine {
+                    text: split_markdown_table_row(row).join(" | "),
+                    style: MarkdownLineStyle::Body,
+                });
+                index += 1;
+            }
+
+            lines.push(MarkdownRenderLine {
+                text: String::new(),
+                style: MarkdownLineStyle::Body,
+            });
+            continue;
+        }
+
+        let mut paragraph = String::from(trimmed);
+        index += 1;
+        while index < source_lines.len() {
+            let next = source_lines[index];
+            let next_trimmed = next.trim();
+            if next_trimmed.is_empty()
+                || is_code_fence_markdown(next_trimmed)
+                || parse_markdown_heading(next).is_some()
+                || is_horizontal_rule_markdown(next)
+                || next.trim_start().starts_with('>')
+                || next.trim_start().starts_with("- ")
+                || next.trim_start().starts_with("* ")
+                || next.trim_start().starts_with("+ ")
+                || (next.contains('|')
+                    && (index + 1) < source_lines.len()
+                    && is_markdown_table_separator(source_lines[index + 1]))
+            {
+                break;
+            }
+            paragraph.push(' ');
+            paragraph.push_str(next_trimmed);
+            index += 1;
+        }
+
+        lines.push(MarkdownRenderLine {
+            text: paragraph,
+            style: MarkdownLineStyle::Body,
+        });
+    }
+
+    if lines.is_empty() {
+        lines.push(MarkdownRenderLine {
+            text: String::new(),
+            style: MarkdownLineStyle::Body,
+        });
+    }
+
+    lines
+}
+
+fn render_text_as_pdf(output_path: &Path, title: &str, content: &str) -> Result<(), String> {
+    let mut doc = PdfDocument::new(title);
+
+    let page_width = Mm(210.0);
+    let page_height = Mm(297.0);
+    let margin_left_mm: f32 = 14.0;
+    let margin_right_mm: f32 = 14.0;
+    let margin_top_mm: f32 = 16.0;
+    let margin_bottom_mm: f32 = 16.0;
+    let font_size_pt: f32 = 10.5;
+    let line_height_mm: f32 = font_size_pt * 0.352_778 * 1.55;
+    let approx_char_width_mm: f32 = font_size_pt * 0.352_778 * 0.56;
+    let usable_width_mm = page_width.0 - margin_left_mm - margin_right_mm;
+    let max_chars = usize::max(10, (usable_width_mm / approx_char_width_mm).floor() as usize);
+
+    let font_path = resolve_export_font_path()
+        .ok_or_else(|| "No compatible system font found for PDF export".to_string())?;
+    let bytes =
+        fs::read(&font_path).map_err(|e| format!("Failed to read export font: {}", e))?;
+    let mut warnings = Vec::new();
+    let font_id = doc.add_font(
+        &printpdf::ParsedFont::from_bytes(&bytes, 0, &mut warnings)
+            .ok_or_else(|| "Failed to parse export font".to_string())?,
+    );
+
+    let mut ops: Vec<printpdf::Op> = vec![
+        printpdf::Op::StartTextSection,
+        printpdf::Op::SetFontSize {
+            size: printpdf::Pt(font_size_pt),
+            font: font_id.clone(),
+        },
+        printpdf::Op::SetLineHeight {
+            lh: printpdf::Pt(line_height_mm * 2.834_645_7),
+        },
+        printpdf::Op::SetTextCursor {
+            pos: printpdf::Point {
+                x: printpdf::Pt(margin_left_mm * 2.834_645_7),
+                y: printpdf::Pt((page_height.0 - margin_top_mm) * 2.834_645_7),
+            },
+        },
+    ];
+
+    let mut current_y_mm = page_height.0 - margin_top_mm;
+    let min_y_mm = margin_bottom_mm;
+
+    let mut pages: Vec<printpdf::PdfPage> = Vec::new();
+    let push_page = |ops: &mut Vec<printpdf::Op>, pages: &mut Vec<printpdf::PdfPage>| {
+        ops.push(printpdf::Op::EndTextSection);
+        let page = printpdf::PdfPage::new(page_width, page_height, ops.clone());
+        pages.push(page);
+        ops.clear();
+        ops.push(printpdf::Op::StartTextSection);
+        ops.push(printpdf::Op::SetFontSize {
+            size: printpdf::Pt(font_size_pt),
+            font: font_id.clone(),
+        });
+        ops.push(printpdf::Op::SetLineHeight {
+            lh: printpdf::Pt(line_height_mm * 2.834_645_7),
+        });
+        ops.push(printpdf::Op::SetTextCursor {
+            pos: printpdf::Point {
+                x: printpdf::Pt(margin_left_mm * 2.834_645_7),
+                y: printpdf::Pt((page_height.0 - margin_top_mm) * 2.834_645_7),
+            },
+        });
+    };
+
+    let normalized_content = content.replace("\r\n", "\n").replace('\r', "\n");
+    let lines = normalized_content.split('\n');
+    for line in lines {
+        let wrapped_lines = wrap_text_line(line, max_chars);
+        for wrapped_line in wrapped_lines {
+            if current_y_mm <= min_y_mm {
+                push_page(&mut ops, &mut pages);
+                current_y_mm = page_height.0 - margin_top_mm;
+            }
+
+            ops.push(printpdf::Op::WriteText {
+                items: vec![printpdf::TextItem::Text(wrapped_line)],
+                font: font_id.clone(),
+            });
+            ops.push(printpdf::Op::AddLineBreak);
+            current_y_mm -= line_height_mm;
+        }
+    }
+
+    ops.push(printpdf::Op::EndTextSection);
+    pages.push(printpdf::PdfPage::new(page_width, page_height, ops));
+    doc.with_pages(pages);
+
+    let mut warnings = Vec::new();
+    let bytes = doc.save(&PdfSaveOptions::default(), &mut warnings);
+
+    if let Some(parent) = output_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create output directory: {}", e))?;
+    }
+
+    let mut writer = BufWriter::new(
+        File::create(output_path).map_err(|e| format!("Failed to create PDF file: {}", e))?,
+    );
+    use std::io::Write as _;
+    writer
+        .write_all(&bytes)
+        .map_err(|e| format!("Failed to write PDF file: {}", e))?;
+
+    Ok(())
+}
+
+fn markdown_style_metrics(style: MarkdownLineStyle) -> (f32, f32, f32, f32) {
+    match style {
+        MarkdownLineStyle::Heading(1) => (22.0, 1.35, 1.0, 0.6),
+        MarkdownLineStyle::Heading(2) => (18.0, 1.35, 0.9, 0.5),
+        MarkdownLineStyle::Heading(3) => (15.5, 1.35, 0.75, 0.4),
+        MarkdownLineStyle::Heading(4) => (13.5, 1.35, 0.6, 0.35),
+        MarkdownLineStyle::Heading(5) => (12.0, 1.35, 0.5, 0.3),
+        MarkdownLineStyle::Heading(_) => (11.0, 1.35, 0.4, 0.28),
+        MarkdownLineStyle::Code => (10.0, 1.5, 0.1, 0.1),
+        MarkdownLineStyle::Quote => (10.6, 1.45, 0.25, 0.25),
+        MarkdownLineStyle::Body => (10.8, 1.48, 0.15, 0.15),
+    }
+}
+
+fn markdown_left_margin(base_margin: f32, style: MarkdownLineStyle) -> f32 {
+    match style {
+        MarkdownLineStyle::Code => base_margin + 4.0,
+        MarkdownLineStyle::Quote => base_margin + 3.0,
+        MarkdownLineStyle::Body | MarkdownLineStyle::Heading(_) => base_margin,
+    }
+}
+
+fn render_markdown_as_pdf(output_path: &Path, title: &str, markdown: &str) -> Result<(), String> {
+    let mut doc = PdfDocument::new(title);
+
+    let page_width = Mm(210.0);
+    let page_height = Mm(297.0);
+    let margin_left_mm: f32 = 14.0;
+    let margin_right_mm: f32 = 14.0;
+    let margin_top_mm: f32 = 16.0;
+    let margin_bottom_mm: f32 = 16.0;
+    let usable_width_mm = page_width.0 - margin_left_mm - margin_right_mm;
+
+    let font_path = resolve_export_font_path()
+        .ok_or_else(|| "No compatible system font found for PDF export".to_string())?;
+    let font_bytes =
+        fs::read(&font_path).map_err(|e| format!("Failed to read export font: {}", e))?;
+    let mut font_warnings = Vec::new();
+    let font_id = doc.add_font(
+        &printpdf::ParsedFont::from_bytes(&font_bytes, 0, &mut font_warnings)
+            .ok_or_else(|| "Failed to parse export font".to_string())?,
+    );
+
+    let lines = markdown_to_render_lines(markdown);
+
+    let mut ops: Vec<printpdf::Op> = vec![printpdf::Op::StartTextSection];
+    let mut pages: Vec<printpdf::PdfPage> = Vec::new();
+
+    let mut current_y_mm = page_height.0 - margin_top_mm;
+    let min_y_mm = margin_bottom_mm;
+
+    for line in lines {
+        let (font_size_pt, line_height_mult, spacing_before, spacing_after) =
+            markdown_style_metrics(line.style);
+        let line_height_mm = font_size_pt * 0.352_778 * line_height_mult;
+        let text_left_mm = markdown_left_margin(margin_left_mm, line.style);
+        let approx_char_width_mm = font_size_pt * 0.352_778 * 0.54;
+        let max_chars = usize::max(
+            10,
+            ((usable_width_mm - (text_left_mm - margin_left_mm)) / approx_char_width_mm)
+                .floor() as usize,
+        );
+
+        current_y_mm -= spacing_before;
+        if current_y_mm <= min_y_mm {
+            ops.push(printpdf::Op::EndTextSection);
+            pages.push(printpdf::PdfPage::new(page_width, page_height, std::mem::take(&mut ops)));
+            ops.push(printpdf::Op::StartTextSection);
+            current_y_mm = page_height.0 - margin_top_mm;
+        }
+
+        let wrapped = wrap_text_line(&line.text, max_chars);
+        for wrapped_line in wrapped {
+            if current_y_mm <= min_y_mm {
+                ops.push(printpdf::Op::EndTextSection);
+                pages.push(printpdf::PdfPage::new(
+                    page_width,
+                    page_height,
+                    std::mem::take(&mut ops),
+                ));
+                ops.push(printpdf::Op::StartTextSection);
+                current_y_mm = page_height.0 - margin_top_mm;
+            }
+
+            ops.push(printpdf::Op::SetFontSize {
+                size: printpdf::Pt(font_size_pt),
+                font: font_id.clone(),
+            });
+            ops.push(printpdf::Op::SetTextCursor {
+                pos: printpdf::Point {
+                    x: printpdf::Pt(text_left_mm * 2.834_645_7),
+                    y: printpdf::Pt(current_y_mm * 2.834_645_7),
+                },
+            });
+            ops.push(printpdf::Op::WriteText {
+                items: vec![printpdf::TextItem::Text(wrapped_line)],
+                font: font_id.clone(),
+            });
+
+            current_y_mm -= line_height_mm;
+        }
+
+        current_y_mm -= spacing_after;
+    }
+
+    ops.push(printpdf::Op::EndTextSection);
+    pages.push(printpdf::PdfPage::new(page_width, page_height, ops));
+    doc.with_pages(pages);
+
+    let mut warnings = Vec::new();
+    let bytes = doc.save(&PdfSaveOptions::default(), &mut warnings);
+
+    if let Some(parent) = output_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create output directory: {}", e))?;
+    }
+
+    let mut writer = BufWriter::new(
+        File::create(output_path).map_err(|e| format!("Failed to create PDF file: {}", e))?,
+    );
+    use std::io::Write as _;
+    writer
+        .write_all(&bytes)
+        .map_err(|e| format!("Failed to write PDF file: {}", e))?;
+
+    Ok(())
+}
+
 #[tauri::command]
 pub fn read_directory_entries(base_path: String) -> Result<Vec<DirEntry>, String> {
     let base = Path::new(&base_path);
@@ -403,6 +1184,71 @@ pub fn render_docx_as_pdf(
 }
 
 #[tauri::command]
+pub fn export_text_document_as_pdf(
+    source_file_path: String,
+    output_file_path: String,
+    content: String,
+    project_root: Option<String>,
+) -> Result<String, String> {
+    let source_path = Path::new(&source_file_path);
+    if !source_path.is_file() {
+        return Err("Source path is not a file".to_string());
+    }
+
+    if let Some(ref root) = project_root {
+        let base = Path::new(root);
+        if !path_is_within_base(source_path, base)? {
+            return Err("File is outside project directory".to_string());
+        }
+    }
+
+    let output_path = ensure_pdf_extension(Path::new(&output_file_path));
+    let title = source_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Document export");
+
+    let is_markdown = source_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.eq_ignore_ascii_case("md"))
+        .unwrap_or(false);
+
+    if is_markdown {
+        render_markdown_as_pdf(&output_path, title, &content)?;
+    } else {
+        render_text_as_pdf(&output_path, title, &content)?;
+    }
+
+    Ok(output_path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub fn export_html_document_as_pdf(
+    source_file_path: String,
+    output_file_path: String,
+    html_content: String,
+    project_root: Option<String>,
+) -> Result<String, String> {
+    let source_path = Path::new(&source_file_path);
+    if !source_path.is_file() {
+        return Err("Source path is not a file".to_string());
+    }
+
+    if let Some(ref root) = project_root {
+        let base = Path::new(root);
+        if !path_is_within_base(source_path, base)? {
+            return Err("File is outside project directory".to_string());
+        }
+    }
+
+    let output_path = ensure_pdf_extension(Path::new(&output_file_path));
+    render_html_to_pdf_with_browser(&output_path, &html_content)?;
+
+    Ok(output_path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
 pub fn save_file_content(
     file_path: String,
     content: String,
@@ -425,6 +1271,29 @@ pub fn save_file_content(
     }
 
     fs::write(path, content).map_err(|e| format!("Failed to write file: {}", e))
+}
+
+#[tauri::command]
+pub fn save_file_binary(
+    file_path: String,
+    bytes: Vec<u8>,
+    project_root: Option<String>,
+) -> Result<(), String> {
+    let path = Path::new(&file_path);
+
+    if let Some(ref root) = project_root {
+        let base = Path::new(root);
+        if !path_is_within_base(path, base)? {
+            return Err("File is outside project directory".to_string());
+        }
+    }
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+    }
+
+    fs::write(path, bytes).map_err(|e| format!("Failed to write file: {}", e))
 }
 
 #[tauri::command]
