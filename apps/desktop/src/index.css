@@ -31,9 +31,9 @@ body {
   --app-scrollbar-thumb-hover: rgba(161, 161, 170, 0.75);
   --editor-caret: #e4e4e7;
   --editor-selection: rgba(113, 113, 122, 0.35);
-  --editor-text: #d4d4d8;
-  --editor-heading: #f4f4f5;
-  --editor-heading-muted: #e4e4e7;
+  --editor-text: #d7dbe3;
+  --editor-heading: #f7f8fb;
+  --editor-heading-muted: #e8edf4;
   --editor-strong: #f4f4f5;
   --editor-em: #e4e4e7;
   --editor-blockquote-border: #52525b;
@@ -42,15 +42,15 @@ body {
   --editor-code-text: #a5f3fc;
   --editor-pre-bg: #18181b;
   --editor-pre-code: #d4d4d8;
-  --editor-codeblock-bg: #151922;
-  --editor-codeblock-border: #30384a;
-  --editor-codeblock-header-bg: rgba(148, 163, 184, 0.08);
-  --editor-codeblock-header-text: #cbd5e1;
-  --editor-codeblock-copy-hover: rgba(148, 163, 184, 0.2);
+  --editor-codeblock-bg: #121722;
+  --editor-codeblock-border: rgba(71, 85, 105, 0.3);
+  --editor-codeblock-header-bg: transparent;
+  --editor-codeblock-header-text: #b9c5d6;
+  --editor-codeblock-copy-hover: rgba(148, 163, 184, 0.12);
   --editor-link: #818cf8;
   --editor-link-hover: #a5b4fc;
-  --editor-table-border: #52525b;
-  --editor-table-header-bg: rgba(39, 39, 42, 0.6);
+  --editor-table-border: rgba(100, 116, 139, 0.28);
+  --editor-table-header-bg: rgba(39, 39, 42, 0.42);
   --editor-table-header-text: #f4f4f5;
   --editor-table-cell-bg: rgba(24, 24, 27, 0.5);
   --editor-table-cell-text: #d4d4d8;
@@ -112,9 +112,9 @@ body {
   --app-scrollbar-thumb-hover: rgba(100, 116, 139, 0.85);
   --editor-caret: #111827;
   --editor-selection: rgba(148, 163, 184, 0.35);
-  --editor-text: #1f2937;
+  --editor-text: #334155;
   --editor-heading: #0f172a;
-  --editor-heading-muted: #1e293b;
+  --editor-heading-muted: #1f2937;
   --editor-strong: #0f172a;
   --editor-em: #1f2937;
   --editor-blockquote-border: #cbd5e1;
@@ -123,15 +123,15 @@ body {
   --editor-code-text: #0f172a;
   --editor-pre-bg: #e2e8f0;
   --editor-pre-code: #0f172a;
-  --editor-codeblock-bg: #f8fafc;
-  --editor-codeblock-border: #d4dbe7;
-  --editor-codeblock-header-bg: #eef2f7;
-  --editor-codeblock-header-text: #516079;
-  --editor-codeblock-copy-hover: rgba(100, 116, 139, 0.16);
+  --editor-codeblock-bg: #f7f9fc;
+  --editor-codeblock-border: rgba(203, 213, 225, 0.56);
+  --editor-codeblock-header-bg: transparent;
+  --editor-codeblock-header-text: #64748b;
+  --editor-codeblock-copy-hover: rgba(100, 116, 139, 0.1);
   --editor-link: #1d4ed8;
   --editor-link-hover: #1e40af;
-  --editor-table-border: #cbd5e1;
-  --editor-table-header-bg: #e5e7eb;
+  --editor-table-border: #e2e8f0;
+  --editor-table-header-bg: #f7f9fc;
   --editor-table-header-text: #0f172a;
   --editor-table-cell-bg: rgba(255, 255, 255, 0.92);
   --editor-table-cell-text: #1f2937;
@@ -148,7 +148,7 @@ body {
 
 /* ─── Font preset (document/editorial area only; menu/status bar keep system font) ─── */
 .app-document-area {
-  font-family: var(--app-font-body, -apple-system, BlinkMacSystemFont, "Segoe UI",
+  font-family: var(--app-font-body, "Segoe UI Variable Text", "Segoe UI", "Aptos",
     Roboto, sans-serif);
 }
 
@@ -230,6 +230,12 @@ body.resize-dragging * {
   outline: none;
   cursor: text;
   caret-color: var(--editor-caret);
+  color: var(--editor-text);
+  font-weight: 380;
+  letter-spacing: 0.003em;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  font-synthesis-weight: none;
 }
 
 .tiptap-body .ProseMirror ::selection {
@@ -237,53 +243,57 @@ body.resize-dragging * {
 }
 
 .tiptap-body .ProseMirror > * + * {
-  margin-top: 0.75em;
+  margin-top: 0.82em;
 }
 
 .tiptap-body .ProseMirror p {
-  line-height: 1.75;
+  line-height: 1.82;
   color: var(--editor-text);
+  font-weight: 370;
 }
 
 .tiptap-body .ProseMirror h1 {
   font-size: 2em;
-  font-weight: 700;
-  line-height: 1.2;
+  font-weight: 650;
+  line-height: 1.16;
   color: var(--editor-heading);
-  margin-top: 1.5em;
-  margin-bottom: 0.4em;
+  letter-spacing: -0.022em;
+  margin-top: 1.45em;
+  margin-bottom: 0.45em;
 }
 
 .tiptap-body .ProseMirror h2 {
   font-size: 1.5em;
-  font-weight: 600;
-  line-height: 1.3;
+  font-weight: 630;
+  line-height: 1.24;
   color: var(--editor-heading);
-  margin-top: 1.4em;
-  margin-bottom: 0.35em;
+  letter-spacing: -0.016em;
+  margin-top: 1.34em;
+  margin-bottom: 0.34em;
 }
 
 .tiptap-body .ProseMirror h3 {
   font-size: 1.25em;
-  font-weight: 600;
-  line-height: 1.35;
+  font-weight: 620;
+  line-height: 1.3;
   color: var(--editor-heading-muted);
-  margin-top: 1.3em;
-  margin-bottom: 0.3em;
+  letter-spacing: -0.01em;
+  margin-top: 1.24em;
+  margin-bottom: 0.28em;
 }
 
 .tiptap-body .ProseMirror h4,
 .tiptap-body .ProseMirror h5,
 .tiptap-body .ProseMirror h6 {
   font-size: 1.05em;
-  font-weight: 600;
+  font-weight: 610;
   color: var(--editor-text);
-  margin-top: 1.2em;
+  margin-top: 1.12em;
   margin-bottom: 0.25em;
 }
 
 .tiptap-body .ProseMirror strong {
-  font-weight: 700;
+  font-weight: 590;
   color: var(--editor-heading);
 }
 
@@ -339,68 +349,117 @@ body.resize-dragging * {
 
 .tiptap-body .ProseMirror blockquote {
   border-left: 3px solid var(--editor-blockquote-border);
-  padding-left: 1em;
+  padding-left: 1.05em;
   margin-left: 0;
   color: var(--editor-blockquote-text);
   font-style: italic;
+  font-weight: 370;
+}
+
+.tiptap-body .ProseMirror blockquote strong {
+  font-weight: 560;
+  color: inherit;
 }
 
 .tiptap-body .ProseMirror code {
   font-family:
     ui-monospace, "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
-  font-size: 0.875em;
+  font-size: 0.84em;
   background-color: var(--editor-code-bg);
   color: var(--editor-code-text);
-  border-radius: 4px;
-  padding: 0.1em 0.35em;
+  border-radius: 5px;
+  padding: 0.08em 0.34em;
 }
 
 .tiptap-body .ProseMirror .md-code-block-wrapper {
-  margin-top: 1em;
-  margin-bottom: 1em;
-  border: 1px solid var(--editor-codeblock-border);
-  border-radius: 12px;
+  position: relative;
+  margin-top: 1.05em;
+  margin-bottom: 1.2em;
+  border: 0.9px solid var(--editor-codeblock-border);
+  border-radius: 7px;
   overflow: hidden;
   background-color: var(--editor-codeblock-bg);
+  box-shadow: 0 4px 10px -20px rgba(15, 23, 42, 0.28);
 }
 
-.tiptap-body .ProseMirror .md-code-block-header {
+.tiptap-body .ProseMirror .md-code-block-wrapper-plain .md-code-block-header {
+  position: absolute;
+  top: 0.56rem;
+  right: 0.9rem;
+  left: 0.9rem;
+  z-index: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.tiptap-body .ProseMirror .md-code-block-wrapper-mermaid .md-code-block-header {
   min-height: 2.2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.2rem 0.6rem 0.2rem 1rem;
-  border-bottom: 1px solid var(--editor-codeblock-border);
+  border-bottom: 0.9px solid var(--editor-codeblock-border);
   background-color: var(--editor-codeblock-header-bg);
 }
 
 .tiptap-body .ProseMirror .md-code-block-language {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1rem;
   color: var(--editor-codeblock-header-text);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  opacity: 0.78;
   text-transform: uppercase;
+  padding: 0;
+  pointer-events: auto;
 }
 
 .tiptap-body .ProseMirror .md-code-copy-btn {
-  height: 1.65rem;
+  height: 1.25rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0;
   border: none;
-  border-radius: 8px;
+  border-radius: 0;
   background: transparent;
   color: var(--editor-codeblock-header-text);
-  padding: 0 0.5rem;
-  font-size: 0.88rem;
-  font-weight: 600;
+  margin-left: auto;
+  padding: 0;
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   line-height: 1;
   cursor: pointer;
+  pointer-events: auto;
+}
+
+.tiptap-body .ProseMirror .md-code-block-wrapper-plain .md-code-copy-btn {
+  opacity: 0.74;
+  transition:
+    opacity 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.tiptap-body .ProseMirror .md-code-block-wrapper-plain:hover .md-code-copy-btn,
+.tiptap-body .ProseMirror .md-code-block-wrapper-plain .md-code-copy-btn:focus-visible,
+.tiptap-body .ProseMirror .md-code-block-wrapper-plain .md-code-copy-btn[data-active="true"] {
+  opacity: 1;
 }
 
 .tiptap-body .ProseMirror .md-code-copy-btn:hover {
-  background-color: var(--editor-codeblock-copy-hover);
+  background-color: transparent;
+  color: var(--editor-heading-muted);
 }
 
 .tiptap-body .ProseMirror .md-code-copy-btn:focus-visible {
@@ -408,19 +467,22 @@ body.resize-dragging * {
   outline-offset: 1px;
 }
 
-.tiptap-body .ProseMirror .md-code-copy-icon {
-  font-size: 0.9rem;
-  line-height: 1;
-}
-
 .tiptap-body .ProseMirror pre.md-code-block {
   margin: 0;
-  padding: 1rem 1.25rem 1.25rem;
+  padding: 1.45rem 1rem 1.02rem;
   overflow-x: auto;
   background-color: transparent;
   border: 0;
   border-radius: 0;
   box-shadow: none;
+}
+
+.tiptap-body .ProseMirror .md-code-block-wrapper-mermaid pre.md-code-block {
+  padding-top: 0.96rem;
+}
+
+.tiptap-body .ProseMirror .md-code-block-wrapper-plain pre.md-code-block {
+  padding-top: 2.45rem;
 }
 
 .tiptap-body .ProseMirror pre.md-code-block code,
@@ -429,8 +491,9 @@ body.resize-dragging * {
   background-color: transparent;
   color: var(--editor-pre-code);
   padding: 0;
-  font-size: 0.9em;
-  line-height: 1.72;
+  font-size: 0.86em;
+  line-height: 1.64;
+  font-weight: 430;
   border-radius: 0;
   tab-size: 2;
   white-space: pre;
@@ -485,8 +548,8 @@ body.resize-dragging * {
 
 .tiptap-body .ProseMirror .md-mermaid-preview {
   margin: 0;
-  padding: 0.9rem 1rem 0.7rem;
-  border-bottom: 1px solid var(--editor-codeblock-border);
+  padding: 0.82rem 0.95rem 0.66rem;
+  border-bottom: 0.9px solid var(--editor-codeblock-border);
   background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), transparent);
 }
 
@@ -515,7 +578,7 @@ body.resize-dragging * {
 }
 
 .tiptap-body .ProseMirror .md-mermaid-source {
-  border-top: 1px dashed var(--editor-codeblock-border);
+  border-top: 0.9px dashed var(--editor-codeblock-border);
 }
 
 .tiptap-body .ProseMirror .md-mermaid-source > summary {
@@ -533,7 +596,7 @@ body.resize-dragging * {
 }
 
 .tiptap-body .ProseMirror pre.md-code-block.md-code-block-mermaid-source {
-  border-top: 1px solid var(--editor-codeblock-border);
+  border-top: 0.9px solid var(--editor-codeblock-border);
 }
 
 .tiptap-body .ProseMirror a {
@@ -550,13 +613,13 @@ body.resize-dragging * {
 .tiptap-body .ProseMirror table {
   border-collapse: collapse;
   width: 100%;
-  margin: 1em 0;
+  margin: 1.05em 0 1.2em;
 }
 
 .tiptap-body .ProseMirror th,
 .tiptap-body .ProseMirror td {
-  border: 1px solid var(--editor-table-border);
-  padding: 0.5em 0.75em;
+  border: 0.9px solid var(--editor-table-border);
+  padding: 0.54em 0.72em;
   text-align: left;
   min-width: 100px;
 }
@@ -564,11 +627,22 @@ body.resize-dragging * {
 .tiptap-body .ProseMirror th {
   background-color: var(--editor-table-header-bg);
   color: var(--editor-heading);
-  font-weight: 600;
+  font-weight: 680;
 }
 
 .tiptap-body .ProseMirror td {
   background-color: var(--editor-table-cell-bg);
+  color: var(--editor-text);
+  font-weight: 380;
+}
+
+.tiptap-body .ProseMirror td strong {
+  font-weight: 500;
+  color: inherit;
+}
+
+.tiptap-body .ProseMirror td:first-child strong {
+  font-weight: 450;
   color: var(--editor-text);
 }
 

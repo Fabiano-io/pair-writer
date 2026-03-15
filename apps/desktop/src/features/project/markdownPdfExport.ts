@@ -191,16 +191,22 @@ async function enhanceCodeBlocks(root: HTMLElement): Promise<void> {
     }
 
     const wrapper = document.createElement("div");
-    wrapper.className = "md-code-block-wrapper";
+    wrapper.className = `md-code-block-wrapper ${
+      language === "mermaid"
+        ? "md-code-block-wrapper-mermaid"
+        : "md-code-block-wrapper-plain"
+    }`;
 
-    const header = document.createElement("div");
-    header.className = "md-code-block-header";
+    if (language && language !== "mermaid") {
+      const header = document.createElement("div");
+      header.className = "md-code-block-header";
 
-    const label = document.createElement("span");
-    label.className = "md-code-block-language";
-    label.textContent = language ? language.toUpperCase() : "CODE";
-    header.appendChild(label);
-    wrapper.appendChild(header);
+      const label = document.createElement("span");
+      label.className = "md-code-block-language";
+      label.textContent = language.toUpperCase();
+      header.appendChild(label);
+      wrapper.appendChild(header);
+    }
 
     if (language === "mermaid") {
       const preview = document.createElement("div");
@@ -267,24 +273,24 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
       --app-text-muted: #64748b;
       --editor-text: #334155;
       --editor-heading: #0f172a;
-      --editor-heading-muted: #1e293b;
+      --editor-heading-muted: #1f2937;
       --editor-blockquote-border: #cbd5e1;
       --editor-blockquote-text: #475569;
       --editor-code-bg: rgba(226, 232, 240, 0.9);
       --editor-code-text: #0f172a;
       --editor-pre-code: #0f172a;
-      --editor-codeblock-bg: #f8fafc;
-      --editor-codeblock-border: #d4dbe7;
-      --editor-codeblock-header-bg: #eef2f7;
-      --editor-codeblock-header-text: #516079;
+      --editor-codeblock-bg: #f7f9fc;
+      --editor-codeblock-border: rgba(203, 213, 225, 0.56);
+      --editor-codeblock-header-bg: transparent;
+      --editor-codeblock-header-text: #64748b;
       --editor-codeblock-header-pill-bg: rgba(255, 255, 255, 0.96);
-      --editor-codeblock-header-pill-border: rgba(148, 163, 184, 0.38);
-      --editor-codeblock-shadow: rgba(15, 23, 42, 0.06);
+      --editor-codeblock-header-pill-border: rgba(203, 213, 225, 0.82);
+      --editor-codeblock-shadow: rgba(15, 23, 42, 0.03);
       --editor-link: #1d4ed8;
       --editor-link-hover: #1e40af;
-      --editor-table-border: #cbd5e1;
-      --editor-table-header-bg: #e5e7eb;
-      --editor-table-cell-bg: rgba(255, 255, 255, 0.92);
+      --editor-table-border: #e2e8f0;
+      --editor-table-header-bg: #f7f9fc;
+      --editor-table-cell-bg: rgba(255, 255, 255, 0.96);
       --editor-syntax-keyword: #1d4ed8;
       --editor-syntax-string: #047857;
       --editor-syntax-number: #b45309;
@@ -298,8 +304,11 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
       color: var(--editor-text);
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-      font-family: "Segoe UI", Inter, Arial, sans-serif;
+      font-family: "Segoe UI Variable Text", "Segoe UI", "Aptos", Arial, sans-serif;
       font-size: 15px;
+      font-weight: 380;
+      letter-spacing: 0.003em;
+      text-rendering: optimizeLegibility;
       width: 100%;
     }
 
@@ -323,38 +332,42 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
     }
 
     .pw-export-document > * + * {
-      margin-top: 0.75em;
+      margin-top: 0.82em;
     }
 
     .pw-export-document p {
       margin: 0;
-      line-height: 1.75;
+      line-height: 1.82;
       color: var(--editor-text);
+      font-weight: 370;
     }
 
     .pw-export-document h1 {
-      margin: 1.1em 0 0.35em;
+      margin: 1.08em 0 0.36em;
       font-size: 2em;
-      font-weight: 700;
-      line-height: 1.2;
+      font-weight: 650;
+      line-height: 1.16;
+      letter-spacing: -0.022em;
       color: var(--editor-heading);
       page-break-after: avoid;
     }
 
     .pw-export-document h2 {
-      margin: 1.05em 0 0.3em;
+      margin: 1.02em 0 0.3em;
       font-size: 1.5em;
-      font-weight: 600;
-      line-height: 1.3;
+      font-weight: 630;
+      line-height: 1.24;
+      letter-spacing: -0.016em;
       color: var(--editor-heading);
       page-break-after: avoid;
     }
 
     .pw-export-document h3 {
-      margin: 1em 0 0.25em;
+      margin: 0.98em 0 0.24em;
       font-size: 1.25em;
-      font-weight: 600;
-      line-height: 1.35;
+      font-weight: 620;
+      line-height: 1.3;
+      letter-spacing: -0.01em;
       color: var(--editor-heading-muted);
       page-break-after: avoid;
     }
@@ -362,9 +375,9 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
     .pw-export-document h4,
     .pw-export-document h5,
     .pw-export-document h6 {
-      margin: 0.95em 0 0.2em;
+      margin: 0.92em 0 0.2em;
       font-size: 1.05em;
-      font-weight: 600;
+      font-weight: 610;
       line-height: 1.35;
       color: var(--editor-heading-muted);
       page-break-after: avoid;
@@ -372,7 +385,7 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
 
     .pw-export-document strong {
       color: var(--editor-heading);
-      font-weight: 700;
+      font-weight: 590;
     }
 
     .pw-export-document em {
@@ -388,7 +401,7 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
     }
 
     .pw-export-document li {
-      line-height: 1.75;
+      line-height: 1.8;
       margin-top: 0.2em;
     }
 
@@ -398,61 +411,69 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
       border-left: 3px solid var(--editor-blockquote-border);
       color: var(--editor-blockquote-text);
       font-style: italic;
+      font-weight: 370;
+    }
+
+    .pw-export-document blockquote strong {
+      font-weight: 560;
+      color: inherit;
     }
 
     .pw-export-document hr {
       border: 0;
-      border-top: 1px solid var(--editor-table-border);
+      border-top: 0.9px solid var(--editor-table-border);
       margin: 1.4em 0;
     }
 
     .pw-export-document code {
       font-family: ui-monospace, "Cascadia Code", "Fira Code", Consolas, monospace;
-      font-size: 0.875em;
+      font-size: 0.84em;
       background-color: var(--editor-code-bg);
       color: var(--editor-code-text);
-      border-radius: 4px;
-      padding: 0.1em 0.35em;
+      border-radius: 5px;
+      padding: 0.08em 0.34em;
     }
 
     .pw-export-document .md-code-block-wrapper {
-      margin: 1.15em 0 1.35em;
-      border: 1px solid var(--editor-codeblock-border);
-      border-radius: 14px;
+      position: relative;
+      margin: 1.08em 0 1.24em;
+      border: 0.9px solid var(--editor-codeblock-border);
+      border-radius: 7px;
       overflow: hidden;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.98)),
-        var(--editor-codeblock-bg);
-      box-shadow: 0 12px 28px -18px var(--editor-codeblock-shadow);
-      break-inside: avoid-page;
-      page-break-inside: avoid;
+      background: var(--editor-codeblock-bg);
+      box-shadow: 0 4px 10px -20px var(--editor-codeblock-shadow);
+      break-inside: auto;
+      page-break-inside: auto;
     }
 
     .pw-export-document .md-code-block-header {
-      min-height: 2.65rem;
+      position: absolute;
+      top: 0.56rem;
+      right: 0.92rem;
+      left: 0.92rem;
+      z-index: 1;
+      min-height: 0;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.48rem 0.95rem 0.48rem 1rem;
-      border-bottom: 1px solid var(--editor-codeblock-border);
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(238, 242, 247, 0.96)),
-        var(--editor-codeblock-header-bg);
+      justify-content: flex-start;
+      gap: 0.5rem;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      page-break-after: avoid;
+      break-after: avoid-page;
     }
 
     .pw-export-document .md-code-block-language {
       display: inline-flex;
       align-items: center;
-      min-height: 1.5rem;
-      padding: 0.14rem 0.58rem;
-      border: 1px solid var(--editor-codeblock-header-pill-border);
-      border-radius: 999px;
-      background: var(--editor-codeblock-header-pill-bg);
+      min-height: 1rem;
+      padding: 0;
       color: var(--editor-codeblock-header-text);
-      font-size: 0.69rem;
-      font-weight: 700;
-      letter-spacing: 0.07em;
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      opacity: 0.78;
       line-height: 1;
       text-transform: uppercase;
     }
@@ -460,28 +481,39 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
     .pw-export-document pre.md-code-block {
       margin: 0;
       overflow-x: hidden;
-      padding: 1rem 1.18rem 1.18rem 1.22rem;
+      padding: 1rem 0.96rem 0.94rem;
       background: transparent;
       border: 0;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       word-break: normal;
+      break-inside: auto;
+      page-break-inside: auto;
+    }
+
+    .pw-export-document .md-code-block-wrapper-plain pre.md-code-block {
+      padding-top: 2.45rem;
     }
 
     .pw-export-document pre.md-code-block code {
       display: block;
+      font-family: Consolas, "Cascadia Mono", "SFMono-Regular", monospace;
       padding: 0;
       background: transparent;
       color: var(--editor-pre-code);
       border-radius: 0;
-      font-size: 0.9rem;
-      line-height: 1.68;
-      letter-spacing: 0.01em;
+      font-size: 0.82rem;
+      line-height: 1.62;
+      letter-spacing: 0;
+      font-weight: 400;
+      text-rendering: optimizeLegibility;
       font-variant-ligatures: none;
       tab-size: 2;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       word-break: normal;
+      orphans: 3;
+      widows: 3;
     }
 
     .pw-export-document .hljs-keyword,
@@ -499,7 +531,7 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
     .pw-export-document .hljs-addition,
     .pw-export-document .hljs-template-tag,
     .pw-export-document .hljs-template-variable {
-      color: var(--editor-syntax-string);
+      color: #0f8a63;
     }
 
     .pw-export-document .hljs-number,
@@ -523,8 +555,9 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
 
     .pw-export-document .hljs-comment,
     .pw-export-document .hljs-quote {
-      color: var(--editor-syntax-comment);
+      color: #55657b;
       font-style: italic;
+      opacity: 0.92;
     }
 
     .pw-export-document .hljs-deletion {
@@ -532,8 +565,8 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
     }
 
     .pw-export-document .md-mermaid-preview {
-      padding: 0.9rem 1rem 0.7rem;
-      border-bottom: 1px solid var(--editor-codeblock-border);
+      padding: 0.82rem 0.95rem 0.66rem;
+      border-bottom: 0.9px solid var(--editor-codeblock-border);
       background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), transparent);
     }
 
@@ -559,15 +592,15 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
     .pw-export-document table {
       width: 100%;
       border-collapse: collapse;
-      margin: 1em 0;
+      margin: 1.05em 0 1.18em;
       table-layout: fixed;
       page-break-inside: avoid;
     }
 
     .pw-export-document th,
     .pw-export-document td {
-      border: 1px solid var(--editor-table-border);
-      padding: 0.5em 0.75em;
+      border: 0.9px solid var(--editor-table-border);
+      padding: 0.54em 0.72em;
       text-align: left;
       vertical-align: top;
       word-break: break-word;
@@ -576,11 +609,22 @@ function buildPrintShell(documentTitle: string, bodyHtml: string): string {
     .pw-export-document th {
       background-color: var(--editor-table-header-bg);
       color: var(--editor-heading);
-      font-weight: 600;
+      font-weight: 680;
     }
 
     .pw-export-document td {
       background-color: var(--editor-table-cell-bg);
+      color: var(--editor-text);
+      font-weight: 380;
+    }
+
+    .pw-export-document td strong {
+      font-weight: 500;
+      color: inherit;
+    }
+
+    .pw-export-document td:first-child strong {
+      font-weight: 450;
       color: var(--editor-text);
     }
   </style>

@@ -268,11 +268,17 @@ function CodeBlockNodeView({ node }: NodeViewProps) {
   };
 
   return (
-    <NodeViewWrapper className="md-code-block-wrapper">
+    <NodeViewWrapper
+      className={`md-code-block-wrapper ${
+        isMermaid ? "md-code-block-wrapper-mermaid" : "md-code-block-wrapper-plain"
+      }`}
+    >
       <div className="md-code-block-header" contentEditable={false}>
-        <span className="md-code-block-language">
-          {language ? language.toUpperCase() : "CODE"}
-        </span>
+        {language && (
+          <span className="md-code-block-language">
+            {language.toUpperCase()}
+          </span>
+        )}
         <button
           type="button"
           className="md-code-copy-btn"
@@ -287,9 +293,6 @@ function CodeBlockNodeView({ node }: NodeViewProps) {
             void handleCopy();
           }}
         >
-          <span className="md-code-copy-icon" aria-hidden>
-            ⧉
-          </span>
           <span>{copied ? "Copied" : "Copy"}</span>
         </button>
       </div>
