@@ -27,3 +27,5 @@ apps/desktop/.cache/
 
 #agents
 .agents/
+apps/desktop/.claude/settings.local.json
+apps/desktop/CLAUDE.md

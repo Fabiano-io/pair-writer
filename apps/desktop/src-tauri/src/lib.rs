@@ -1,9 +1,11 @@
+mod chat;
 mod credentials;
 mod documents;
 mod project;
 mod settings;
 mod storage;
 
+use chat::send_chat_message;
 use credentials::{delete_api_key, get_api_key, has_api_key, save_api_key, test_provider_connection};
 use documents::{load_document_content, save_document_content};
 use project::{
@@ -101,6 +103,7 @@ pub fn run() {
             move_project_entry,
             delete_project_entry,
             paste_copied_project_file,
+            send_chat_message,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
