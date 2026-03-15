@@ -35,8 +35,10 @@ function isDocxTab(tabId: string | null): boolean {
 interface DocumentWorkspaceProps {
   chatWidth: number;
   chatVisible: boolean;
+  chatConfigVersion: number;
   onChatResize: (delta: number) => void;
   onChatResizeEnd: () => void;
+  onOpenAISettings: () => void;
   tabs: { id: string; label: string }[];
   activeTabId: string | null;
   activeDocument: WorkspaceDocument | undefined;
@@ -55,8 +57,10 @@ interface DocumentWorkspaceProps {
 export function DocumentWorkspace({
   chatWidth,
   chatVisible,
+  chatConfigVersion,
   onChatResize,
   onChatResizeEnd,
+  onOpenAISettings,
   tabs,
   activeTabId,
   activeDocument,
@@ -123,6 +127,8 @@ export function DocumentWorkspace({
                 <DocumentChatPane
                   documentTitle={activeDocument!.label}
                   width={chatWidth}
+                  configVersion={chatConfigVersion}
+                  onOpenAISettings={onOpenAISettings}
                 />
               </>
             )}

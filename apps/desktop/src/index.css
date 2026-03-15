@@ -15,6 +15,16 @@ body {
     Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
 }
 
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none;
+}
+
 /* ─── Theme variables (shell/chrome and main surfaces only; not exhaustive) ─── */
 .app-shell[data-theme="dark"],
 .app-shell[data-theme="dark-blue"],

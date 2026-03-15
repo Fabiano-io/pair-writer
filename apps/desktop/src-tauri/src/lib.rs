@@ -1,7 +1,10 @@
+mod credentials;
 mod documents;
 mod project;
 mod settings;
+mod storage;
 
+use credentials::{delete_api_key, get_api_key, has_api_key, save_api_key, test_provider_connection};
 use documents::{load_document_content, save_document_content};
 use project::{
     create_project_file, create_project_folder, delete_project_entry, move_project_entry, paste_copied_project_file,
@@ -9,7 +12,8 @@ use project::{
     rename_project_entry, render_docx_as_pdf,
     save_file_binary, save_file_content,
 };
-use settings::{get_settings_path, read_settings_from_disk, write_settings_to_disk};
+use settings::{read_settings_from_disk, write_settings_to_disk};
+use storage::get_app_storage_paths;
 use std::sync::Mutex;
 use tauri::Manager;
 
@@ -26,8 +30,10 @@ pub fn run() {
             }
 
             let handle = app.handle().clone();
-            let settings_path = get_settings_path(&handle)?;
-            let settings = read_settings_from_disk(&settings_path);
+            let storage_paths = get_app_storage_paths(&handle)?;
+            let settings =
+                read_settings_from_disk(&storage_paths.config_path, Some(&storage_paths.legacy_settings_path));
+            let settings_path = storage_paths.config_path.clone();
 
             if let Some(window) = app.get_webview_window("main") {
                 let win = &settings.window;
@@ -73,6 +79,12 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             settings::load_settings,
             settings::save_settings,
+            settings::get_app_data_directory,
+            save_api_key,
+            get_api_key,
+            has_api_key,
+            delete_api_key,
+            test_provider_connection,
             load_document_content,
             save_document_content,
             read_directory_entries,
@@ -105,7 +117,7 @@ fn save_window_state(window: &tauri::Window) {
         None => return,
     };
 
-    let mut settings = read_settings_from_disk(&settings_path);
+    let mut settings = read_settings_from_disk(&settings_path, None);
 
     if let Ok(is_maximized) = window.is_maximized() {
         settings.window.is_maximized = is_maximized;

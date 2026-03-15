@@ -17,6 +17,51 @@ export interface AppearanceSettings {
   language: "en" | "pt";
 }
 
+export type ChatProvider =
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "lmStudio"
+  | "openAiCompatible";
+
+export interface ProviderModelSettings {
+  model: string;
+}
+
+export interface ChatModelCatalogEntry {
+  id: string;
+  name: string;
+  provider: ChatProvider;
+  modelId: string;
+  enabled: boolean;
+}
+
+export interface ChatGeneralSettings {
+  saveHistory: boolean;
+  streamResponses: boolean;
+  checkForUpdates: boolean;
+}
+
+export interface LmStudioSettings extends ProviderModelSettings {
+  endpointUrl: string;
+}
+
+export interface OpenAiCompatibleSettings extends ProviderModelSettings {
+  displayName: string;
+  endpointUrl: string;
+}
+
+export interface ChatSettings {
+  provider: ChatProvider;
+  general: ChatGeneralSettings;
+  models: ChatModelCatalogEntry[];
+  openai: ProviderModelSettings;
+  anthropic: ProviderModelSettings;
+  gemini: ProviderModelSettings;
+  lmStudio: LmStudioSettings;
+  openAiCompatible: OpenAiCompatibleSettings;
+}
+
 export interface AppSettings {
   version: number;
   window: WindowSettings;
@@ -24,6 +69,7 @@ export interface AppSettings {
   /** Convenience only (e.g. reopen last folder). Not source of truth for project. User selection defines the project. */
   projectRootPath: string | null;
   appearance?: AppearanceSettings;
+  chat?: ChatSettings;
 }
 
 export const EXPLORER_MIN_WIDTH = 180;
@@ -42,8 +88,76 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   language: "en",
 };
 
+export const DEFAULT_CHAT_GENERAL_SETTINGS: ChatGeneralSettings = {
+  saveHistory: true,
+  streamResponses: true,
+  checkForUpdates: false,
+};
+
+export const DEFAULT_CHAT_MODEL_CATALOG: ChatModelCatalogEntry[] = [
+  {
+    id: "anthropic-sonnet",
+    name: "Claude Sonnet",
+    provider: "anthropic",
+    modelId: "claude-sonnet-4-5",
+    enabled: true,
+  },
+  {
+    id: "openai-gpt41",
+    name: "GPT-4.1",
+    provider: "openai",
+    modelId: "gpt-4.1",
+    enabled: true,
+  },
+  {
+    id: "gemini-pro",
+    name: "Gemini 2.5 Pro",
+    provider: "gemini",
+    modelId: "gemini-2.5-pro",
+    enabled: true,
+  },
+  {
+    id: "lmstudio-local",
+    name: "LM Studio Local",
+    provider: "lmStudio",
+    modelId: "local-model",
+    enabled: true,
+  },
+  {
+    id: "openai-compatible-custom",
+    name: "Custom Endpoint",
+    provider: "openAiCompatible",
+    modelId: "custom-model",
+    enabled: true,
+  },
+];
+
+export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
+  provider: "lmStudio",
+  general: DEFAULT_CHAT_GENERAL_SETTINGS,
+  models: DEFAULT_CHAT_MODEL_CATALOG,
+  openai: {
+    model: "gpt-4.1",
+  },
+  anthropic: {
+    model: "claude-sonnet-4-5",
+  },
+  gemini: {
+    model: "gemini-2.5-pro",
+  },
+  lmStudio: {
+    endpointUrl: "http://127.0.0.1:1234",
+    model: "local-model",
+  },
+  openAiCompatible: {
+    displayName: "OpenAI-Compatible",
+    endpointUrl: "http://127.0.0.1:1234",
+    model: "custom-model",
+  },
+};
+
 export const DEFAULT_SETTINGS: AppSettings = {
-  version: 2,
+  version: 4,
   window: {
     width: 1280,
     height: 800,
@@ -57,4 +171,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   projectRootPath: null,
   appearance: DEFAULT_APPEARANCE,
+  chat: DEFAULT_CHAT_SETTINGS,
 };

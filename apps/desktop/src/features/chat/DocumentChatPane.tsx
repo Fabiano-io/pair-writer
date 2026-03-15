@@ -1,9 +1,23 @@
+import { useEffect, useState } from "react";
+import { hasApiKey } from "./chatCredentials";
+import { loadChatSettings } from "./chatSettings";
 import { useTranslation } from "../settings/i18n/useTranslation";
+import type { ChatProvider, ChatSettings } from "../settings/settingsDefaults";
 
 interface DocumentChatPaneProps {
   documentTitle: string;
   width: number;
+  configVersion: number;
+  onOpenAISettings: () => void;
 }
+
+const PROVIDER_LABELS: Record<ChatProvider, string> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  gemini: "Gemini",
+  lmStudio: "LM Studio",
+  openAiCompatible: "OpenAI-Compatible",
+};
 
 const MOCK_MESSAGES = [
   {
@@ -27,8 +41,62 @@ const MOCK_MESSAGES = [
 export function DocumentChatPane({
   documentTitle,
   width,
+  configVersion,
+  onOpenAISettings,
 }: DocumentChatPaneProps) {
   const { t } = useTranslation();
+  const [chatSettings, setChatSettings] = useState<ChatSettings | null>(null);
+  const [hasCredential, setHasCredential] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadChatSettings()
+      .then(async (settings) => {
+        if (cancelled) return;
+        setChatSettings(settings);
+
+        if (
+          settings.provider === "lmStudio" ||
+          settings.provider === "openAiCompatible"
+        ) {
+          setHasCredential(null);
+          return;
+        }
+
+        const stored = await hasApiKey(settings.provider);
+        if (!cancelled) {
+          setHasCredential(stored);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setChatSettings(null);
+          setHasCredential(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [configVersion]);
+
+  const activeProvider = chatSettings?.provider ?? "lmStudio";
+  const providerLabel =
+    activeProvider === "openAiCompatible"
+      ? chatSettings?.openAiCompatible.displayName || PROVIDER_LABELS[activeProvider]
+      : PROVIDER_LABELS[activeProvider];
+  const providerDetail =
+    activeProvider === "lmStudio"
+      ? chatSettings?.lmStudio.endpointUrl
+      : activeProvider === "openAiCompatible"
+        ? chatSettings?.openAiCompatible.endpointUrl
+      : hasCredential === null
+        ? t("chat_status_checking")
+        : hasCredential
+          ? t("chat_status_key_saved")
+          : t("chat_status_key_missing");
+
   return (
     <aside
       className="flex shrink-0 flex-col border-l border-[var(--app-border)] bg-[var(--app-bg)]"
@@ -42,6 +110,36 @@ export function DocumentChatPane({
           <span className="text-[var(--app-text-muted)]/80">·</span>{" "}
           <span className="text-[var(--app-text)]/90">{documentTitle}</span>
         </h2>
+      </div>
+
+      <div className="border-b border-[var(--app-border)] px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-medium tracking-wide text-[var(--app-text-muted)] uppercase">
+              {t("chat_provider_label")}
+            </p>
+            <p className="truncate text-sm text-[var(--app-text)]">
+              {providerLabel}
+            </p>
+          </div>
+          <span className="rounded-full bg-[var(--app-surface-alt)] px-2 py-1 text-[10px] text-[var(--app-text-muted)]">
+            {activeProvider === "lmStudio"
+              ? t("chat_provider_local")
+              : activeProvider === "openAiCompatible"
+                ? t("chat_provider_endpoint")
+              : t("chat_provider_cloud")}
+          </span>
+        </div>
+        <p className="mt-2 truncate text-[11px] text-[var(--app-text-muted)]">
+          {providerDetail}
+        </p>
+        <button
+          type="button"
+          onClick={onOpenAISettings}
+          className="mt-3 rounded-md border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-surface-alt)] hover:text-[var(--app-text)]"
+        >
+          {t("chat_open_ai_settings")}
+        </button>
       </div>
 
       {/* Messages */}

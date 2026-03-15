@@ -35,6 +35,7 @@ interface AppMenuBarProps {
   onToggleExplorer: () => void;
   onToggleChat: () => void;
   onOpenPreferences: () => void;
+  onOpenAISettings: () => void;
   explorerVisible: boolean;
   chatVisible: boolean;
 }
@@ -58,6 +59,7 @@ export function AppMenuBar({
   onToggleExplorer,
   onToggleChat,
   onOpenPreferences,
+  onOpenAISettings,
   explorerVisible,
   chatVisible,
 }: AppMenuBarProps) {
@@ -229,6 +231,14 @@ export function AppMenuBar({
           labelKey: "menu_preferences",
           action: () => {
             onOpenPreferences();
+            close();
+          },
+        },
+        {
+          key: "ai_settings",
+          labelKey: "menu_ai_settings",
+          action: () => {
+            onOpenAISettings();
             close();
           },
         },

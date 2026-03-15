@@ -14,6 +14,7 @@ import type { AppearanceSettings } from "../features/settings/settingsDefaults";
 import { DEFAULT_APPEARANCE } from "../features/settings/settingsDefaults";
 import { I18nProvider } from "../features/settings/i18n/I18nContext";
 import { PreferencesModal } from "../features/settings/PreferencesModal";
+import { AISettingsModal } from "../features/chat/AISettingsModal";
 import {
   dispatchEditorCopy,
   dispatchEditorCut,
@@ -63,6 +64,8 @@ export function AppShell() {
     DEFAULT_APPEARANCE
   );
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [aiSettingsOpen, setAISettingsOpen] = useState(false);
+  const [chatConfigVersion, setChatConfigVersion] = useState(0);
   const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [markdownViewMode, setMarkdownViewMode] = useState<
     "rendered" | "source"
@@ -88,6 +91,10 @@ export function AppShell() {
 
   const handleAppearanceSaved = useCallback((next: AppearanceSettings) => {
     setAppearance(next);
+  }, []);
+
+  const handleAISettingsChanged = useCallback(() => {
+    setChatConfigVersion((current) => current + 1);
   }, []);
 
   const saveActiveDocument = workspace.saveActiveDocument;
@@ -239,6 +246,7 @@ export function AppShell() {
           onToggleExplorer={toggleExplorer}
           onToggleChat={toggleChat}
           onOpenPreferences={() => setPreferencesOpen(true)}
+          onOpenAISettings={() => setAISettingsOpen(true)}
           explorerVisible={explorerVisible}
           chatVisible={chatVisible}
         />
@@ -266,8 +274,10 @@ export function AppShell() {
           <DocumentWorkspace
             chatWidth={chatWidth}
             chatVisible={chatVisible}
+            chatConfigVersion={chatConfigVersion}
             onChatResize={onChatResize}
             onChatResizeEnd={onChatResizeEnd}
+            onOpenAISettings={() => setAISettingsOpen(true)}
             tabs={workspace.tabs}
             activeTabId={workspace.activeTabId}
             activeDocument={workspace.activeDocument}
@@ -320,6 +330,13 @@ export function AppShell() {
             initialAppearance={appearance}
             onClose={() => setPreferencesOpen(false)}
             onSaved={handleAppearanceSaved}
+          />
+        )}
+
+        {aiSettingsOpen && (
+          <AISettingsModal
+            onClose={() => setAISettingsOpen(false)}
+            onSettingsChanged={handleAISettingsChanged}
           />
         )}
       </div>
