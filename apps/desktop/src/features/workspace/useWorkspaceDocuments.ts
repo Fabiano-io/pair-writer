@@ -321,6 +321,30 @@ export function useWorkspaceDocuments() {
     setActiveTabId(id);
   }, []);
 
+  const reorderOpenTabs = useCallback((
+    sourceId: string,
+    targetId: string,
+    position: "before" | "after"
+  ) => {
+    if (sourceId === targetId) return;
+
+    setOpenTabIds((prev) => {
+      const next = [...prev];
+      const sourceIndex = next.indexOf(sourceId);
+      if (sourceIndex === -1 || !next.includes(targetId)) return prev;
+
+      const [movedId] = next.splice(sourceIndex, 1);
+      if (!movedId) return prev;
+
+      const targetIndex = next.indexOf(targetId);
+      if (targetIndex === -1) return prev;
+
+      const insertIndex = position === "after" ? targetIndex + 1 : targetIndex;
+      next.splice(insertIndex, 0, movedId);
+      return next;
+    });
+  }, []);
+
   const handleContentChange = useCallback(
     (content: string) => {
       setContentByTabId((prev) =>
@@ -354,6 +378,7 @@ export function useWorkspaceDocuments() {
     closeDocument,
     renameDocumentPath,
     selectDocument,
+    reorderOpenTabs,
     closeActiveTab,
     saveActiveDocument,
     saveDocuments,

@@ -462,6 +462,7 @@ export function AppShell() {
             dirtyTabIds={workspace.dirtyTabIds}
             onTabSelect={workspace.selectDocument}
             onTabClose={workspace.closeDocument}
+            onTabReorder={workspace.reorderOpenTabs}
             onContentChange={workspace.handleContentChange}
             onSave={saveActiveDocument}
             isSaveable={isSaveable}

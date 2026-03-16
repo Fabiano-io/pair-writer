@@ -47,6 +47,11 @@ interface DocumentWorkspaceProps {
   dirtyTabIds: Set<string>;
   onTabSelect: (id: string) => void;
   onTabClose: (id: string) => void;
+  onTabReorder: (
+    sourceId: string,
+    targetId: string,
+    position: "before" | "after"
+  ) => void;
   onContentChange: (content: string) => void;
   onSave?: () => void;
   isSaveable?: boolean;
@@ -69,6 +74,7 @@ export function DocumentWorkspace({
   dirtyTabIds,
   onTabSelect,
   onTabClose,
+  onTabReorder,
   onContentChange,
   onSave,
   isSaveable = false,
@@ -95,6 +101,7 @@ export function DocumentWorkspace({
         dirtyTabIds={dirtyTabIds}
         onTabSelect={onTabSelect}
         onTabClose={onTabClose}
+        onTabReorder={onTabReorder}
       />
 
       <div className="flex flex-1 overflow-hidden">
