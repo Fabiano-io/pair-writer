@@ -197,6 +197,7 @@ export function ChatInput({
     if (!canSend) return;
     // The hook clears composerText, attachments and composerError after processing
     onSend({ text: composerText, attachments, mode });
+    textareaRef.current?.focus();
   }
 
   function handleRemoveAttachment(id: string) {
@@ -229,9 +230,8 @@ export function ChatInput({
             onChange={(event) => onComposerTextChange(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t("chat_placeholder_compose")}
-            disabled={isLoading}
             rows={1}
-            className="min-h-[56px] w-full resize-none overflow-y-auto bg-transparent text-[13px] leading-6 text-[var(--app-text)] placeholder:text-[var(--app-text-muted)]/72 outline-none disabled:cursor-default"
+            className="min-h-[56px] w-full resize-none overflow-y-auto bg-transparent text-[13px] leading-6 text-[var(--app-text)] placeholder:text-[var(--app-text-muted)]/72 outline-none"
             style={{ maxHeight: `${MAX_TEXTAREA_HEIGHT}px` }}
           />
         </div>
@@ -358,6 +358,7 @@ export function ChatInput({
             <button
               type="button"
               onClick={handleSend}
+              onMouseDown={(e) => e.preventDefault()}
               disabled={!canSend}
               className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-[var(--app-text)] text-[var(--app-bg)] transition-all hover:opacity-92 disabled:opacity-35"
               title={t("chat_send")}

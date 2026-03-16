@@ -6,9 +6,10 @@ import { FileIcon, ImageIcon } from "./ChatIcons";
 
 interface ChatMessageBubbleProps {
   message: ChatMessage;
+  isStreaming?: boolean;
 }
 
-export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
+export function ChatMessageBubble({ message, isStreaming = false }: ChatMessageBubbleProps) {
   const { t } = useTranslation();
   const isUser = message.role === "user";
 
@@ -54,7 +55,12 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
             </div>
           ) : null
         ) : (
-          <ChatMarkdownContent content={message.content} />
+          <>
+            <ChatMarkdownContent content={message.content} />
+            {isStreaming && (
+              <span className="mt-1 inline-block h-[0.85em] w-[2px] animate-pulse rounded-sm bg-current opacity-50" />
+            )}
+          </>
         )}
       </div>
     </div>

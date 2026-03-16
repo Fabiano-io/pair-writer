@@ -10,7 +10,7 @@ import type {
 import { DEFAULT_DOCUMENT_CHAT_STATE } from "./chatTypes";
 import type { ChatSettings, ChatModelCatalogEntry } from "../settings/settingsDefaults";
 import { loadChatSettings } from "./chatSettings";
-import { sendChatMessage } from "./chatService";
+import { streamChatMessage } from "./chatService";
 import { getApiKey } from "./chatCredentials";
 
 function generateId(): string {
@@ -215,13 +215,11 @@ export function useChatConversation({
       };
 
       resolveEndpointAndKey()
-        .then(async ({ endpointUrl, apiKey }) => {
-          // A newer send on the same document supersedes this one
+        .then(({ endpointUrl, apiKey }) => {
           if (reqId !== requestIdsByDocRef.current[key]) return;
 
-          // Read the messages from the cache (already includes userMsg)
-          const cachedMsgs =
-            cacheRef.current[key]?.messages ?? [userMsg];
+          // Build the messages array from the cache (already includes userMsg)
+          const cachedMsgs = cacheRef.current[key]?.messages ?? [userMsg];
 
           const apiMessages = [
             {
@@ -237,27 +235,57 @@ export function useChatConversation({
             })),
           ];
 
-          const result = await sendChatMessage(endpointUrl, modelId, apiMessages, apiKey);
+          // ID for the assistant message we will stream into
+          const assistantMsgId = generateId();
+          let firstChunk = true;
 
-          if (reqId !== requestIdsByDocRef.current[key]) return;
+          const applyDelta = (field: "content" | "thinkingContent", delta: string) => {
+            if (reqId !== requestIdsByDocRef.current[key]) return;
 
-          const assistantMsg: ChatMessage = {
-            id: generateId(),
-            role: "assistant",
-            content: result.content,
-            thinkingContent: result.thinkingContent ?? undefined,
-            timestamp: Date.now(),
+            const prev = cacheRef.current[key] ?? DEFAULT_DOCUMENT_CHAT_STATE;
+
+            let next: DocumentChatPersistedState;
+
+            if (firstChunk && field === "content") {
+              // First content token: add the assistant message to the list
+              firstChunk = false;
+              const assistantMsg: ChatMessage = {
+                id: assistantMsgId,
+                role: "assistant",
+                content: delta,
+                timestamp: Date.now(),
+              };
+              next = { ...prev, messages: [...prev.messages, assistantMsg] };
+            } else {
+              // Subsequent tokens: append to the existing message
+              next = {
+                ...prev,
+                messages: prev.messages.map((m) =>
+                  m.id === assistantMsgId
+                    ? {
+                        ...m,
+                        content:
+                          field === "content" ? m.content + delta : m.content,
+                        thinkingContent:
+                          field === "thinkingContent"
+                            ? (m.thinkingContent ?? "") + delta
+                            : m.thinkingContent,
+                      }
+                    : m
+                ),
+              };
+            }
+
+            cacheRef.current[key] = next;
+            if (documentIdRef.current === sendingDocId) {
+              setDocState(next);
+            }
           };
 
-          // Always write to the cache — the user may have switched away
-          const prev = cacheRef.current[key] ?? DEFAULT_DOCUMENT_CHAT_STATE;
-          const next = { ...prev, messages: [...prev.messages, assistantMsg] };
-          cacheRef.current[key] = next;
-
-          // Only update visible React state if the user is currently on this document
-          if (documentIdRef.current === sendingDocId) {
-            setDocState(next);
-          }
+          return streamChatMessage(endpointUrl, modelId, apiMessages, apiKey, {
+            onChunk: (chunk) => applyDelta("content", chunk),
+            onThinking: (chunk) => applyDelta("thinkingContent", chunk),
+          });
         })
         .catch((err) => {
           if (reqId !== requestIdsByDocRef.current[key]) return;
@@ -269,7 +297,6 @@ export function useChatConversation({
                 ? err.message
                 : "Unknown error";
 
-          // Always write the error to the cache
           const prev = cacheRef.current[key] ?? DEFAULT_DOCUMENT_CHAT_STATE;
           const next = { ...prev, apiError: reason };
           cacheRef.current[key] = next;

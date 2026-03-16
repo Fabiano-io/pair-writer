@@ -141,7 +141,7 @@ export function DocumentChatPane({
       )}
 
       {/* Messages */}
-      <ChatMessageList messages={messages} isLoading={isLoading} />
+      <ChatMessageList messages={messages} isLoading={isLoading} documentId={documentId} />
 
       <ChatInput
         onSend={sendMessage}
