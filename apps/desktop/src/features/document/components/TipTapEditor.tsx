@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { mergeAttributes } from "@tiptap/core";
+import { Extension, mergeAttributes } from "@tiptap/core";
 import {
   useEditor,
   EditorContent,
@@ -14,12 +14,24 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { TableKit } from "@tiptap/extension-table";
+import { Underline } from "@tiptap/extension-underline";
 import { common, createLowlight } from "lowlight";
 import { EditorBubbleMenu } from "./EditorBubbleMenu";
 import type { BubbleCommandHandler } from "./bubbleMenuContract";
 
 type MermaidApi = typeof import("mermaid").default;
 const lowlight = createLowlight(common);
+
+// Inserts a tab character when Tab is pressed outside list items and table cells.
+// ListItem and Table extensions handle Tab in their own contexts with higher priority.
+const TabIndent = Extension.create({
+  name: "tabIndent",
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => this.editor.commands.insertContent("\t"),
+    };
+  },
+});
 
 let mermaidApiPromise: Promise<MermaidApi> | null = null;
 let mermaidRenderCounter = 0;
@@ -459,6 +471,8 @@ export function TipTapEditor({
         },
       }),
       TableKit,
+      Underline,
+      TabIndent,
       Markdown.configure({
         markedOptions: {
           gfm: true,

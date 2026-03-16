@@ -15,6 +15,7 @@ import {
   createProjectFolder,
   deleteProjectEntry,
   moveProjectEntry,
+  openInFileExplorer,
   pasteCopiedProjectFile,
   renameProjectEntry,
 } from "../project/projectAccess";
@@ -446,6 +447,31 @@ export function ExplorerSidebar({
     setContextMenu(null);
     setMoveError(null);
   }, [contextMenuEntry, isSupportedFile, onFileSelect]);
+
+  const handleRefreshFromContextMenu = useCallback(async () => {
+    setContextMenu(null);
+    setMoveError(null);
+
+    try {
+      await refreshTree();
+    } catch {
+      setMoveError(t("explorer_error_refresh"));
+    }
+  }, [refreshTree, t]);
+
+  const handleOpenInFileExplorerFromContextMenu = useCallback(async () => {
+    const targetPath = contextMenuEntry?.path ?? projectRootPath;
+    if (!targetPath) return;
+
+    setContextMenu(null);
+    setMoveError(null);
+
+    try {
+      await openInFileExplorer(targetPath, projectRootPath);
+    } catch {
+      setMoveError(t("explorer_error_open_in_explorer"));
+    }
+  }, [contextMenuEntry, projectRootPath, t]);
 
   const handleRenameFromContextMenu = useCallback(() => {
     if (!contextMenuEntry) return;
@@ -1118,13 +1144,13 @@ export function ExplorerSidebar({
   const contextMenuPosition = useMemo(() => {
     if (!contextMenu) return null;
 
-    const menuWidth = 172;
+    const menuWidth = 220;
     const menuHeight =
       contextMenuKind === "file"
-        ? 198
+        ? 286
         : contextMenuKind === "folder"
-          ? 250
-          : 160;
+          ? 338
+          : 248;
     const pad = 8;
 
     const maxX = Math.max(pad, window.innerWidth - menuWidth - pad);
@@ -1167,6 +1193,12 @@ export function ExplorerSidebar({
   );
   const canDeleteFromContext = Boolean(
     contextMenuKind === "file" || contextMenuKind === "folder"
+  );
+  const canOpenInExplorerFromContext = Boolean(
+    (contextMenuEntry?.path ?? projectRootPath) &&
+      (contextMenuKind === "workspace" ||
+        contextMenuKind === "file" ||
+        contextMenuKind === "folder")
   );
 
   return (
@@ -1211,6 +1243,16 @@ export function ExplorerSidebar({
                 {getFolderName(projectRootPath)}
               </span>
               <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => void refreshTree()}
+                  disabled={isLoading}
+                  className="rounded px-1.5 py-0.5 text-xs text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)] disabled:opacity-50 disabled:hover:bg-transparent"
+                  title={t("explorer_refresh")}
+                  aria-label={t("explorer_refresh")}
+                >
+                  {t("explorer_refresh")}
+                </button>
                 <button
                   type="button"
                   onClick={selectProjectFolder}
@@ -1306,13 +1348,31 @@ export function ExplorerSidebar({
       {contextMenu && contextMenuPosition && (
         <div
           ref={contextMenuRef}
-          className="fixed z-[200] min-w-[172px] rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xl"
+          className="fixed z-[200] min-w-[220px] rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xl"
           style={{ left: contextMenuPosition.x, top: contextMenuPosition.y }}
           role="menu"
           onContextMenu={(event) => event.preventDefault()}
         >
           {contextMenuKind === "workspace" && (
             <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleRefreshFromContextMenu()}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)]"
+              >
+                {t("explorer_context_refresh")}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleOpenInFileExplorerFromContextMenu()}
+                disabled={!canOpenInExplorerFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_open_in_explorer")}
+              </button>
+              <div className="my-1 h-px bg-[var(--app-border)]" />
               <button
                 type="button"
                 role="menuitem"
@@ -1347,6 +1407,24 @@ export function ExplorerSidebar({
 
           {contextMenuKind === "file" && (
             <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleRefreshFromContextMenu()}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)]"
+              >
+                {t("explorer_context_refresh")}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleOpenInFileExplorerFromContextMenu()}
+                disabled={!canOpenInExplorerFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_open_in_explorer")}
+              </button>
+              <div className="my-1 h-px bg-[var(--app-border)]" />
               <button
                 type="button"
                 role="menuitem"
@@ -1390,6 +1468,24 @@ export function ExplorerSidebar({
 
           {contextMenuKind === "folder" && (
             <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleRefreshFromContextMenu()}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)]"
+              >
+                {t("explorer_context_refresh")}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleOpenInFileExplorerFromContextMenu()}
+                disabled={!canOpenInExplorerFromContext}
+                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              >
+                {t("explorer_context_open_in_explorer")}
+              </button>
+              <div className="my-1 h-px bg-[var(--app-border)]" />
               <button
                 type="button"
                 role="menuitem"

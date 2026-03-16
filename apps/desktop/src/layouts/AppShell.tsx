@@ -44,6 +44,25 @@ function getFolderName(path: string): string {
   return parts[parts.length - 1] || path;
 }
 
+function isShortcutFromEditableTarget(target: EventTarget | null): boolean {
+  if (typeof window === "undefined") return false;
+
+  const node =
+    target instanceof HTMLElement
+      ? target
+      : target instanceof Node
+        ? target.parentElement
+        : null;
+
+  if (!node) return false;
+
+  return Boolean(
+    node.closest(
+      'textarea, input, select, [contenteditable=""], [contenteditable="true"], .ProseMirror'
+    )
+  );
+}
+
 export function AppShell() {
   const {
     explorerWidth,
@@ -68,9 +87,6 @@ export function AppShell() {
   const [aiSettingsOpen, setAISettingsOpen] = useState(false);
   const [chatConfigVersion, setChatConfigVersion] = useState(0);
   const [isBootstrapped, setIsBootstrapped] = useState(false);
-  const [markdownViewMode, setMarkdownViewMode] = useState<
-    "rendered" | "source"
-  >("rendered");
   const [pendingAppClose, setPendingAppClose] = useState(false);
   const dirtyTabCountRef = useRef(0);
 
@@ -115,7 +131,7 @@ export function AppShell() {
     ? isMarkdownFile(workspace.activeTabId)
     : false;
   const effectiveMarkdownViewMode = canToggleMarkdownView
-    ? markdownViewMode
+    ? workspace.activeMarkdownViewMode
     : "rendered";
   const canExportPdf =
     workspace.activeTabId !== null &&
@@ -124,22 +140,65 @@ export function AppShell() {
     !isPdfFile(workspace.activeTabId) &&
     !isDocxFile(workspace.activeTabId);
 
-  const toggleMarkdownView = useCallback(() => {
-    if (!canToggleMarkdownView) return;
-    setMarkdownViewMode((current) =>
-      current === "rendered" ? "source" : "rendered"
-    );
-  }, [canToggleMarkdownView]);
-
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        if (isSaveable) {
-          saveActiveDocument();
+      if (e.ctrlKey || e.metaKey) {
+        const key = e.key.toLowerCase();
+        const isEditableTarget = isShortcutFromEditableTarget(e.target);
+        
+        switch (key) {
+          case "s":
+            e.preventDefault();
+            if (isSaveable) {
+              saveActiveDocument();
+            }
+            break;
+          case "z":
+            if (isEditableTarget) {
+              return;
+            }
+
+            e.preventDefault();
+            if (!e.shiftKey) {
+              dispatchEditorUndo();
+            } else {
+              dispatchEditorRedo();
+            }
+            break;
+          case "y":
+            if (isEditableTarget) {
+              return;
+            }
+
+            e.preventDefault();
+            dispatchEditorRedo();
+            break;
+          case "x":
+            if (isEditableTarget) {
+              return;
+            }
+
+            dispatchEditorCut();
+            break;
+          case "c":
+            if (isEditableTarget) {
+              return;
+            }
+
+            dispatchEditorCopy();
+            break;
+          case "v":
+            if (isEditableTarget) {
+              return;
+            }
+
+            dispatchEditorPaste();
+            break;
         }
       }
     };
+    // Use true for capture phase to ensure we catch shortcuts before they are swallowed if needed, 
+    // although for text inputs the default behavior mostly supersedes this unless preventDefault is called.
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [isSaveable, saveActiveDocument]);
@@ -407,7 +466,7 @@ export function AppShell() {
             onSave={saveActiveDocument}
             isSaveable={isSaveable}
             markdownViewMode={effectiveMarkdownViewMode}
-            onToggleMarkdownView={toggleMarkdownView}
+            onToggleMarkdownView={workspace.toggleActiveMarkdownViewMode}
           />
         </div>
 

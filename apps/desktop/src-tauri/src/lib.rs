@@ -11,7 +11,7 @@ use documents::{load_document_content, save_document_content};
 use project::{
     create_project_file, create_project_folder, delete_project_entry, move_project_entry, paste_copied_project_file,
     export_html_document_as_pdf, export_text_document_as_pdf, read_directory_entries, read_file_binary, read_file_content,
-    rename_project_entry, render_docx_as_pdf,
+    rename_project_entry, render_docx_as_pdf, open_in_file_explorer,
     save_file_binary, save_file_content,
 };
 use settings::{read_settings_from_disk, write_settings_to_disk};
@@ -96,6 +96,7 @@ pub fn run() {
             load_document_content,
             save_document_content,
             read_directory_entries,
+            open_in_file_explorer,
             read_file_content,
             read_file_binary,
             render_docx_as_pdf,

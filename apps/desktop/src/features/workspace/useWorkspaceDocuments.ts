@@ -32,6 +32,9 @@ export type CloseConfirmAction = "save" | "discard" | "cancel";
 export function useWorkspaceDocuments() {
   const [openTabIds, setOpenTabIds] = useState<string[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [markdownViewModeByTabId, setMarkdownViewModeByTabId] = useState<
+    Record<string, "rendered" | "source">
+  >({});
   const [contentByTabId, setContentByTabId] = useState<Record<string, string>>(
     {}
   );
@@ -76,6 +79,8 @@ export function useWorkspaceDocuments() {
   );
 
   const hasActiveTab = activeTabId !== null && activeDocument !== undefined;
+  const activeMarkdownViewMode =
+    activeTabId !== null ? (markdownViewModeByTabId[activeTabId] ?? "rendered") : "rendered";
 
   const persistDocument = useCallback(
     async (docId: string, documentContent: string) => {
@@ -190,6 +195,14 @@ export function useWorkspaceDocuments() {
         return next;
       });
 
+      setMarkdownViewModeByTabId((prev) => {
+        if (!(id in prev)) return prev;
+
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+
       setOpenTabIds((prev) => {
         const next = prev.filter((tabId) => tabId !== id);
         if (next.length === 0) {
@@ -285,6 +298,17 @@ export function useWorkspaceDocuments() {
       return next;
     });
 
+    setMarkdownViewModeByTabId((prev) => {
+      if (!(fromId in prev)) return prev;
+
+      const next = { ...prev };
+      if (!(toId in next)) {
+        next[toId] = next[fromId];
+      }
+      delete next[fromId];
+      return next;
+    });
+
     setActiveTabId((prev) => (prev === fromId ? toId : prev));
     setPendingCloseTabId((prev) => (prev === fromId ? toId : prev));
   }, []);
@@ -306,9 +330,20 @@ export function useWorkspaceDocuments() {
     [activeTabId]
   );
 
+  const toggleActiveMarkdownViewMode = useCallback(() => {
+    if (!activeTabId) return;
+
+    setMarkdownViewModeByTabId((prev) => ({
+      ...prev,
+      [activeTabId]:
+        (prev[activeTabId] ?? "rendered") === "rendered" ? "source" : "rendered",
+    }));
+  }, [activeTabId]);
+
   return {
     openTabIds,
     activeTabId,
+    activeMarkdownViewMode,
     contentByTabId,
     tabs,
     activeDocument,
@@ -324,5 +359,6 @@ export function useWorkspaceDocuments() {
     saveDocuments,
     confirmClose,
     handleContentChange,
+    toggleActiveMarkdownViewMode,
   };
 }

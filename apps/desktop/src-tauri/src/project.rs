@@ -53,6 +53,58 @@ fn command_output_to_text(output: &std::process::Output) -> String {
     }
 }
 
+fn open_path_in_system_file_explorer(path: &Path) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        let mut command = Command::new("explorer");
+        if path.is_file() {
+            command.arg(format!("/select,{}", path.to_string_lossy()));
+        } else {
+            command.arg(path);
+        }
+
+        command
+            .spawn()
+            .map_err(|e| format!("Failed to open File Explorer: {}", e))?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let mut command = Command::new("open");
+        if path.is_file() {
+            command.arg("-R").arg(path);
+        } else {
+            command.arg(path);
+        }
+
+        command
+            .spawn()
+            .map_err(|e| format!("Failed to open Finder: {}", e))?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let target = if path.is_dir() {
+            path.to_path_buf()
+        } else {
+            path.parent()
+                .map(Path::to_path_buf)
+                .ok_or_else(|| "File has no parent directory".to_string())?
+        };
+
+        Command::new("xdg-open")
+            .arg(target)
+            .spawn()
+            .map_err(|e| format!("Failed to open file manager: {}", e))?;
+        return Ok(());
+    }
+
+    #[allow(unreachable_code)]
+    Err("Open in file explorer is not supported on this platform".to_string())
+}
+
 fn cleanup_stale_docx_preview_dirs(base: &Path, max_age: Duration) {
     let now = SystemTime::now();
     let entries = match fs::read_dir(base) {
@@ -1113,6 +1165,26 @@ pub fn read_directory_entries(base_path: String) -> Result<Vec<DirEntry>, String
     });
 
     Ok(entries)
+}
+
+#[tauri::command]
+pub fn open_in_file_explorer(
+    entry_path: String,
+    project_root: Option<String>,
+) -> Result<(), String> {
+    let path = Path::new(&entry_path);
+    if !path.exists() {
+        return Err("Entry does not exist".to_string());
+    }
+
+    if let Some(ref root) = project_root {
+        let base = Path::new(root);
+        if !path_is_within_base(path, base)? {
+            return Err("Entry is outside project directory".to_string());
+        }
+    }
+
+    open_path_in_system_file_explorer(path)
 }
 
 #[tauri::command]

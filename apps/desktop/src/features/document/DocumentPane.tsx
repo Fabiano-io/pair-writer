@@ -24,6 +24,7 @@ import {
   dispatchEditorRedo,
   dispatchEditorUndo,
 } from "./editorCommandEvents";
+import { useTranslation } from "../settings/i18n/useTranslation";
 import {
   copyTextareaSelection,
   cutTextareaSelection,
@@ -103,6 +104,7 @@ export function DocumentPane({
   showSourceLineNumbers = false,
   onToggleMarkdownView,
 }: DocumentPaneProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(initialTitle);
   const [localContent, setLocalContent] = useState("");
   const [sourceContent, setSourceContent] = useState("");
@@ -128,6 +130,27 @@ export function DocumentPane({
       setContent(value);
     },
     [setContent]
+  );
+
+  // --- Source Mode History (Undo/Redo) ---
+  const sourceUndoStackRef = useRef<string[]>([]);
+  const sourceRedoStackRef = useRef<string[]>([]);
+  const hasSourceUndoState = sourceUndoStackRef.current.length > 0;
+  const hasSourceRedoState = sourceRedoStackRef.current.length > 0;
+  // Force re-render just for toolbar buttons state when history changes
+  const [, forceUpdateHistory] = useState(0);
+
+  const applySourceContentWithHistory = useCallback(
+    (next: string, shouldPushToUndo = true) => {
+      const current = sourceTextareaRef.current?.value || "";
+      if (shouldPushToUndo && current !== next) {
+        sourceUndoStackRef.current.push(current);
+        sourceRedoStackRef.current = []; // clear redo on new change
+        forceUpdateHistory((v) => v + 1);
+      }
+      applySourceContent(next);
+    },
+    [applySourceContent]
   );
 
   const focusSourceAtStart = useCallback(() => {
@@ -263,8 +286,132 @@ export function DocumentPane({
     []
   );
 
+  // --- Source Formatting Helpers ---
+  const applySourceFormatting = useCallback((prefix: string, suffix: string = prefix, defaultText = "text") => {
+    const textarea = sourceTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentText = textarea.value;
+    const selectedText = currentText.substring(start, end);
+    
+    // If we're toggling formatting off (naive check)
+    const isAlreadyFormatted = 
+      start >= prefix.length && 
+      end <= currentText.length - suffix.length &&
+      currentText.substring(start - prefix.length, start) === prefix &&
+      currentText.substring(end, end + suffix.length) === suffix;
+
+    let nextValue;
+    let nextStart;
+    let nextEnd;
+
+    if (isAlreadyFormatted) {
+      // Remove formatting
+      nextValue = currentText.substring(0, start - prefix.length) + selectedText + currentText.substring(end + suffix.length);
+      nextStart = start - prefix.length;
+      nextEnd = nextStart + selectedText.length;
+    } else {
+      // Add formatting
+      const textToInsert = selectedText || defaultText;
+      nextValue = currentText.substring(0, start) + prefix + textToInsert + suffix + currentText.substring(end);
+      nextStart = start + prefix.length;
+      nextEnd = nextStart + textToInsert.length;
+    }
+
+    applySourceContentWithHistory(nextValue);
+    
+    // Restore selection
+    window.requestAnimationFrame(() => {
+      const el = sourceTextareaRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(nextStart, nextEnd);
+    });
+  }, [applySourceContentWithHistory]);
+
+  const insertSourcePrefix = useCallback((prefix: string) => {
+    const textarea = sourceTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const currentText = textarea.value;
+    
+    // Encontrar o início da linha atual
+    let lineStart = start;
+    while (lineStart > 0 && currentText[lineStart - 1] !== "\n") {
+      lineStart--;
+    }
+
+    const nextValue = currentText.substring(0, lineStart) + prefix + currentText.substring(lineStart);
+    applySourceContentWithHistory(nextValue);
+    
+    window.requestAnimationFrame(() => {
+      const el = sourceTextareaRef.current;
+      if (!el) return;
+      el.focus();
+      const newPos = start + prefix.length;
+      el.setSelectionRange(newPos, newPos);
+    });
+  }, [applySourceContentWithHistory]);
+
   const handleSourceKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+      // Interceptar atalhos de sistema/markdown
+      if (event.ctrlKey || event.metaKey) {
+        const key = event.key.toLowerCase();
+        
+        if (key === 'z') {
+          event.preventDefault();
+          dispatchEditorUndo();
+          return;
+        }
+        if (key === 'y' || (key === 'z' && event.shiftKey)) {
+          event.preventDefault();
+          dispatchEditorRedo();
+          return;
+        }
+        
+        if (key === 'b') {
+          event.preventDefault();
+          applySourceFormatting("**");
+          return;
+        }
+        if (key === 'i') {
+          event.preventDefault();
+          applySourceFormatting("_");
+          return;
+        }
+        if (key === 'u') {
+          event.preventDefault();
+          applySourceFormatting("<u>", "</u>");
+          return;
+        }
+      }
+
+      // Insert a tab character at the cursor position without moving focus.
+      if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault();
+        sourceInitialFocusPendingRef.current = false;
+
+        const textarea = event.currentTarget;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const nextValue =
+          textarea.value.substring(0, start) + "\t" + textarea.value.substring(end);
+
+        applySourceContentWithHistory(nextValue);
+
+        // Restore caret position after React re-renders the controlled textarea.
+        window.requestAnimationFrame(() => {
+          const el = sourceTextareaRef.current;
+          if (!el) return;
+          el.setSelectionRange(start + 1, start + 1);
+        });
+        return;
+      }
+
       const hasBoundaryModifier = event.ctrlKey || event.metaKey;
       if (!hasBoundaryModifier || event.altKey) return;
 
@@ -284,7 +431,7 @@ export function DocumentPane({
         scrollSourceContainerToBoundary(isHome ? "start" : "end");
       });
     },
-    [scrollSourceContainerToBoundary]
+    [scrollSourceContainerToBoundary, applySourceContentWithHistory, applySourceFormatting]
   );
 
   const showSourceMode =
@@ -402,15 +549,29 @@ export function DocumentPane({
   useEffect(() => {
     if (!showSourceMode) return;
 
-    const applyTextCommand = (command: "undo" | "redo") => {
-      const textarea = sourceTextareaRef.current;
-      if (!textarea) return;
-      textarea.focus();
-      document.execCommand(command);
+    const handleUndo = () => {
+      if (sourceUndoStackRef.current.length === 0) return;
+      const current = sourceTextareaRef.current?.value || sourceContent;
+      const previous = sourceUndoStackRef.current.pop();
+      if (previous !== undefined) {
+        sourceRedoStackRef.current.push(current);
+        forceUpdateHistory((v) => v + 1);
+        applySourceContent(previous);
+        setTimeout(() => sourceTextareaRef.current?.focus(), 0);
+      }
     };
-
-    const handleUndo = () => applyTextCommand("undo");
-    const handleRedo = () => applyTextCommand("redo");
+    
+    const handleRedo = () => {
+      if (sourceRedoStackRef.current.length === 0) return;
+      const current = sourceTextareaRef.current?.value || sourceContent;
+      const next = sourceRedoStackRef.current.pop();
+      if (next !== undefined) {
+        sourceUndoStackRef.current.push(current);
+        forceUpdateHistory((v) => v + 1);
+        applySourceContent(next);
+        setTimeout(() => sourceTextareaRef.current?.focus(), 0);
+      }
+    };
     const handleCut = () => {
       void handleSourceCut();
     };
@@ -471,8 +632,12 @@ export function DocumentPane({
   }, []);
 
   const handleSourceChange = (value: string) => {
-    sourceInitialFocusPendingRef.current = false;
-    applySourceContent(value);
+      sourceInitialFocusPendingRef.current = false;
+      const current = sourceTextareaRef.current?.value || "";
+      sourceUndoStackRef.current.push(current);
+      sourceRedoStackRef.current = [];
+      forceUpdateHistory((v) => v + 1);
+      applySourceContent(value);
   };
 
   if (showPdfMode && documentPath) {
@@ -510,16 +675,30 @@ export function DocumentPane({
                 onToggleMarkdownView={
                   isPlainTextDocument ? undefined : onToggleMarkdownView
                 }
+                canUndo={hasSourceUndoState}
+                canRedo={hasSourceRedoState}
                 onUndo={dispatchEditorUndo}
                 onRedo={dispatchEditorRedo}
                 onCut={dispatchEditorCut}
                 onCopy={dispatchEditorCopy}
                 onPaste={dispatchEditorPaste}
-                canUndo
-                canRedo
                 canCut
                 canCopy
                 canPaste
+                
+                // --- Formatação de Source Mode Repassada ---
+                onToggleBold={() => applySourceFormatting("**", "**", t("toolbar_bold"))}
+                onToggleItalic={() => applySourceFormatting("_", "_", t("toolbar_italic"))}
+                onToggleUnderline={() => applySourceFormatting("<u>", "</u>", t("toolbar_underline"))}
+                onToggleCode={() => applySourceFormatting("`", "`", "code")}
+                onToggleHeading1={() => insertSourcePrefix("# ")}
+                onToggleHeading2={() => insertSourcePrefix("## ")}
+                onToggleHeading3={() => insertSourcePrefix("### ")}
+                onToggleBulletList={() => insertSourcePrefix("- ")}
+                onToggleOrderedList={() => insertSourcePrefix("1. ")}
+                onToggleBlockquote={() => insertSourcePrefix("> ")}
+                onToggleCodeBlock={() => applySourceFormatting("```\n", "\n```\n", "code\n")}
+                onInsertTable={() => insertSourcePrefix("| Col 1 | Col 2 | Col 3 |\n| --- | --- | --- |\n|  |  |  |")}
               />
             </div>
 

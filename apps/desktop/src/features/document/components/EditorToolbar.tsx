@@ -154,7 +154,8 @@ function ToolbarButton({
           setIsTooltipVisible(false);
           clearTooltipTimer();
         }}
-        onPointerDown={() => {
+        onPointerDown={(event) => {
+          event.preventDefault(); // Impede a perda do foco do editor ao clicar
           setIsTooltipVisible(false);
           clearTooltipTimer();
         }}
@@ -387,6 +388,18 @@ interface EditorToolbarProps {
   canCut?: boolean;
   canCopy?: boolean;
   canPaste?: boolean;
+  onToggleBold?: () => void;
+  onToggleItalic?: () => void;
+  onToggleUnderline?: () => void;
+  onToggleCode?: () => void;
+  onToggleHeading1?: () => void;
+  onToggleHeading2?: () => void;
+  onToggleHeading3?: () => void;
+  onToggleBulletList?: () => void;
+  onToggleOrderedList?: () => void;
+  onToggleBlockquote?: () => void;
+  onToggleCodeBlock?: () => void;
+  onInsertTable?: () => void;
 }
 
 export function EditorToolbar({
@@ -406,6 +419,18 @@ export function EditorToolbar({
   canCut,
   canCopy,
   canPaste,
+  onToggleBold,
+  onToggleItalic,
+  onToggleUnderline,
+  onToggleCode,
+  onToggleHeading1,
+  onToggleHeading2,
+  onToggleHeading3,
+  onToggleBulletList,
+  onToggleOrderedList,
+  onToggleBlockquote,
+  onToggleCodeBlock,
+  onInsertTable,
 }: EditorToolbarProps) {
   const { t } = useTranslation();
   const hasEditor = editor !== null;
@@ -605,12 +630,15 @@ export function EditorToolbar({
         </>
       )}
 
-      {hasEditor && (
+      {(hasEditor || markdownViewMode === "source") && (
         <>
           <ToolbarDivider />
 
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBold().run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleBold().run();
+              else onToggleBold?.();
+            }}
             isActive={editorState?.isBold}
             title={t("toolbar_bold")}
           >
@@ -619,7 +647,10 @@ export function EditorToolbar({
             </ToolbarIcon>
           </ToolbarButton>
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleItalic().run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleItalic().run();
+              else onToggleItalic?.();
+            }}
             isActive={editorState?.isItalic}
             title={t("toolbar_italic")}
           >
@@ -628,7 +659,10 @@ export function EditorToolbar({
             </ToolbarIcon>
           </ToolbarButton>
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleUnderline().run();
+              else onToggleUnderline?.();
+            }}
             isActive={editorState?.isUnderline}
             title={t("toolbar_underline")}
           >
@@ -637,7 +671,10 @@ export function EditorToolbar({
             </ToolbarIcon>
           </ToolbarButton>
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleCode().run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleCode().run();
+              else onToggleCode?.();
+            }}
             isActive={editorState?.isCode}
             title={t("toolbar_code")}
           >
@@ -649,7 +686,10 @@ export function EditorToolbar({
           <ToolbarDivider />
 
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleHeading({ level: 1 }).run();
+              else onToggleHeading1?.();
+            }}
             isActive={editorState?.isHeading1}
             title={t("toolbar_h1")}
           >
@@ -658,7 +698,10 @@ export function EditorToolbar({
             </ToolbarIcon>
           </ToolbarButton>
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleHeading({ level: 2 }).run();
+              else onToggleHeading2?.();
+            }}
             isActive={editorState?.isHeading2}
             title={t("toolbar_h2")}
           >
@@ -667,7 +710,10 @@ export function EditorToolbar({
             </ToolbarIcon>
           </ToolbarButton>
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleHeading({ level: 3 }).run();
+              else onToggleHeading3?.();
+            }}
             isActive={editorState?.isHeading3}
             title={t("toolbar_h3")}
           >
@@ -679,7 +725,10 @@ export function EditorToolbar({
           <ToolbarDivider />
 
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleBulletList().run();
+              else onToggleBulletList?.();
+            }}
             isActive={editorState?.isBulletList}
             title={t("toolbar_bullet_list")}
           >
@@ -688,7 +737,10 @@ export function EditorToolbar({
             </ToolbarIcon>
           </ToolbarButton>
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleOrderedList().run();
+              else onToggleOrderedList?.();
+            }}
             isActive={editorState?.isOrderedList}
             title={t("toolbar_ordered_list")}
           >
@@ -700,7 +752,10 @@ export function EditorToolbar({
           <ToolbarDivider />
 
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleBlockquote().run();
+              else onToggleBlockquote?.();
+            }}
             isActive={editorState?.isBlockquote}
             title={t("toolbar_blockquote")}
           >
@@ -709,7 +764,10 @@ export function EditorToolbar({
             </ToolbarIcon>
           </ToolbarButton>
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            onClick={() => {
+              if (hasEditor && editor) editor.chain().focus().toggleCodeBlock().run();
+              else onToggleCodeBlock?.();
+            }}
             isActive={editorState?.isCodeBlock}
             title={t("toolbar_code_block")}
           >
@@ -721,14 +779,18 @@ export function EditorToolbar({
           <ToolbarDivider />
 
           <ToolbarButton
-            onClick={() =>
-              editor
-                .chain()
-                .focus()
-                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                .run()
-            }
-            disabled={!canInsertTable}
+            onClick={() => {
+              if (hasEditor && editor) {
+                editor
+                  .chain()
+                  .focus()
+                  .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                  .run();
+              } else {
+                onInsertTable?.();
+              }
+            }}
+            disabled={!hasEditor && !onInsertTable ? true : hasEditor ? !canInsertTable : false}
             title={t("toolbar_table")}
           >
             <ToolbarIcon>

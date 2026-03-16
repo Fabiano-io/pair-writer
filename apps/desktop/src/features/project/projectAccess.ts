@@ -27,6 +27,53 @@ export const JSON_YAML_FILE_EXTENSIONS = [".json", ".yaml", ".yml"] as const;
 export const RICH_HTML_FILE_EXTENSIONS = [".html"] as const;
 export const PDF_FILE_EXTENSIONS = [".pdf"] as const;
 export const DOCX_FILE_EXTENSIONS = [".docx"] as const;
+export const KNOWN_BINARY_FILE_EXTENSIONS = [
+  ".7z",
+  ".a",
+  ".avi",
+  ".bin",
+  ".bmp",
+  ".class",
+  ".dll",
+  ".dmg",
+  ".doc",
+  ".eot",
+  ".epub",
+  ".exe",
+  ".gif",
+  ".gz",
+  ".ico",
+  ".jar",
+  ".jpeg",
+  ".jpg",
+  ".lib",
+  ".mov",
+  ".mp3",
+  ".mp4",
+  ".mpeg",
+  ".mpg",
+  ".o",
+  ".obj",
+  ".otf",
+  ".png",
+  ".ppt",
+  ".pptx",
+  ".pyc",
+  ".so",
+  ".svgz",
+  ".tar",
+  ".tif",
+  ".tiff",
+  ".ttf",
+  ".wav",
+  ".webm",
+  ".webp",
+  ".woff",
+  ".woff2",
+  ".xls",
+  ".xlsx",
+  ".zip",
+] as const;
 
 export const SUPPORTED_FILE_EXTENSIONS = [
   ...MARKDOWN_FILE_EXTENSIONS,
@@ -41,12 +88,26 @@ function hasAnyFileExtension(path: string, extensions: readonly string[]): boole
   return extensions.some((ext) => lower.endsWith(ext));
 }
 
+function isKnownBinaryFile(path: string): boolean {
+  return hasAnyFileExtension(path, KNOWN_BINARY_FILE_EXTENSIONS);
+}
+
+function isGenericTextFile(path: string): boolean {
+  return (
+    !isMarkdownFile(path) &&
+    !isPdfFile(path) &&
+    !isDocxFile(path) &&
+    !hasAnyFileExtension(path, RICH_HTML_FILE_EXTENSIONS) &&
+    !isKnownBinaryFile(path)
+  );
+}
+
 export function isMarkdownFile(path: string): boolean {
   return hasAnyFileExtension(path, MARKDOWN_FILE_EXTENSIONS);
 }
 
 export function isPlainTextFile(path: string): boolean {
-  return hasAnyFileExtension(path, PLAIN_TEXT_FILE_EXTENSIONS);
+  return hasAnyFileExtension(path, PLAIN_TEXT_FILE_EXTENSIONS) || isGenericTextFile(path);
 }
 
 export function isJsonYamlFile(path: string): boolean {
@@ -62,7 +123,7 @@ export function isDocxFile(path: string): boolean {
 }
 
 export function isSupportedFile(path: string): boolean {
-  return hasAnyFileExtension(path, SUPPORTED_FILE_EXTENSIONS);
+  return hasAnyFileExtension(path, SUPPORTED_FILE_EXTENSIONS) || isGenericTextFile(path);
 }
 
 export interface DirEntry {
@@ -120,6 +181,21 @@ export async function readFileContent(
     });
   } catch (error) {
     console.error("Failed to read file content:", error);
+    throw error;
+  }
+}
+
+export async function openInFileExplorer(
+  entryPath: string,
+  projectRoot?: string | null
+): Promise<void> {
+  try {
+    await invoke("open_in_file_explorer", {
+      entryPath,
+      projectRoot: projectRoot ?? null,
+    });
+  } catch (error) {
+    console.error("Failed to open in file explorer:", error);
     throw error;
   }
 }
