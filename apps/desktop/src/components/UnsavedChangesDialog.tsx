@@ -3,10 +3,14 @@ import { useTranslation } from "../features/settings/i18n/useTranslation";
 import { useDialogA11y } from "./useDialogA11y";
 
 interface UnsavedChangesDialogProps {
-  documentName: string;
+  documentName?: string;
   onSave: () => void;
   onDiscard: () => void;
   onCancel: () => void;
+  title?: string;
+  message?: string;
+  saveLabel?: string;
+  details?: string[];
 }
 
 export function UnsavedChangesDialog({
@@ -14,6 +18,10 @@ export function UnsavedChangesDialog({
   onSave,
   onDiscard,
   onCancel,
+  title,
+  message,
+  saveLabel,
+  details,
 }: UnsavedChangesDialogProps) {
   const { t } = useTranslation();
   const titleId = useId();
@@ -26,6 +34,12 @@ export function UnsavedChangesDialog({
     onClose: handleClose,
     initialFocusRef: cancelButtonRef,
   });
+  const resolvedTitle = title ?? t("unsaved_title");
+  const resolvedMessage = message
+    ? message
+    : documentName
+      ? `${t("unsaved_message")} ${documentName}?`
+      : t("unsaved_message");
 
   return (
     <div
@@ -42,12 +56,24 @@ export function UnsavedChangesDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-sm font-semibold text-[var(--app-text)]">
-          {t("unsaved_title")}
+          {resolvedTitle}
         </h2>
         <p className="mt-2 text-xs leading-relaxed text-[var(--app-text-muted)]">
-          {t("unsaved_message")}{" "}
-          <span className="font-medium text-[var(--app-text)]">{documentName}</span>?
+          {resolvedMessage}
         </p>
+        {details && details.length > 0 && (
+          <div className="mt-3 max-h-32 overflow-y-auto rounded border border-[var(--app-border)]/70 bg-[var(--app-bg)]/25 px-3 py-2">
+            {details.map((item) => (
+              <div
+                key={item}
+                className="truncate text-xs leading-relaxed text-[var(--app-text-muted)]"
+                title={item}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
@@ -70,7 +96,7 @@ export function UnsavedChangesDialog({
             onClick={onSave}
             className="rounded bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-900 transition-colors hover:bg-white"
           >
-            {t("menu_save")}
+            {saveLabel ?? t("menu_save")}
           </button>
         </div>
       </div>

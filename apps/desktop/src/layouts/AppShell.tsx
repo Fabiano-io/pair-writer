@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { save } from "@tauri-apps/plugin-dialog";
 import { AppMenuBar } from "../components/AppMenuBar";
@@ -70,6 +71,8 @@ export function AppShell() {
   const [markdownViewMode, setMarkdownViewMode] = useState<
     "rendered" | "source"
   >("rendered");
+  const [pendingAppClose, setPendingAppClose] = useState(false);
+  const dirtyTabCountRef = useRef(0);
 
   useEffect(() => {
     loadSettings()
@@ -95,6 +98,10 @@ export function AppShell() {
 
   const handleAISettingsChanged = useCallback(() => {
     setChatConfigVersion((current) => current + 1);
+  }, []);
+
+  const closeWindowNow = useCallback(async () => {
+    await invoke("close_main_window");
   }, []);
 
   const saveActiveDocument = workspace.saveActiveDocument;
@@ -157,12 +164,58 @@ export function AppShell() {
   }, [explorerVisible, toggleExplorer]);
 
   const handleExitAppFromMenu = useCallback(async () => {
+    if (workspace.dirtyTabIds.size > 0) {
+      setPendingAppClose(true);
+      return;
+    }
+
     try {
-      await getCurrentWindow().close();
+      await closeWindowNow();
     } catch (error) {
       console.error("Failed to close app window:", error);
     }
-  }, []);
+  }, [closeWindowNow, workspace.dirtyTabIds]);
+
+  useEffect(() => {
+    dirtyTabCountRef.current = workspace.dirtyTabIds.size;
+    if (workspace.dirtyTabIds.size === 0) {
+      setPendingAppClose(false);
+    }
+  }, [workspace.dirtyTabIds]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+
+    void getCurrentWindow()
+      .onCloseRequested((event) => {
+        event.preventDefault();
+
+        if (dirtyTabCountRef.current === 0) {
+          void closeWindowNow().catch((error) => {
+            console.error("Failed to close app window:", error);
+          });
+          return;
+        }
+
+        setPendingAppClose(true);
+      })
+      .then((dispose) => {
+        if (disposed) {
+          void dispose();
+          return;
+        }
+        unlisten = dispose;
+      })
+      .catch((error) => {
+        console.error("Failed to register close-requested handler:", error);
+      });
+
+    return () => {
+      disposed = true;
+      void unlisten?.();
+    };
+  }, [closeWindowNow]);
 
   const handleExportPdfFromMenu = useCallback(async () => {
     const sourcePath = workspace.activeTabId;
@@ -213,6 +266,70 @@ export function AppShell() {
   const pendingCloseDoc = workspace.pendingCloseTabId
     ? workspace.tabs.find((t) => t.id === workspace.pendingCloseTabId)
     : null;
+  const dirtyTabs = useMemo(
+    () => workspace.tabs.filter((tab) => workspace.dirtyTabIds.has(tab.id)),
+    [workspace.tabs, workspace.dirtyTabIds]
+  );
+
+  const appCloseDialogText = useMemo(() => {
+    const count = dirtyTabs.length;
+    const isPortuguese = appearance.language === "pt";
+
+    if (isPortuguese) {
+      return {
+        title: "Alterações não salvas",
+        message:
+          count === 1
+            ? "Deseja salvar as alterações antes de fechar o aplicativo?"
+            : `Deseja salvar as alterações em ${count} documentos antes de fechar o aplicativo?`,
+        saveLabel: count === 1 ? "Salvar" : "Salvar tudo",
+      };
+    }
+
+    return {
+      title: "Unsaved Changes",
+      message:
+        count === 1
+          ? "Do you want to save your changes before closing the app?"
+          : `Do you want to save changes to ${count} documents before closing the app?`,
+      saveLabel: count === 1 ? "Save" : "Save all",
+    };
+  }, [appearance.language, dirtyTabs.length]);
+
+  const handleCancelAppClose = useCallback(() => {
+    setPendingAppClose(false);
+  }, []);
+
+  const handleDiscardAppClose = useCallback(async () => {
+    setPendingAppClose(false);
+
+    try {
+      await closeWindowNow();
+    } catch (error) {
+      console.error("Failed to close app window:", error);
+    }
+  }, [closeWindowNow]);
+
+  const handleSaveAppClose = useCallback(async () => {
+    const dirtyIds = dirtyTabs.map((tab) => tab.id);
+    if (dirtyIds.length === 0) {
+      setPendingAppClose(false);
+      return;
+    }
+
+    try {
+      await workspace.saveDocuments(dirtyIds);
+      setPendingAppClose(false);
+      await closeWindowNow();
+    } catch (error) {
+      console.error("Failed to save documents before closing app:", error);
+      window.alert(
+        appearance.language === "pt"
+          ? "Não foi possível salvar todos os documentos antes de fechar."
+          : "Could not save all documents before closing."
+      );
+    }
+  }, [appearance.language, closeWindowNow, dirtyTabs, workspace]);
 
   return (
     <I18nProvider locale={appearance.language}>
@@ -322,6 +439,22 @@ export function AppShell() {
             onSave={() => workspace.confirmClose("save")}
             onDiscard={() => workspace.confirmClose("discard")}
             onCancel={() => workspace.confirmClose("cancel")}
+          />
+        )}
+
+        {pendingAppClose && dirtyTabs.length > 0 && (
+          <UnsavedChangesDialog
+            title={appCloseDialogText.title}
+            message={appCloseDialogText.message}
+            saveLabel={appCloseDialogText.saveLabel}
+            details={dirtyTabs.map((tab) => tab.label)}
+            onSave={() => {
+              void handleSaveAppClose();
+            }}
+            onDiscard={() => {
+              void handleDiscardAppClose();
+            }}
+            onCancel={handleCancelAppClose}
           />
         )}
 

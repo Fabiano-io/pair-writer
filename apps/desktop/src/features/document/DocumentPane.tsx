@@ -344,9 +344,10 @@ export function DocumentPane({
   const resizeSourceTextarea = useCallback(() => {
     const textarea = sourceTextareaRef.current;
     if (!textarea) return;
+    const scrollContainer = sourceScrollContainerRef.current;
+    const preservedScrollTop = scrollContainer?.scrollTop ?? 0;
 
     textarea.style.height = "auto";
-    const scrollContainer = sourceScrollContainerRef.current;
     const scrollContainerStyles = scrollContainer
       ? window.getComputedStyle(scrollContainer)
       : null;
@@ -376,6 +377,10 @@ export function DocumentPane({
     setSourceDisplayLineCount((currentCount) =>
       currentCount === visualLineCount ? currentCount : visualLineCount
     );
+
+    if (scrollContainer && scrollContainer.scrollTop !== preservedScrollTop) {
+      scrollContainer.scrollTop = preservedScrollTop;
+    }
   }, []);
 
   useLayoutEffect(() => {

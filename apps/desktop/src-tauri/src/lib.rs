@@ -19,6 +19,12 @@ use storage::get_app_storage_paths;
 use std::sync::Mutex;
 use tauri::Manager;
 
+#[tauri::command]
+fn close_main_window(window: tauri::Window) -> Result<(), String> {
+    save_window_state(&window);
+    window.destroy().map_err(|error| error.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -103,6 +109,7 @@ pub fn run() {
             move_project_entry,
             delete_project_entry,
             paste_copied_project_file,
+            close_main_window,
             send_chat_message,
         ])
         .run(tauri::generate_context!())

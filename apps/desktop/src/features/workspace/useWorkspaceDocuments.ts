@@ -105,6 +105,15 @@ export function useWorkspaceDocuments() {
     if (activeTabId) await saveDocument(activeTabId);
   }, [activeTabId, saveDocument]);
 
+  const saveDocuments = useCallback(
+    async (docIds: string[]) => {
+      for (const docId of docIds) {
+        await saveDocument(docId);
+      }
+    },
+    [saveDocument]
+  );
+
   const openDocument = useCallback(
     (documentId: string) => {
       const isProject = isProjectFileId(documentId);
@@ -312,6 +321,7 @@ export function useWorkspaceDocuments() {
     selectDocument,
     closeActiveTab,
     saveActiveDocument,
+    saveDocuments,
     confirmClose,
     handleContentChange,
   };
