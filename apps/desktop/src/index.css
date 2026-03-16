@@ -750,3 +750,45 @@ body.resize-dragging * {
   fill: #1f2937 !important;
   stroke: #1f2937 !important;
 }
+
+/* Chat markdown rendering (assistant messages) */
+.chat-markdown .ProseMirror {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--app-text);
+  cursor: default;
+}
+
+.chat-markdown .ProseMirror > * + * {
+  margin-top: 0.56em;
+}
+
+.chat-markdown .ProseMirror h1 {
+  font-size: 1.3em;
+  margin-top: 0.9em;
+  margin-bottom: 0.22em;
+}
+
+.chat-markdown .ProseMirror h2 {
+  font-size: 1.2em;
+  margin-top: 0.8em;
+  margin-bottom: 0.2em;
+}
+
+.chat-markdown .ProseMirror h3 {
+  font-size: 1.1em;
+  margin-top: 0.72em;
+  margin-bottom: 0.16em;
+}
+
+.chat-markdown .ProseMirror p {
+  line-height: 1.62;
+}
+
+.chat-markdown .ProseMirror pre.md-code-block {
+  padding: 0.76rem 0.82rem;
+}
+
+.chat-markdown .ProseMirror .md-code-block-wrapper-plain pre.md-code-block {
+  padding-top: 1.95rem;
+}

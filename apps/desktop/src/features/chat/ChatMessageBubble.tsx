@@ -1,6 +1,7 @@
 import type { ChatMessage } from "./chatTypes";
 import { ChatThinkingBlock } from "./ChatThinkingBlock";
 import { useTranslation } from "../settings/i18n/useTranslation";
+import { ChatMarkdownContent } from "./ChatMarkdownContent";
 
 interface ChatMessageBubbleProps {
   message: ChatMessage;
@@ -21,13 +22,19 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
       )}
 
       <div
-        className={`rounded-lg px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+        className={`rounded-lg px-3 py-2.5 text-sm leading-relaxed ${
           isUser
             ? "bg-[var(--app-surface-alt)]/60 text-[var(--app-text)]"
             : "bg-[var(--app-surface-alt)]/30 text-[var(--app-text)]/90"
         }`}
       >
-        {message.content}
+        {isUser ? (
+          <div className="whitespace-pre-wrap break-words">
+            {message.content}
+          </div>
+        ) : (
+          <ChatMarkdownContent content={message.content} />
+        )}
       </div>
     </div>
   );
