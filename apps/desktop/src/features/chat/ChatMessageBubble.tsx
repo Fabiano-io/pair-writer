@@ -2,6 +2,7 @@ import type { ChatMessage } from "./chatTypes";
 import { ChatThinkingBlock } from "./ChatThinkingBlock";
 import { useTranslation } from "../settings/i18n/useTranslation";
 import { ChatMarkdownContent } from "./ChatMarkdownContent";
+import { FileIcon, ImageIcon } from "./ChatIcons";
 
 interface ChatMessageBubbleProps {
   message: ChatMessage;
@@ -22,16 +23,36 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
       )}
 
       <div
-        className={`rounded-lg px-3 py-2.5 text-sm leading-relaxed ${
+        className={`rounded-md px-3 py-2.5 text-[13px] leading-relaxed ${
           isUser
-            ? "bg-[var(--app-surface-alt)]/60 text-[var(--app-text)]"
-            : "bg-[var(--app-surface-alt)]/30 text-[var(--app-text)]/90"
+            ? "bg-[var(--app-surface-alt)]/72 text-[var(--app-text)]"
+            : "border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)]/90"
         }`}
       >
-        {isUser ? (
-          <div className="whitespace-pre-wrap break-words">
-            {message.content}
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {message.attachments.map((attachment) => (
+              <span
+                key={attachment.id}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--app-border)] bg-[var(--app-bg)]/35 px-2.5 py-1 text-[11px] text-[var(--app-text-muted)]"
+              >
+                {attachment.kind === "image" ? (
+                  <ImageIcon className="h-3.5 w-3.5 text-amber-300" />
+                ) : (
+                  <FileIcon className="h-3.5 w-3.5 text-sky-300" />
+                )}
+                <span className="max-w-[220px] truncate">{attachment.name}</span>
+              </span>
+            ))}
           </div>
+        )}
+
+        {isUser ? (
+          message.content ? (
+            <div className="whitespace-pre-wrap break-words">
+              {message.content}
+            </div>
+          ) : null
         ) : (
           <ChatMarkdownContent content={message.content} />
         )}

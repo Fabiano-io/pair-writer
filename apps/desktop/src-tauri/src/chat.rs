@@ -1,11 +1,12 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatMessageInput {
     pub role: String,
-    pub content: String,
+    pub content: Value,
 }
 
 #[derive(Debug, Serialize)]
@@ -18,7 +19,7 @@ pub struct ChatCompletionResult {
 #[derive(Debug, Serialize, Deserialize)]
 struct ApiMessage {
     role: String,
-    content: String,
+    content: Value,
 }
 
 #[derive(Debug, Serialize)]

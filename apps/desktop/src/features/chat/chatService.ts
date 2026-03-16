@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ChatCompletionResult } from "./chatTypes";
+import type { ChatCompletionResult, ChatMessageContentPart } from "./chatTypes";
 
 interface MessagePayload {
   role: string;
-  content: string;
+  content: string | ChatMessageContentPart[];
 }
 
 export async function sendChatMessage(

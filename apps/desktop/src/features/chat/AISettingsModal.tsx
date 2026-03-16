@@ -67,6 +67,9 @@ interface NewModelDraft {
   name: string;
   modelId: string;
   provider: ChatProvider;
+  supportsVision: boolean;
+  supportsTools: boolean;
+  supportsThinking: boolean;
 }
 
 const CLOUD_META: {
@@ -139,6 +142,9 @@ const EMPTY_NEW_MODEL: NewModelDraft = {
   name: "",
   modelId: "",
   provider: "anthropic",
+  supportsVision: false,
+  supportsTools: false,
+  supportsThinking: false,
 };
 
 export function AISettingsModal({
@@ -597,6 +603,25 @@ export function AISettingsModal({
     [chatDraft, persistChat]
   );
 
+  const handleModelCapabilityToggle = useCallback(
+    (
+      id: string,
+      capability: "supportsVision" | "supportsTools" | "supportsThinking",
+      enabled: boolean
+    ) => {
+      const nextChat = {
+        ...chatDraft,
+        models: chatDraft.models.map((entry) =>
+          entry.id === id ? { ...entry, [capability]: enabled } : entry
+        ),
+      };
+
+      setChatDraft(syncChatSettings(nextChat));
+      void persistChat(nextChat);
+    },
+    [chatDraft, persistChat]
+  );
+
   const handleAddModel = useCallback(() => {
     const name = newModel.name.trim();
     const modelId = newModel.modelId.trim();
@@ -615,6 +640,9 @@ export function AISettingsModal({
           provider: newModel.provider,
           modelId,
           enabled: true,
+          supportsVision: newModel.supportsVision,
+          supportsTools: newModel.supportsTools,
+          supportsThinking: newModel.supportsThinking,
         },
       ],
     };
@@ -1031,6 +1059,47 @@ export function AISettingsModal({
                         className={`${INPUT_CLASS} mt-2 font-mono`}
                       />
 
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2">
+                        <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-muted)]/80">
+                          Capabilities
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <CapabilityToggle
+                            title="Vision"
+                            enabled={newModel.supportsVision}
+                            onChange={(enabled) => {
+                              setNewModel((current) => ({
+                                ...current,
+                                supportsVision: enabled,
+                              }));
+                            }}
+                            icon={EyeIcon}
+                          />
+                          <CapabilityToggle
+                            title="Tools"
+                            enabled={newModel.supportsTools}
+                            onChange={(enabled) => {
+                              setNewModel((current) => ({
+                                ...current,
+                                supportsTools: enabled,
+                              }));
+                            }}
+                            icon={ToolIcon}
+                          />
+                          <CapabilityToggle
+                            title="Think"
+                            enabled={newModel.supportsThinking}
+                            onChange={(enabled) => {
+                              setNewModel((current) => ({
+                                ...current,
+                                supportsThinking: enabled,
+                              }));
+                            }}
+                            icon={ThinkIcon}
+                          />
+                        </div>
+                      </div>
+
                       <div className="mt-3 flex flex-wrap justify-end gap-2">
                         <button
                           type="button"
@@ -1098,6 +1167,44 @@ export function AISettingsModal({
                         </div>
 
                         <div className="flex items-center gap-2">
+                          <div className="hidden items-center gap-1.5 sm:flex">
+                            <CapabilityToggle
+                              title="Vision"
+                              enabled={model.supportsVision === true}
+                              onChange={(enabled) =>
+                                handleModelCapabilityToggle(
+                                  model.id,
+                                  "supportsVision",
+                                  enabled
+                                )
+                              }
+                              icon={EyeIcon}
+                            />
+                            <CapabilityToggle
+                              title="Tools"
+                              enabled={model.supportsTools === true}
+                              onChange={(enabled) =>
+                                handleModelCapabilityToggle(
+                                  model.id,
+                                  "supportsTools",
+                                  enabled
+                                )
+                              }
+                              icon={ToolIcon}
+                            />
+                            <CapabilityToggle
+                              title="Think"
+                              enabled={model.supportsThinking === true}
+                              onChange={(enabled) =>
+                                handleModelCapabilityToggle(
+                                  model.id,
+                                  "supportsThinking",
+                                  enabled
+                                )
+                              }
+                              icon={ThinkIcon}
+                            />
+                          </div>
                           <span
                             className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${PROVIDER_TAG_CLASSES[model.provider]}`}
                           >
@@ -1396,6 +1503,35 @@ function Toggle({
   );
 }
 
+function CapabilityToggle({
+  title,
+  enabled,
+  onChange,
+  icon: Icon,
+}: {
+  title: string;
+  enabled: boolean;
+  onChange: (enabled: boolean) => void;
+  icon: (props: SVGProps<SVGSVGElement>) => ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={title}
+      aria-pressed={enabled}
+      title={title}
+      onClick={() => onChange(!enabled)}
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-md border text-[var(--app-text-muted)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/25 ${
+        enabled
+          ? "border-sky-400/35 bg-sky-500/12 text-sky-100"
+          : "border-[color:var(--app-border)] bg-[var(--app-bg)] hover:bg-[var(--app-surface-alt)]"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+}
+
 function StatusIndicator({ status }: { status: ProviderStatus }) {
   const { t } = useTranslation();
   const dotClasses: Record<StatusTone, string> = {
@@ -1580,6 +1716,25 @@ function EyeIcon(props: SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
       <path d="M1.5 8s2.3-4 6.5-4 6.5 4 6.5 4-2.3 4-6.5 4-6.5-4-6.5-4Z" />
       <circle cx="8" cy="8" r="2" />
+    </svg>
+  );
+}
+
+function ToolIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
+      <path d="M9.7 2.3a3.4 3.4 0 0 0 3.6 4.9l-4.4 4.4a2.1 2.1 0 0 1-3 0L3 13.7a1.2 1.2 0 0 1 0-1.7l2.8-2.8a2.1 2.1 0 0 1 0-3l4.4-4.4a3.4 3.4 0 0 0-.5 3.6Z" />
+      <path d="M11.8 4.2l.9-.9" />
+    </svg>
+  );
+}
+
+function ThinkIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
+      <path d="M6.2 13.2h3.6" />
+      <path d="M6.7 15h2.6" />
+      <path d="M5.2 6.8a3.1 3.1 0 1 1 5.6 1.9c-.6.8-1.2 1.2-1.5 2.3H6.7c-.3-1.1-.9-1.5-1.5-2.3a3.1 3.1 0 0 1 0-1.9Z" />
     </svg>
   );
 }

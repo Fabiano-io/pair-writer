@@ -208,6 +208,9 @@ function normalizeChatModelEntry(
     provider,
     modelId,
     enabled: entry.enabled !== false,
+    supportsVision: entry.supportsVision === true,
+    supportsTools: entry.supportsTools === true,
+    supportsThinking: entry.supportsThinking === true,
   };
 }
 

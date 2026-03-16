@@ -34,6 +34,9 @@ export interface ChatModelCatalogEntry {
   provider: ChatProvider;
   modelId: string;
   enabled: boolean;
+  supportsVision?: boolean;
+  supportsTools?: boolean;
+  supportsThinking?: boolean;
 }
 
 export interface ChatGeneralSettings {
@@ -76,9 +79,9 @@ export const EXPLORER_MIN_WIDTH = 180;
 export const EXPLORER_MAX_WIDTH = 420;
 export const EXPLORER_DEFAULT_WIDTH = 260;
 
-export const CHAT_MIN_WIDTH = 260;
+export const CHAT_MIN_WIDTH = 300;
 export const CHAT_MAX_WIDTH = 520;
-export const CHAT_DEFAULT_WIDTH = 340;
+export const CHAT_DEFAULT_WIDTH = 380;
 
 export const MIN_DOCUMENT_WIDTH = 300;
 
@@ -101,6 +104,9 @@ export const DEFAULT_CHAT_MODEL_CATALOG: ChatModelCatalogEntry[] = [
     provider: "anthropic",
     modelId: "claude-sonnet-4-5",
     enabled: true,
+    supportsVision: false,
+    supportsTools: false,
+    supportsThinking: false,
   },
   {
     id: "openai-gpt41",
@@ -108,6 +114,9 @@ export const DEFAULT_CHAT_MODEL_CATALOG: ChatModelCatalogEntry[] = [
     provider: "openai",
     modelId: "gpt-4.1",
     enabled: true,
+    supportsVision: false,
+    supportsTools: false,
+    supportsThinking: false,
   },
   {
     id: "gemini-pro",
@@ -115,6 +124,9 @@ export const DEFAULT_CHAT_MODEL_CATALOG: ChatModelCatalogEntry[] = [
     provider: "gemini",
     modelId: "gemini-2.5-pro",
     enabled: true,
+    supportsVision: false,
+    supportsTools: false,
+    supportsThinking: false,
   },
   {
     id: "lmstudio-local",
@@ -122,6 +134,9 @@ export const DEFAULT_CHAT_MODEL_CATALOG: ChatModelCatalogEntry[] = [
     provider: "lmStudio",
     modelId: "local-model",
     enabled: true,
+    supportsVision: false,
+    supportsTools: false,
+    supportsThinking: false,
   },
   {
     id: "openai-compatible-custom",
@@ -129,6 +144,9 @@ export const DEFAULT_CHAT_MODEL_CATALOG: ChatModelCatalogEntry[] = [
     provider: "openAiCompatible",
     modelId: "custom-model",
     enabled: true,
+    supportsVision: false,
+    supportsTools: false,
+    supportsThinking: false,
   },
 ];
 

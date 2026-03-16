@@ -78,6 +78,12 @@ pub struct ChatModelCatalogEntry {
     pub model_id: String,
     #[serde(default = "default_model_enabled")]
     pub enabled: bool,
+    #[serde(default = "default_model_supports_vision")]
+    pub supports_vision: bool,
+    #[serde(default = "default_model_supports_tools")]
+    pub supports_tools: bool,
+    #[serde(default = "default_model_supports_thinking")]
+    pub supports_thinking: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -145,6 +151,15 @@ fn default_chat_check_for_updates() -> bool {
 fn default_model_enabled() -> bool {
     true
 }
+fn default_model_supports_vision() -> bool {
+    false
+}
+fn default_model_supports_tools() -> bool {
+    false
+}
+fn default_model_supports_thinking() -> bool {
+    false
+}
 fn default_openai_model() -> String {
     "gpt-4.1".to_string()
 }
@@ -177,6 +192,9 @@ fn default_chat_model_catalog() -> Vec<ChatModelCatalogEntry> {
             provider: "anthropic".to_string(),
             model_id: default_anthropic_model(),
             enabled: true,
+            supports_vision: false,
+            supports_tools: false,
+            supports_thinking: false,
         },
         ChatModelCatalogEntry {
             id: "openai-gpt41".to_string(),
@@ -184,6 +202,9 @@ fn default_chat_model_catalog() -> Vec<ChatModelCatalogEntry> {
             provider: "openai".to_string(),
             model_id: default_openai_model(),
             enabled: true,
+            supports_vision: false,
+            supports_tools: false,
+            supports_thinking: false,
         },
         ChatModelCatalogEntry {
             id: "gemini-pro".to_string(),
@@ -191,6 +212,9 @@ fn default_chat_model_catalog() -> Vec<ChatModelCatalogEntry> {
             provider: "gemini".to_string(),
             model_id: default_gemini_model(),
             enabled: true,
+            supports_vision: false,
+            supports_tools: false,
+            supports_thinking: false,
         },
         ChatModelCatalogEntry {
             id: "lmstudio-local".to_string(),
@@ -198,6 +222,9 @@ fn default_chat_model_catalog() -> Vec<ChatModelCatalogEntry> {
             provider: "lmStudio".to_string(),
             model_id: default_lm_studio_model(),
             enabled: true,
+            supports_vision: false,
+            supports_tools: false,
+            supports_thinking: false,
         },
         ChatModelCatalogEntry {
             id: "openai-compatible-custom".to_string(),
@@ -205,6 +232,9 @@ fn default_chat_model_catalog() -> Vec<ChatModelCatalogEntry> {
             provider: "openAiCompatible".to_string(),
             model_id: default_openai_compatible_model(),
             enabled: true,
+            supports_vision: false,
+            supports_tools: false,
+            supports_thinking: false,
         },
     ]
 }
@@ -324,7 +354,7 @@ fn default_explorer_width() -> f64 {
     260.0
 }
 fn default_chat_width() -> f64 {
-    340.0
+    380.0
 }
 
 impl Default for AppSettings {

@@ -132,9 +132,12 @@ export function DocumentWorkspace({
                   onResizeEnd={onChatResizeEnd}
                 />
                 <DocumentChatPane
+                  documentId={activeTabId}
                   documentTitle={activeDocument!.label}
                   width={chatWidth}
                   configVersion={chatConfigVersion}
+                  onResize={onChatResize}
+                  onResizeEnd={onChatResizeEnd}
                   onOpenAISettings={onOpenAISettings}
                 />
               </>
