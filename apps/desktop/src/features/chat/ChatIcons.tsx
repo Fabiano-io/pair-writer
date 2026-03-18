@@ -2,8 +2,8 @@ import type { SVGProps } from "react";
 
 export function AttachIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
-      <path d="M6.5 13.2l5.2-5.2a3 3 0 1 0-4.2-4.2L2.8 8.4a2.3 2.3 0 0 0 3.2 3.2l4.4-4.4a1.5 1.5 0 0 0-2.1-2.1L4.5 8.9" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" {...props}>
+      <path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2A4 4 0 0 1 18.6 8.3l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" />
     </svg>
   );
 }
@@ -19,10 +19,10 @@ export function PlusIcon(props: SVGProps<SVGSVGElement>) {
 
 export function ImageIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
-      <rect x="2" y="2.5" width="12" height="11" rx="1.8" />
-      <circle cx="5.3" cy="6" r="1.2" />
-      <path d="M3.5 11.5l3-3 2.2 2.2 1.5-1.5 2.3 2.3" />
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+      <rect x="3" y="3.5" width="14" height="13" rx="2.6" />
+      <circle cx="7.1" cy="8" r="1.45" />
+      <path d="M4.8 14.3 8.4 10.6l2.7 2.6 2.2-2.2 2.4 2.5" />
     </svg>
   );
 }
@@ -71,28 +71,43 @@ export function AskIcon(props: SVGProps<SVGSVGElement>) {
 
 export function EyeIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
-      <path d="M1.5 8s2.3-4 6.5-4 6.5 4 6.5 4-2.3 4-6.5 4-6.5-4-6.5-4Z" />
-      <circle cx="8" cy="8" r="2" />
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...props}>
+      <path d="M2.4 10s2.9-5 7.6-5 7.6 5 7.6 5-2.9 5-7.6 5-7.6-5-7.6-5Z" />
+      <circle cx="10" cy="10" r="2.45" />
     </svg>
   );
 }
 
 export function ToolIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
-      <path d="M9.7 2.3a3.4 3.4 0 0 0 3.6 4.9l-4.4 4.4a2.1 2.1 0 0 1-3 0L3 13.7a1.2 1.2 0 0 1 0-1.7l2.8-2.8a2.1 2.1 0 0 1 0-3l4.4-4.4a3.4 3.4 0 0 0-.5 3.6Z" />
-      <path d="M11.8 4.2l.9-.9" />
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...props}>
+      <path d="M16.2 4.2a4.1 4.1 0 0 0-5.3 4.9L5.6 14.4a2.2 2.2 0 1 0 3.1 3.1l5.3-5.3a4.1 4.1 0 0 0 4.9-5.3l-2.5 2.5-2.2-.3-.3-2.2 2.3-2.7Z" />
+      <circle cx="7.2" cy="15.8" r=".7" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
 export function ThinkIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
-      <path d="M6.2 13.2h3.6" />
-      <path d="M6.7 15h2.6" />
-      <path d="M5.2 6.8a3.1 3.1 0 1 1 5.6 1.9c-.6.8-1.2 1.2-1.5 2.3H6.7c-.3-1.1-.9-1.5-1.5-2.3a3.1 3.1 0 0 1 0-1.9Z" />
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.55" {...props}>
+      <path d="M8 4.3A2.7 2.7 0 0 0 5.2 7a2.6 2.6 0 0 0-1.8 2.5A2.5 2.5 0 0 0 5 11.8a2.6 2.6 0 0 0 2.5 3.7H8" />
+      <path d="M12 4.3A2.7 2.7 0 0 1 14.8 7a2.6 2.6 0 0 1 1.8 2.5 2.5 2.5 0 0 1-1.6 2.3 2.6 2.6 0 0 1-2.5 3.7H12" />
+      <path d="M10 4.2v11.3" />
+      <path d="M7.4 7.3c.3-.7.9-1.1 1.9-1.3" />
+      <path d="M7.3 10.6c.4-.5 1.1-.8 2-.9" />
+      <path d="M12.6 7.3c-.3-.7-.9-1.1-1.9-1.3" />
+      <path d="M12.7 10.6c-.4-.5-1.1-.8-2-.9" />
+    </svg>
+  );
+}
+
+export function MicrophoneIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.55" {...props}>
+      <path d="M10 13a3 3 0 0 0 3-3V6.2a3 3 0 1 0-6 0V10a3 3 0 0 0 3 3Z" />
+      <path d="M5.6 9.5a4.4 4.4 0 0 0 8.8 0" />
+      <path d="M10 13.4v3.2" />
+      <path d="M7.3 16.6h5.4" />
     </svg>
   );
 }

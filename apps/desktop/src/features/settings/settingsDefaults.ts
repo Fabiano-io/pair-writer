@@ -76,11 +76,11 @@ export interface AppSettings {
 }
 
 export const EXPLORER_MIN_WIDTH = 180;
-export const EXPLORER_MAX_WIDTH = 420;
+export const EXPLORER_MAX_WIDTH = 700;
 export const EXPLORER_DEFAULT_WIDTH = 260;
 
 export const CHAT_MIN_WIDTH = 300;
-export const CHAT_MAX_WIDTH = 520;
+export const CHAT_MAX_WIDTH = 900;
 export const CHAT_DEFAULT_WIDTH = 380;
 
 export const MIN_DOCUMENT_WIDTH = 300;

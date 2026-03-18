@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   useCallback,
   useEffect,
   useId,
@@ -24,6 +25,7 @@ import {
   testProviderConnection,
   type ApiCredentialService,
 } from "./chatCredentials";
+import { EyeIcon, ThinkIcon, ToolIcon } from "./ChatIcons";
 import { loadChatSettings, saveChatSettings } from "./chatSettings";
 
 type CloudProvider = Extract<ChatProvider, "openai" | "anthropic" | "gemini">;
@@ -107,15 +109,15 @@ const CLOUD_META: {
 
 const PROVIDER_TAG_CLASSES: Record<ChatProvider, string> = {
   anthropic:
-    "border border-violet-400/20 bg-violet-500/10 text-violet-100",
+    "border border-[color:var(--app-border)] bg-[var(--app-surface-alt)] text-[var(--app-text-muted)]",
   openai:
-    "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100",
+    "border border-[color:var(--app-border)] bg-[var(--app-surface-alt)] text-[var(--app-text-muted)]",
   gemini:
-    "border border-amber-400/20 bg-amber-500/10 text-amber-100",
+    "border border-[color:var(--app-border)] bg-[var(--app-surface-alt)] text-[var(--app-text-muted)]",
   lmStudio:
-    "border border-[color:var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text-muted)]",
+    "border border-[color:var(--app-border)] bg-[var(--app-surface-alt)] text-[var(--app-text-muted)]",
   openAiCompatible:
-    "border border-sky-400/20 bg-sky-500/10 text-sky-100",
+    "border border-[color:var(--app-border)] bg-[var(--app-surface-alt)] text-[var(--app-text-muted)]",
 };
 
 const INPUT_CLASS =
@@ -127,6 +129,12 @@ const BUTTON_BASE_CLASS =
 const SECONDARY_BUTTON_CLASS = `${BUTTON_BASE_CLASS} border-[color:var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text)] hover:bg-[var(--app-surface-alt)]`;
 const PRIMARY_BUTTON_CLASS = `${BUTTON_BASE_CLASS} border-transparent bg-[var(--app-text)] text-[var(--app-bg)] hover:opacity-92`;
 const DANGER_BUTTON_CLASS = `${BUTTON_BASE_CLASS} border-[color:var(--app-border)] bg-transparent px-2.5 text-[var(--app-text-muted)] hover:border-red-400/25 hover:bg-red-500/8 hover:text-red-100`;
+
+const CAPABILITY_ICON_STYLES: Record<"tools" | "think" | "vision", CSSProperties> = {
+  tools: { transform: "scale(0.88)" },
+  think: { transform: "scale(0.96)" },
+  vision: { transform: "scale(0.92)" },
+};
 
 const STATUS_NOT_CONFIGURED: ProviderStatus = {
   labelKey: "ai_status_not_configured",
@@ -1065,18 +1073,7 @@ export function AISettingsModal({
                         </span>
                         <div className="flex items-center gap-1.5">
                           <CapabilityToggle
-                            title="Vision"
-                            enabled={newModel.supportsVision}
-                            onChange={(enabled) => {
-                              setNewModel((current) => ({
-                                ...current,
-                                supportsVision: enabled,
-                              }));
-                            }}
-                            icon={EyeIcon}
-                          />
-                          <CapabilityToggle
-                            title="Tools"
+                            title={t("chat_capability_tools")}
                             enabled={newModel.supportsTools}
                             onChange={(enabled) => {
                               setNewModel((current) => ({
@@ -1085,9 +1082,10 @@ export function AISettingsModal({
                               }));
                             }}
                             icon={ToolIcon}
+                            iconStyle={CAPABILITY_ICON_STYLES.tools}
                           />
                           <CapabilityToggle
-                            title="Think"
+                            title={t("chat_capability_think")}
                             enabled={newModel.supportsThinking}
                             onChange={(enabled) => {
                               setNewModel((current) => ({
@@ -1096,6 +1094,19 @@ export function AISettingsModal({
                               }));
                             }}
                             icon={ThinkIcon}
+                            iconStyle={CAPABILITY_ICON_STYLES.think}
+                          />
+                          <CapabilityToggle
+                            title={t("chat_capability_vision")}
+                            enabled={newModel.supportsVision}
+                            onChange={(enabled) => {
+                              setNewModel((current) => ({
+                                ...current,
+                                supportsVision: enabled,
+                              }));
+                            }}
+                            icon={EyeIcon}
+                            iconStyle={CAPABILITY_ICON_STYLES.vision}
                           />
                         </div>
                       </div>
@@ -1142,81 +1153,90 @@ export function AISettingsModal({
                     return (
                       <section
                         key={model.id}
-                        className="flex flex-col gap-3 rounded-md border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-3 sm:flex-row sm:items-center"
+                        className="grid gap-3 rounded-md border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_132px_120px_104px] sm:items-center sm:gap-4"
                       >
-                        <Toggle
-                          checked={model.enabled}
-                          onChange={(checked) => handleModelToggle(model.id, checked)}
-                          ariaLabel={model.name}
-                        />
+                        <div className="flex min-w-0 items-start gap-4">
+                          <Toggle
+                            checked={model.enabled}
+                            onChange={(checked) => handleModelToggle(model.id, checked)}
+                            ariaLabel={model.name}
+                          />
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="truncate text-[13px] font-medium text-[var(--app-text)]">
-                              {model.name}
-                            </h4>
-                            {primaryId === model.id ? (
-                              <span className="rounded border border-[color:var(--app-border)] bg-[var(--app-bg)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--app-text-muted)]">
-                                {t("ai_model_default_badge")}
-                              </span>
-                            ) : null}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="truncate text-[13px] font-medium text-[var(--app-text)]">
+                                {model.name}
+                              </h4>
+                              {primaryId === model.id ? (
+                                <span className="rounded border border-[color:var(--app-border)] bg-[var(--app-bg)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--app-text-muted)]">
+                                  {t("ai_model_default_badge")}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="truncate font-mono text-[11px] text-[var(--app-text-muted)]">
+                              {model.modelId}
+                            </p>
                           </div>
-                          <p className="truncate font-mono text-[11px] text-[var(--app-text-muted)]">
-                            {model.modelId}
-                          </p>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <div className="hidden items-center gap-1.5 sm:flex">
-                            <CapabilityToggle
-                              title="Vision"
-                              enabled={model.supportsVision === true}
-                              onChange={(enabled) =>
-                                handleModelCapabilityToggle(
-                                  model.id,
-                                  "supportsVision",
-                                  enabled
-                                )
-                              }
-                              icon={EyeIcon}
-                            />
-                            <CapabilityToggle
-                              title="Tools"
-                              enabled={model.supportsTools === true}
-                              onChange={(enabled) =>
-                                handleModelCapabilityToggle(
-                                  model.id,
-                                  "supportsTools",
-                                  enabled
-                                )
-                              }
-                              icon={ToolIcon}
-                            />
-                            <CapabilityToggle
-                              title="Think"
-                              enabled={model.supportsThinking === true}
-                              onChange={(enabled) =>
-                                handleModelCapabilityToggle(
-                                  model.id,
-                                  "supportsThinking",
-                                  enabled
-                                )
-                              }
-                              icon={ThinkIcon}
-                            />
-                          </div>
+                        <div className="flex items-center gap-1.5 sm:justify-self-start">
+                          <CapabilityToggle
+                            title={t("chat_capability_tools")}
+                            enabled={model.supportsTools === true}
+                            onChange={(enabled) =>
+                              handleModelCapabilityToggle(
+                                model.id,
+                                "supportsTools",
+                                enabled
+                              )
+                            }
+                            icon={ToolIcon}
+                            iconStyle={CAPABILITY_ICON_STYLES.tools}
+                          />
+                          <CapabilityToggle
+                            title={t("chat_capability_think")}
+                            enabled={model.supportsThinking === true}
+                            onChange={(enabled) =>
+                              handleModelCapabilityToggle(
+                                model.id,
+                                "supportsThinking",
+                                enabled
+                              )
+                            }
+                            icon={ThinkIcon}
+                            iconStyle={CAPABILITY_ICON_STYLES.think}
+                          />
+                          <CapabilityToggle
+                            title={t("chat_capability_vision")}
+                            enabled={model.supportsVision === true}
+                            onChange={(enabled) =>
+                              handleModelCapabilityToggle(
+                                model.id,
+                                "supportsVision",
+                                enabled
+                              )
+                            }
+                            icon={EyeIcon}
+                            iconStyle={CAPABILITY_ICON_STYLES.vision}
+                          />
+                        </div>
+
+                        <div className="sm:justify-self-start">
                           <span
-                            className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${PROVIDER_TAG_CLASSES[model.provider]}`}
+                            className={`inline-flex w-[112px] items-center justify-center rounded-[8px] px-2 py-1 text-center text-[10px] font-medium tracking-[0.03em] ${PROVIDER_TAG_CLASSES[model.provider]}`}
                           >
                             {getProviderLabel(
                               model.provider,
                               openAiCompatibleCard.displayName.trim()
                             )}
                           </span>
+                        </div>
+
+                        <div className="sm:justify-self-end">
                           <button
                             type="button"
                             onClick={() => handleModelRemove(model.id)}
-                            className={DANGER_BUTTON_CLASS}
+                            className={`${DANGER_BUTTON_CLASS} w-full justify-center sm:w-[104px]`}
                           >
                             {t("ai_remove")}
                           </button>
@@ -1508,11 +1528,13 @@ function CapabilityToggle({
   enabled,
   onChange,
   icon: Icon,
+  iconStyle,
 }: {
   title: string;
   enabled: boolean;
   onChange: (enabled: boolean) => void;
   icon: (props: SVGProps<SVGSVGElement>) => ReactNode;
+  iconStyle?: CSSProperties;
 }) {
   return (
     <button
@@ -1521,13 +1543,13 @@ function CapabilityToggle({
       aria-pressed={enabled}
       title={title}
       onClick={() => onChange(!enabled)}
-      className={`inline-flex h-7 w-7 items-center justify-center rounded-md border text-[var(--app-text-muted)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/25 ${
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-[8px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/25 ${
         enabled
-          ? "border-sky-400/35 bg-sky-500/12 text-sky-100"
-          : "border-[color:var(--app-border)] bg-[var(--app-bg)] hover:bg-[var(--app-surface-alt)]"
+          ? "border-[color:var(--app-text)]/10 bg-[var(--app-text)] text-[var(--app-bg)] hover:opacity-92"
+          : "border-[color:var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-alt)] hover:text-[var(--app-text)]"
       }`}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-[17px] w-[17px]" style={iconStyle} />
     </button>
   );
 }
@@ -1707,34 +1729,6 @@ function GeneralIcon(props: SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
       <circle cx="8" cy="8" r="2" />
       <path d="M8 2v2M8 12v2M2 8h2M12 8h2M4.2 4.2l1.4 1.4M10.4 10.4l1.4 1.4M4.2 11.8l1.4-1.4M10.4 5.6l1.4-1.4" />
-    </svg>
-  );
-}
-
-function EyeIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
-      <path d="M1.5 8s2.3-4 6.5-4 6.5 4 6.5 4-2.3 4-6.5 4-6.5-4-6.5-4Z" />
-      <circle cx="8" cy="8" r="2" />
-    </svg>
-  );
-}
-
-function ToolIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
-      <path d="M9.7 2.3a3.4 3.4 0 0 0 3.6 4.9l-4.4 4.4a2.1 2.1 0 0 1-3 0L3 13.7a1.2 1.2 0 0 1 0-1.7l2.8-2.8a2.1 2.1 0 0 1 0-3l4.4-4.4a3.4 3.4 0 0 0-.5 3.6Z" />
-      <path d="M11.8 4.2l.9-.9" />
-    </svg>
-  );
-}
-
-function ThinkIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" {...props}>
-      <path d="M6.2 13.2h3.6" />
-      <path d="M6.7 15h2.6" />
-      <path d="M5.2 6.8a3.1 3.1 0 1 1 5.6 1.9c-.6.8-1.2 1.2-1.5 2.3H6.7c-.3-1.1-.9-1.5-1.5-2.3a3.1 3.1 0 0 1 0-1.9Z" />
     </svg>
   );
 }
