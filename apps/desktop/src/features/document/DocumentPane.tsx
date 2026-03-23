@@ -72,6 +72,7 @@ function resolveLineHeightPx(styles: CSSStyleDeclaration): number {
 
 interface DocumentPaneProps {
   documentId?: string | null;
+  chatConfigVersion?: number;
   documentPath?: string | null;
   title: string;
   /** When provided with onContentChange, enables controlled mode (e.g. per-tab content in workspace). */
@@ -90,6 +91,7 @@ interface DocumentPaneProps {
 
 export function DocumentPane({
   documentId = null,
+  chatConfigVersion = 0,
   documentPath = null,
   title: initialTitle,
   content: controlledContent,
@@ -753,6 +755,7 @@ export function DocumentPane({
           <div className="flex min-h-0 flex-1 flex-col">
             <DocumentEditorSurface
               documentId={documentId}
+              chatConfigVersion={chatConfigVersion}
               title={title}
               content={content}
               onTitleChange={setTitle}

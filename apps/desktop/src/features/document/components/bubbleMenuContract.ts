@@ -11,6 +11,8 @@ export interface BubbleCommandPayload {
   type: BubbleCommandType;
   instruction: string;
   selectedText: string;
+  modelId: string | null;
+  modelName: string | null;
 }
 
 export type BubbleCommandHandler = (payload: BubbleCommandPayload) => void;

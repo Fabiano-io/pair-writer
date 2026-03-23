@@ -1,29 +1,158 @@
-use keyring::Entry;
 use reqwest::StatusCode;
 use serde::Serialize;
+use std::env;
 
-const APP_KEYRING_SERVICE: &str = "pair-writer";
+#[cfg(windows)]
+use std::io::ErrorKind;
+#[cfg(windows)]
+use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+
 const OPENAI_API_BASE: &str = "https://api.openai.com/v1";
 const ANTHROPIC_API_BASE: &str = "https://api.anthropic.com/v1";
 const GEMINI_OPENAI_BASE: &str = "https://generativelanguage.googleapis.com/v1beta/openai";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
 
-fn normalize_service(service: &str) -> Result<&'static str, String> {
+#[derive(Clone, Copy)]
+struct CredentialConfig {
+    env_var: &'static str,
+    provider_label: &'static str,
+}
+
+fn credential_config(service: &str) -> Result<CredentialConfig, String> {
     match service.trim().to_ascii_lowercase().as_str() {
-        "openai" => Ok("openai_api_key"),
-        "anthropic" => Ok("anthropic_api_key"),
-        "gemini" => Ok("gemini_api_key"),
-        "lmstudio" | "lm_studio" => Ok("lm_studio_api_key"),
+        "openai" => Ok(CredentialConfig {
+            env_var: "OPENAI_API_KEY",
+            provider_label: "OpenAI",
+        }),
+        "anthropic" => Ok(CredentialConfig {
+            env_var: "ANTHROPIC_API_KEY",
+            provider_label: "Anthropic",
+        }),
+        "gemini" => Ok(CredentialConfig {
+            env_var: "GEMINI_API_KEY",
+            provider_label: "Gemini",
+        }),
+        "lmstudio" | "lm_studio" => Ok(CredentialConfig {
+            env_var: "LM_STUDIO_API_KEY",
+            provider_label: "LM Studio",
+        }),
         "openaicompatible" | "open_ai_compatible" | "openai-compatible" => {
-            Ok("openai_compatible_api_key")
+            Ok(CredentialConfig {
+                env_var: "OPENAI_COMPATIBLE_API_KEY",
+                provider_label: "OpenAI-compatible endpoint",
+            })
         }
         other => Err(format!("Unsupported credential service: {}", other)),
     }
 }
 
-fn credential_entry(service: &str) -> Result<Entry, String> {
-    let account = normalize_service(service)?;
-    Entry::new(APP_KEYRING_SERVICE, account).map_err(|e| e.to_string())
+fn normalize_key(key: &str) -> String {
+    key.trim().to_string()
+}
+
+fn read_process_env_var(env_var: &str) -> Option<String> {
+    match env::var(env_var) {
+        Ok(value) => {
+            let normalized = normalize_key(&value);
+            if normalized.is_empty() {
+                None
+            } else {
+                Some(normalized)
+            }
+        }
+        Err(_) => None,
+    }
+}
+
+#[cfg(windows)]
+fn read_persisted_env_var(env_var: &str) -> Result<Option<String>, String> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let environment = hkcu
+        .open_subkey("Environment")
+        .map_err(|e| format!("Failed to open user environment variables: {}", e))?;
+
+    match environment.get_value::<String, _>(env_var) {
+        Ok(value) => {
+            let normalized = normalize_key(&value);
+            if normalized.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(normalized))
+            }
+        }
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(format!(
+            "Failed to read user environment variable {}: {}",
+            env_var, error
+        )),
+    }
+}
+
+#[cfg(not(windows))]
+fn read_persisted_env_var(_env_var: &str) -> Result<Option<String>, String> {
+    Ok(None)
+}
+
+fn load_api_key(service: &str) -> Result<Option<String>, String> {
+    let config = credential_config(service)?;
+
+    if let Some(value) = read_process_env_var(config.env_var) {
+        return Ok(Some(value));
+    }
+
+    if let Some(value) = read_persisted_env_var(config.env_var)? {
+        env::set_var(config.env_var, &value);
+        return Ok(Some(value));
+    }
+
+    Ok(None)
+}
+
+#[cfg(windows)]
+fn persist_env_var(env_var: &str, value: &str) -> Result<(), String> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let (environment, _) = hkcu
+        .create_subkey("Environment")
+        .map_err(|e| format!("Failed to open user environment variables: {}", e))?;
+
+    environment
+        .set_value(env_var, &value)
+        .map_err(|e| format!("Failed to store {}: {}", env_var, e))
+}
+
+#[cfg(not(windows))]
+fn persist_env_var(_env_var: &str, _value: &str) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(windows)]
+fn delete_persisted_env_var(env_var: &str) -> Result<(), String> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let environment = hkcu
+        .open_subkey_with_flags("Environment", winreg::enums::KEY_SET_VALUE)
+        .map_err(|e| format!("Failed to open user environment variables: {}", e))?;
+
+    match environment.delete_value(env_var) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!("Failed to remove {}: {}", env_var, error)),
+    }
+}
+
+#[cfg(not(windows))]
+fn delete_persisted_env_var(_env_var: &str) -> Result<(), String> {
+    Ok(())
+}
+
+fn missing_provider_result(config: CredentialConfig) -> ProviderTestResult {
+    ProviderTestResult {
+        ok: false,
+        status: "missing".to_string(),
+        message: format!(
+            "Configure {} in {} first.",
+            config.provider_label, config.env_var
+        ),
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -36,36 +165,44 @@ pub struct ProviderTestResult {
 
 #[tauri::command]
 pub fn save_api_key(service: &str, key: &str) -> Result<(), String> {
-    let normalized_key = key.trim();
+    let config = credential_config(service)?;
+    let normalized_key = normalize_key(key);
+
     if normalized_key.is_empty() {
         return Err("API key cannot be empty.".to_string());
     }
 
-    credential_entry(service)?
-        .set_password(normalized_key)
-        .map_err(|e| e.to_string())
+    persist_env_var(config.env_var, &normalized_key)?;
+    env::set_var(config.env_var, normalized_key);
+
+    Ok(())
 }
 
 #[tauri::command]
 pub fn get_api_key(service: &str) -> Result<String, String> {
-    credential_entry(service)?
-        .get_password()
-        .map_err(|e| e.to_string())
+    let config = credential_config(service)?;
+
+    load_api_key(service)?.ok_or_else(|| {
+        format!(
+            "No API key is currently configured for {} in {}.",
+            config.provider_label, config.env_var
+        )
+    })
 }
 
 #[tauri::command]
 pub fn has_api_key(service: &str) -> Result<bool, String> {
-    match credential_entry(service)?.get_password() {
-        Ok(value) => Ok(!value.trim().is_empty()),
-        Err(_) => Ok(false),
-    }
+    Ok(load_api_key(service)?.is_some())
 }
 
 #[tauri::command]
 pub fn delete_api_key(service: &str) -> Result<(), String> {
-    credential_entry(service)?
-        .delete_password()
-        .map_err(|e| e.to_string())
+    let config = credential_config(service)?;
+
+    delete_persisted_env_var(config.env_var)?;
+    env::remove_var(config.env_var);
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -78,15 +215,27 @@ pub async fn test_provider_connection(
 
     match normalized_service.as_str() {
         "openai" => {
-            let key = get_api_key("openai")?;
+            let config = credential_config("openai")?;
+            let Some(key) = load_api_key("openai")? else {
+                return Ok(missing_provider_result(config));
+            };
+
             test_openai_connection(&key, model).await
         }
         "anthropic" => {
-            let key = get_api_key("anthropic")?;
+            let config = credential_config("anthropic")?;
+            let Some(key) = load_api_key("anthropic")? else {
+                return Ok(missing_provider_result(config));
+            };
+
             test_anthropic_connection(&key, model).await
         }
         "gemini" => {
-            let key = get_api_key("gemini")?;
+            let config = credential_config("gemini")?;
+            let Some(key) = load_api_key("gemini")? else {
+                return Ok(missing_provider_result(config));
+            };
+
             test_gemini_connection(&key, model).await
         }
         "lmstudio" | "lm_studio" => {
@@ -95,7 +244,7 @@ pub async fn test_provider_connection(
                 .trim()
                 .trim_end_matches('/')
                 .to_string();
-            let key = get_api_key("lmstudio").ok();
+            let key = load_api_key("lmstudio")?;
             test_openai_compatible_connection("LM Studio", &endpoint, model, key.as_deref()).await
         }
         "openaicompatible" | "open_ai_compatible" | "openai-compatible" => {
@@ -104,7 +253,7 @@ pub async fn test_provider_connection(
                 .trim()
                 .trim_end_matches('/')
                 .to_string();
-            let key = get_api_key("openai-compatible").ok();
+            let key = load_api_key("openai-compatible")?;
             test_openai_compatible_connection(
                 "OpenAI-compatible endpoint",
                 &endpoint,
@@ -122,10 +271,7 @@ async fn test_openai_connection(
     model: Option<String>,
 ) -> Result<ProviderTestResult, String> {
     let client = reqwest::Client::new();
-    let model_id = model
-        .unwrap_or_else(|| "gpt-5.2".to_string())
-        .trim()
-        .to_string();
+    let model_id = model.unwrap_or_else(|| "gpt-4.1".to_string()).trim().to_string();
 
     let response = client
         .get(format!("{}/models/{}", OPENAI_API_BASE, model_id))
@@ -147,7 +293,7 @@ async fn test_anthropic_connection(
 ) -> Result<ProviderTestResult, String> {
     let client = reqwest::Client::new();
     let model_id = model
-        .unwrap_or_else(|| "claude-sonnet-4-20250514".to_string())
+        .unwrap_or_else(|| "claude-sonnet-4-5".to_string())
         .trim()
         .to_string();
 
@@ -218,7 +364,12 @@ async fn test_openai_compatible_connection(
     if response.status().is_success() {
         let detail = match model {
             Some(model_id) if !model_id.trim().is_empty() => {
-                format!("{} is reachable at {} and ready for {}.", provider_label, endpoint, model_id.trim())
+                format!(
+                    "{} is reachable at {} and ready for {}.",
+                    provider_label,
+                    endpoint,
+                    model_id.trim()
+                )
             }
             _ => format!("{} is reachable at {}.", provider_label, endpoint),
         };

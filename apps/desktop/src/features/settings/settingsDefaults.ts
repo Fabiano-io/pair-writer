@@ -58,6 +58,8 @@ export interface ChatSettings {
   provider: ChatProvider;
   general: ChatGeneralSettings;
   models: ChatModelCatalogEntry[];
+  defaultChatModelId: string;
+  defaultBubbleModelId: string;
   openai: ProviderModelSettings;
   anthropic: ProviderModelSettings;
   gemini: ProviderModelSettings;
@@ -154,6 +156,8 @@ export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   provider: "lmStudio",
   general: DEFAULT_CHAT_GENERAL_SETTINGS,
   models: DEFAULT_CHAT_MODEL_CATALOG,
+  defaultChatModelId: "lmstudio-local",
+  defaultBubbleModelId: "lmstudio-local",
   openai: {
     model: "gpt-4.1",
   },

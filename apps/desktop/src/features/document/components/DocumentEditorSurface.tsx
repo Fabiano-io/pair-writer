@@ -11,6 +11,9 @@ import { TipTapEditor } from "./TipTapEditor";
 import { EditorToolbar } from "./EditorToolbar";
 import { useTranslation } from "../../settings/i18n/useTranslation";
 import type { BubbleCommandHandler } from "./bubbleMenuContract";
+import { loadChatSettings } from "../../chat/chatSettings";
+import { resolveDefaultBubbleModelId } from "../../chat/chatModelDefaults";
+import type { ChatModelCatalogEntry } from "../../settings/settingsDefaults";
 import {
   APP_EDITOR_COPY_EVENT,
   APP_EDITOR_CUT_EVENT,
@@ -26,6 +29,7 @@ import {
 
 interface DocumentEditorSurfaceProps {
   documentId?: string | null;
+  chatConfigVersion?: number;
   title?: string;
   content?: string;
   onTitleChange?: (title: string) => void;
@@ -47,6 +51,7 @@ interface DocumentEditorSurfaceProps {
  */
 export function DocumentEditorSurface({
   documentId = null,
+  chatConfigVersion = 0,
   content,
   onContentChange,
   onSave,
@@ -62,13 +67,17 @@ export function DocumentEditorSurface({
   const { t } = useTranslation();
   const [editor, setEditor] = useState<Editor | null>(null);
   const [showCommandAck, setShowCommandAck] = useState(false);
+  const [lastBubbleModelName, setLastBubbleModelName] = useState<string | null>(null);
+  const [bubbleDefaultModel, setBubbleDefaultModel] =
+    useState<ChatModelCatalogEntry | null>(null);
   const commandAckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
 
   const handleEditorReady = useCallback((e: Editor) => setEditor(e), []);
 
-  const handleBubbleCommand: BubbleCommandHandler = useCallback(() => {
+  const handleBubbleCommand: BubbleCommandHandler = useCallback((payload) => {
+    setLastBubbleModelName(payload.modelName);
     setShowCommandAck(true);
     if (commandAckTimeoutRef.current) {
       clearTimeout(commandAckTimeoutRef.current);
@@ -86,6 +95,37 @@ export function DocumentEditorSurface({
       }
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadChatSettings()
+      .then((settings) => {
+        if (cancelled) return;
+
+        const defaultBubbleModelId = resolveDefaultBubbleModelId(
+          settings.models,
+          settings.provider,
+          settings.defaultChatModelId,
+          settings.defaultBubbleModelId
+        );
+        const nextBubbleModel =
+          settings.models.find(
+            (entry) => entry.id === defaultBubbleModelId && entry.enabled
+          ) ?? null;
+
+        setBubbleDefaultModel(nextBubbleModel);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBubbleDefaultModel(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chatConfigVersion]);
 
   useEffect(() => {
     if (!editor || readOnly) return;
@@ -148,6 +188,7 @@ export function DocumentEditorSurface({
               className="border-t border-[var(--app-border)] px-3 py-1.5 text-xs text-[var(--app-text-muted)] bg-[var(--app-bg)]/35"
             >
               {t("bubble_command_prepared")}
+              {lastBubbleModelName ? ` · ${lastBubbleModelName}` : ""}
             </div>
           )}
         </div>
@@ -164,6 +205,7 @@ export function DocumentEditorSurface({
             content={content}
             onContentChange={onContentChange}
             onEditorReady={handleEditorReady}
+            bubbleDefaultModel={bubbleDefaultModel}
             onBubbleCommand={handleBubbleCommand}
             readOnly={readOnly}
             contentType={contentType}

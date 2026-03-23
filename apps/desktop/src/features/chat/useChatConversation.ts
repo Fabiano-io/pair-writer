@@ -12,6 +12,7 @@ import type { ChatSettings, ChatModelCatalogEntry } from "../settings/settingsDe
 import { loadChatSettings } from "./chatSettings";
 import { streamChatMessage } from "./chatService";
 import { getApiKey } from "./chatCredentials";
+import { resolveDefaultChatModelId, resolvePreferredEnabledModelId } from "./chatModelDefaults";
 
 function generateId(): string {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -80,19 +81,6 @@ export function useChatConversation({
       .then((settings) => {
         if (cancelled) return;
         setChatSettings(settings);
-
-        // Auto-select the first enabled model for the active provider if none chosen yet
-        setDocState((prev) => {
-          if (prev.selectedModelId !== null) return prev;
-          const first = settings.models.find(
-            (m) => m.provider === settings.provider && m.enabled
-          );
-          if (!first) return prev;
-          const next = { ...prev, selectedModelId: first.id };
-          const key = docKey(documentIdRef.current);
-          cacheRef.current[key] = next;
-          return next;
-        });
       })
       .catch(() => {
         if (!cancelled) setChatSettings(null);
@@ -110,8 +98,34 @@ export function useChatConversation({
   useEffect(() => {
     const key = docKey(documentId);
     setIsLoading(loadingByDocRef.current[key] ?? false);
-    setDocState(cacheRef.current[key] ?? DEFAULT_DOCUMENT_CHAT_STATE);
-  }, [documentId]);
+    const cachedState = cacheRef.current[key] ?? DEFAULT_DOCUMENT_CHAT_STATE;
+
+    if (!chatSettings) {
+      setDocState(cachedState);
+      return;
+    }
+
+    const defaultModelId = resolveDefaultChatModelId(
+      chatSettings.models,
+      chatSettings.provider,
+      chatSettings.defaultChatModelId
+    );
+    const selectedModelId = resolvePreferredEnabledModelId(
+      chatSettings.models,
+      cachedState.selectedModelId,
+      defaultModelId
+    );
+    const nextState =
+      cachedState.selectedModelId === selectedModelId
+        ? cachedState
+        : {
+            ...cachedState,
+            selectedModelId,
+          };
+
+    cacheRef.current[key] = nextState;
+    setDocState(nextState);
+  }, [chatSettings, documentId]);
 
   /** Updates the current document's state and writes through to the cache. */
   const updateDocState = useCallback(

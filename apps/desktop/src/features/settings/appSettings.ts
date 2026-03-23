@@ -15,6 +15,10 @@ import {
   DEFAULT_CHAT_SETTINGS,
   DEFAULT_SETTINGS,
 } from "./settingsDefaults";
+import {
+  resolveDefaultBubbleModelId,
+  resolveDefaultChatModelId,
+} from "../chat/chatModelDefaults";
 
 export async function loadSettings(): Promise<AppSettings> {
   try {
@@ -86,6 +90,10 @@ function normalizeChatSettings(
     provider,
     general: normalizeChatGeneral(chat.general),
     models: normalizeChatModelCatalog(chat),
+    defaultChatModelId:
+      chat.defaultChatModelId?.trim() || DEFAULT_CHAT_SETTINGS.defaultChatModelId,
+    defaultBubbleModelId:
+      chat.defaultBubbleModelId?.trim() || DEFAULT_CHAT_SETTINGS.defaultBubbleModelId,
     openai: {
       model: chat.openai?.model?.trim() || DEFAULT_CHAT_SETTINGS.openai.model,
     },
@@ -215,9 +223,23 @@ function normalizeChatModelEntry(
 }
 
 function applyPrimaryModelSelections(chat: ChatSettings): ChatSettings {
+  const defaultChatModelId = resolveDefaultChatModelId(
+    chat.models,
+    chat.provider,
+    chat.defaultChatModelId
+  );
+  const defaultBubbleModelId = resolveDefaultBubbleModelId(
+    chat.models,
+    chat.provider,
+    defaultChatModelId,
+    chat.defaultBubbleModelId
+  );
+
   return {
     ...chat,
     models: chat.models.map((entry) => ({ ...entry })),
+    defaultChatModelId: defaultChatModelId ?? "",
+    defaultBubbleModelId: defaultBubbleModelId ?? "",
     openai: {
       model: resolvePrimaryModelId(chat.models, "openai", chat.openai.model),
     },

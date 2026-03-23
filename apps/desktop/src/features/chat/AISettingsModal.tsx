@@ -20,12 +20,16 @@ import type {
 import { DEFAULT_CHAT_SETTINGS } from "../settings/settingsDefaults";
 import {
   deleteApiKey,
-  hasApiKey,
+  getApiKey,
   saveApiKey,
   testProviderConnection,
   type ApiCredentialService,
 } from "./chatCredentials";
 import { EyeIcon, ThinkIcon, ToolIcon } from "./ChatIcons";
+import {
+  resolveDefaultBubbleModelId,
+  resolveDefaultChatModelId,
+} from "./chatModelDefaults";
 import { loadChatSettings, saveChatSettings } from "./chatSettings";
 
 type CloudProvider = Extract<ChatProvider, "openai" | "anthropic" | "gemini">;
@@ -55,6 +59,7 @@ interface ProviderStatus {
 
 interface SecretProviderState {
   apiKeyDraft: string;
+  savedApiKey: string;
   showDraft: boolean;
   hasStoredKey: boolean;
   status: ProviderStatus;
@@ -167,16 +172,16 @@ export function AISettingsModal({
     cloneChatSettings(DEFAULT_CHAT_SETTINGS)
   );
   const [cloudCards, setCloudCards] = useState<Record<CloudProvider, SecretProviderState>>({
-    anthropic: createSecretProviderState(false),
-    openai: createSecretProviderState(false),
-    gemini: createSecretProviderState(false),
+    anthropic: createSecretProviderState(""),
+    openai: createSecretProviderState(""),
+    gemini: createSecretProviderState(""),
   });
   const [lmStudioCard, setLmStudioCard] = useState<EndpointProviderState>(
-    createEndpointProviderState("LM Studio", "http://127.0.0.1:1234", false)
+    createEndpointProviderState("LM Studio", "http://127.0.0.1:1234", "")
   );
   const [openAiCompatibleCard, setOpenAiCompatibleCard] =
     useState<EndpointProviderState>(
-      createEndpointProviderState("OpenAI-Compatible", "http://127.0.0.1:1234", false)
+      createEndpointProviderState("OpenAI-Compatible", "http://127.0.0.1:1234", "")
     );
   const [dataDirectory, setDataDirectory] = useState("--");
   const [isAddModelOpen, setIsAddModelOpen] = useState(false);
@@ -206,11 +211,11 @@ export function AISettingsModal({
         appDataDir,
       ] = await Promise.all([
         loadChatSettings(),
-        hasApiKey("anthropic"),
-        hasApiKey("openai"),
-        hasApiKey("gemini"),
-        hasApiKey("lmStudio"),
-        hasApiKey("openAiCompatible"),
+        getApiKey("anthropic").catch(() => ""),
+        getApiKey("openai").catch(() => ""),
+        getApiKey("gemini").catch(() => ""),
+        getApiKey("lmStudio").catch(() => ""),
+        getApiKey("openAiCompatible").catch(() => ""),
         loadAppDataDirectory().catch(() => "--"),
       ]);
 
@@ -288,13 +293,15 @@ export function AISettingsModal({
   const handleCloudSave = useCallback(
     async (provider: CloudProvider) => {
       const card = cloudCards[provider];
+      const nextApiKey = normalizeSecret(card.apiKeyDraft);
+      const savedApiKey = normalizeSecret(card.savedApiKey);
 
-      if (!card.apiKeyDraft.trim() && !card.hasStoredKey) {
+      if (!nextApiKey && !card.hasStoredKey) {
         updateCloudCard(provider, (current) => ({
           ...current,
           status: STATUS_NOT_CONFIGURED,
         }));
-        return;
+        return false;
       }
 
       updateCloudCard(provider, (current) => ({
@@ -303,18 +310,20 @@ export function AISettingsModal({
       }));
 
       try {
-        if (card.apiKeyDraft.trim()) {
-          await saveApiKey(provider, card.apiKeyDraft.trim());
+        if (nextApiKey !== savedApiKey) {
+          await saveApiKey(provider, nextApiKey);
         }
 
         updateCloudCard(provider, (current) => ({
           ...current,
-          apiKeyDraft: "",
-          hasStoredKey: current.hasStoredKey || card.apiKeyDraft.trim().length > 0,
+          apiKeyDraft: nextApiKey || savedApiKey,
+          savedApiKey: nextApiKey || savedApiKey,
+          hasStoredKey: current.hasStoredKey || nextApiKey.length > 0,
           status: STATUS_NOT_TESTED,
         }));
 
         onSettingsChanged();
+        return true;
       } catch (error) {
         updateCloudCard(provider, (current) => ({
           ...current,
@@ -324,6 +333,7 @@ export function AISettingsModal({
             detail: error instanceof Error ? error.message : String(error),
           },
         }));
+        return false;
       }
     },
     [cloudCards, onSettingsChanged, updateCloudCard]
@@ -332,9 +342,14 @@ export function AISettingsModal({
   const handleCloudTest = useCallback(
     async (provider: CloudProvider) => {
       const card = cloudCards[provider];
+      const nextApiKey = normalizeSecret(card.apiKeyDraft);
+      const savedApiKey = normalizeSecret(card.savedApiKey);
 
-      if (card.apiKeyDraft.trim()) {
-        await handleCloudSave(provider);
+      if (nextApiKey !== savedApiKey) {
+        const didSave = await handleCloudSave(provider);
+        if (!didSave) {
+          return;
+        }
       } else if (!card.hasStoredKey) {
         updateCloudCard(provider, (current) => ({
           ...current,
@@ -423,6 +438,8 @@ export function AISettingsModal({
       const card = provider === "lmStudio" ? lmStudioCard : openAiCompatibleCard;
       const endpointUrl = card.endpointUrl.trim();
       const displayName = card.displayName.trim();
+      const nextApiKey = normalizeSecret(card.apiKeyDraft);
+      const savedApiKey = normalizeSecret(card.savedApiKey);
 
       if (!endpointUrl) {
         updateEndpointCard(provider, (current) => ({
@@ -433,7 +450,7 @@ export function AISettingsModal({
             detail: t("ai_error_missing_endpoint"),
           },
         }));
-        return;
+        return false;
       }
 
       if (provider === "openAiCompatible" && !displayName) {
@@ -445,7 +462,7 @@ export function AISettingsModal({
             detail: t("ai_provider_name_placeholder"),
           },
         }));
-        return;
+        return false;
       }
 
       updateEndpointCard(provider, (current) => ({
@@ -454,8 +471,8 @@ export function AISettingsModal({
       }));
 
       try {
-        if (card.apiKeyDraft.trim()) {
-          await saveApiKey(provider, card.apiKeyDraft.trim());
+        if (nextApiKey !== savedApiKey) {
+          await saveApiKey(provider, nextApiKey);
         }
 
         const nextChat =
@@ -482,10 +499,12 @@ export function AISettingsModal({
           ...current,
           displayName: provider === "lmStudio" ? current.displayName : displayName,
           endpointUrl,
-          apiKeyDraft: "",
-          hasStoredKey: current.hasStoredKey || card.apiKeyDraft.trim().length > 0,
+          apiKeyDraft: nextApiKey || savedApiKey,
+          savedApiKey: nextApiKey || savedApiKey,
+          hasStoredKey: current.hasStoredKey || nextApiKey.length > 0,
           status: STATUS_NOT_TESTED,
         }));
+        return true;
       } catch (error) {
         updateEndpointCard(provider, (current) => ({
           ...current,
@@ -495,6 +514,7 @@ export function AISettingsModal({
             detail: error instanceof Error ? error.message : String(error),
           },
         }));
+        return false;
       }
     },
     [chatDraft, lmStudioCard, openAiCompatibleCard, persistChat, t, updateEndpointCard]
@@ -503,9 +523,14 @@ export function AISettingsModal({
   const handleEndpointTest = useCallback(
     async (provider: EndpointProvider) => {
       const card = provider === "lmStudio" ? lmStudioCard : openAiCompatibleCard;
+      const nextApiKey = normalizeSecret(card.apiKeyDraft);
+      const savedApiKey = normalizeSecret(card.savedApiKey);
 
-      if (card.apiKeyDraft.trim()) {
-        await handleEndpointSave(provider);
+      if (nextApiKey !== savedApiKey) {
+        const didSave = await handleEndpointSave(provider);
+        if (!didSave) {
+          return;
+        }
       } else if (!card.endpointUrl.trim()) {
         updateEndpointCard(provider, (current) => ({
           ...current,
@@ -623,6 +648,30 @@ export function AISettingsModal({
           entry.id === id ? { ...entry, [capability]: enabled } : entry
         ),
       };
+
+      setChatDraft(syncChatSettings(nextChat));
+      void persistChat(nextChat);
+    },
+    [chatDraft, persistChat]
+  );
+
+  const handleModelDefaultChange = useCallback(
+    (target: "chat" | "bubble", modelId: string) => {
+      const model = chatDraft.models.find((entry) => entry.id === modelId);
+      if (!model?.enabled) {
+        return;
+      }
+
+      const nextChat =
+        target === "chat"
+          ? {
+              ...chatDraft,
+              defaultChatModelId: modelId,
+            }
+          : {
+              ...chatDraft,
+              defaultBubbleModelId: modelId,
+            };
 
       setChatDraft(syncChatSettings(nextChat));
       void persistChat(nextChat);
@@ -775,7 +824,6 @@ export function AISettingsModal({
                         <SecretInput
                           value={cloudCards[providerMeta.id].apiKeyDraft}
                           showValue={cloudCards[providerMeta.id].showDraft}
-                          hasStoredKey={cloudCards[providerMeta.id].hasStoredKey}
                           placeholder={t("ai_key_placeholder")}
                           onChange={(value) => {
                             updateCloudCard(providerMeta.id, (current) => ({
@@ -804,6 +852,7 @@ export function AISettingsModal({
                               updateCloudCard(providerMeta.id, (current) => ({
                                 ...current,
                                 apiKeyDraft: "",
+                                savedApiKey: "",
                                 showDraft: false,
                                 hasStoredKey: false,
                                 status: { labelKey: "ai_status_removing", tone: "info" },
@@ -850,7 +899,6 @@ export function AISettingsModal({
                       <SecretInput
                         value={lmStudioCard.apiKeyDraft}
                         showValue={lmStudioCard.showDraft}
-                        hasStoredKey={lmStudioCard.hasStoredKey}
                         placeholder={t("ai_api_key_optional_label")}
                         onChange={(value) => {
                           setLmStudioCard((current) => ({
@@ -879,6 +927,7 @@ export function AISettingsModal({
                             setLmStudioCard((current) => ({
                               ...current,
                               apiKeyDraft: "",
+                              savedApiKey: "",
                               showDraft: false,
                               hasStoredKey: false,
                               status: { labelKey: "ai_status_removing", tone: "info" },
@@ -943,7 +992,6 @@ export function AISettingsModal({
                       <SecretInput
                         value={openAiCompatibleCard.apiKeyDraft}
                         showValue={openAiCompatibleCard.showDraft}
-                        hasStoredKey={openAiCompatibleCard.hasStoredKey}
                         placeholder={t("ai_api_key_optional_label")}
                         onChange={(value) => {
                           setOpenAiCompatibleCard((current) => ({
@@ -976,6 +1024,7 @@ export function AISettingsModal({
                               setOpenAiCompatibleCard((current) => ({
                                 ...current,
                                 apiKeyDraft: "",
+                                savedApiKey: "",
                                 showDraft: false,
                                 hasStoredKey: false,
                                 status: { labelKey: "ai_status_removing", tone: "info" },
@@ -1144,16 +1193,10 @@ export function AISettingsModal({
                     </p>
                   </section>
                 ) : (
-                  chatDraft.models.map((model) => {
-                    const primaryId = getPrimaryModelEntryId(
-                      chatDraft.models,
-                      model.provider
-                    );
-
-                    return (
+                  chatDraft.models.map((model) => (
                       <section
                         key={model.id}
-                        className="grid gap-3 rounded-md border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_132px_120px_104px] sm:items-center sm:gap-4"
+                        className="grid gap-3 rounded-md border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center sm:gap-4"
                       >
                         <div className="flex min-w-0 items-start gap-4">
                           <Toggle
@@ -1163,16 +1206,9 @@ export function AISettingsModal({
                           />
 
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h4 className="truncate text-[13px] font-medium text-[var(--app-text)]">
-                                {model.name}
-                              </h4>
-                              {primaryId === model.id ? (
-                                <span className="rounded border border-[color:var(--app-border)] bg-[var(--app-bg)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--app-text-muted)]">
-                                  {t("ai_model_default_badge")}
-                                </span>
-                              ) : null}
-                            </div>
+                            <h4 className="truncate text-[13px] font-medium text-[var(--app-text)]">
+                              {model.name}
+                            </h4>
                             <p className="truncate font-mono text-[11px] text-[var(--app-text-muted)]">
                               {model.modelId}
                             </p>
@@ -1242,8 +1278,7 @@ export function AISettingsModal({
                           </button>
                         </div>
                       </section>
-                    );
-                  })
+                    ))
                 )}
               </div>
             ) : null}
@@ -1273,6 +1308,62 @@ export function AISettingsModal({
                         {option.label}
                       </option>
                     ))}
+                  </select>
+                </section>
+
+                <section className="rounded-lg border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-4">
+                  <label
+                    htmlFor="default-chat-model"
+                    className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-muted)]/75"
+                  >
+                    {t("ai_general_chat_model_label")}
+                  </label>
+                  <p className="mt-0.5 text-xs text-[var(--app-text-muted)]">
+                    {t("ai_general_chat_model_description")}
+                  </p>
+                  <select
+                    id="default-chat-model"
+                    value={chatDraft.defaultChatModelId}
+                    onChange={(event) =>
+                      handleModelDefaultChange("chat", event.target.value)
+                    }
+                    className={`${INPUT_CLASS} mt-3`}
+                  >
+                    {chatDraft.models
+                      .filter((m) => m.enabled)
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} ({getProviderLabel(m.provider, openAiCompatibleCard.displayName.trim())})
+                        </option>
+                      ))}
+                  </select>
+                </section>
+
+                <section className="rounded-lg border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-4">
+                  <label
+                    htmlFor="default-bubble-model"
+                    className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--app-text-muted)]/75"
+                  >
+                    {t("ai_general_bubble_model_label")}
+                  </label>
+                  <p className="mt-0.5 text-xs text-[var(--app-text-muted)]">
+                    {t("ai_general_bubble_model_description")}
+                  </p>
+                  <select
+                    id="default-bubble-model"
+                    value={chatDraft.defaultBubbleModelId}
+                    onChange={(event) =>
+                      handleModelDefaultChange("bubble", event.target.value)
+                    }
+                    className={`${INPUT_CLASS} mt-3`}
+                  >
+                    {chatDraft.models
+                      .filter((m) => m.enabled)
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} ({getProviderLabel(m.provider, openAiCompatibleCard.displayName.trim())})
+                        </option>
+                      ))}
                   </select>
                 </section>
 
@@ -1427,14 +1518,12 @@ function ProviderActions({
 function SecretInput({
   value,
   showValue,
-  hasStoredKey,
   placeholder,
   onChange,
   onToggleShow,
 }: {
   value: string;
   showValue: boolean;
-  hasStoredKey: boolean;
   placeholder: string;
   onChange: (value: string) => void;
   onToggleShow: () => void;
@@ -1451,7 +1540,7 @@ function SecretInput({
         autoCorrect="off"
         autoCapitalize="none"
         spellCheck={false}
-        placeholder={value || !hasStoredKey ? placeholder : "****************"}
+        placeholder={placeholder}
         className={`${INPUT_CLASS} min-w-0 flex-1 font-mono`}
       />
       <button
@@ -1601,25 +1690,32 @@ function getProviderLabel(provider: ChatProvider, customProviderName: string): s
   return customProviderName || "OpenAI-Compatible";
 }
 
-function createSecretProviderState(hasStoredKey: boolean): SecretProviderState {
+function createSecretProviderState(storedApiKey: string): SecretProviderState {
+  const normalizedApiKey = normalizeSecret(storedApiKey);
+
   return {
-    apiKeyDraft: "",
+    apiKeyDraft: normalizedApiKey,
+    savedApiKey: normalizedApiKey,
     showDraft: false,
-    hasStoredKey,
-    status: hasStoredKey ? STATUS_NOT_TESTED : STATUS_NOT_CONFIGURED,
+    hasStoredKey: normalizedApiKey.length > 0,
+    status: normalizedApiKey ? STATUS_NOT_TESTED : STATUS_NOT_CONFIGURED,
   };
 }
 
 function createEndpointProviderState(
   displayName: string,
   endpointUrl: string,
-  hasStoredKey: boolean
+  storedApiKey: string
 ): EndpointProviderState {
   return {
     displayName,
     endpointUrl,
-    ...createSecretProviderState(hasStoredKey),
+    ...createSecretProviderState(storedApiKey),
   };
+}
+
+function normalizeSecret(value: string): string {
+  return value.trim();
 }
 
 function cloneChatSettings(chat: ChatSettings): ChatSettings {
@@ -1643,10 +1739,23 @@ function syncChatSettings(chat: ChatSettings): ChatSettings {
     name: entry.name.trim(),
     modelId: entry.modelId.trim(),
   }));
+  const defaultChatModelId = resolveDefaultChatModelId(
+    models,
+    cloned.provider,
+    cloned.defaultChatModelId
+  );
+  const defaultBubbleModelId = resolveDefaultBubbleModelId(
+    models,
+    cloned.provider,
+    defaultChatModelId,
+    cloned.defaultBubbleModelId
+  );
 
   return {
     ...cloned,
     models,
+    defaultChatModelId: defaultChatModelId ?? "",
+    defaultBubbleModelId: defaultBubbleModelId ?? "",
     openai: {
       model: resolvePrimaryModelId(models, "openai", cloned.openai.model),
     },
@@ -1686,22 +1795,6 @@ function resolvePrimaryModelId(
 
   const firstMatch = models.find((entry) => entry.provider === provider && entry.modelId);
   return firstMatch?.modelId || fallback;
-}
-
-function getPrimaryModelEntryId(
-  models: ChatModelCatalogEntry[],
-  provider: ChatProvider
-): string | null {
-  const enabledMatch = models.find(
-    (entry) => entry.provider === provider && entry.enabled
-  );
-
-  if (enabledMatch) {
-    return enabledMatch.id;
-  }
-
-  const firstMatch = models.find((entry) => entry.provider === provider);
-  return firstMatch?.id ?? null;
 }
 
 function ProvidersIcon(props: SVGProps<SVGSVGElement>) {

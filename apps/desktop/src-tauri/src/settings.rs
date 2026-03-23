@@ -42,6 +42,10 @@ pub struct ChatSettings {
     pub general: ChatGeneralSettings,
     #[serde(default = "default_chat_model_catalog")]
     pub models: Vec<ChatModelCatalogEntry>,
+    #[serde(default = "default_chat_default_model_id")]
+    pub default_chat_model_id: String,
+    #[serde(default = "default_bubble_default_model_id")]
+    pub default_bubble_model_id: String,
     #[serde(default)]
     pub openai: OpenAiSettings,
     #[serde(default)]
@@ -163,6 +167,12 @@ fn default_model_supports_thinking() -> bool {
 fn default_openai_model() -> String {
     "gpt-4.1".to_string()
 }
+fn default_chat_default_model_id() -> String {
+    "lmstudio-local".to_string()
+}
+fn default_bubble_default_model_id() -> String {
+    "lmstudio-local".to_string()
+}
 fn default_anthropic_model() -> String {
     "claude-sonnet-4-5".to_string()
 }
@@ -255,6 +265,8 @@ impl Default for ChatSettings {
             provider: default_chat_provider(),
             general: ChatGeneralSettings::default(),
             models: default_chat_model_catalog(),
+            default_chat_model_id: default_chat_default_model_id(),
+            default_bubble_model_id: default_bubble_default_model_id(),
             openai: OpenAiSettings::default(),
             anthropic: AnthropicSettings::default(),
             gemini: GeminiSettings::default(),

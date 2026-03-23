@@ -109,6 +109,7 @@ export function DocumentWorkspace({
           <>
             <DocumentPane
               documentId={activeTabId}
+              chatConfigVersion={chatConfigVersion}
               title={activeDocument!.label}
               content={contentByTabId[activeTabId!] ?? ""}
               onContentChange={onContentChange}

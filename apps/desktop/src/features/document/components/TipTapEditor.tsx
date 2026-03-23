@@ -18,6 +18,7 @@ import { Underline } from "@tiptap/extension-underline";
 import { common, createLowlight } from "lowlight";
 import { EditorBubbleMenu } from "./EditorBubbleMenu";
 import type { BubbleCommandHandler } from "./bubbleMenuContract";
+import type { ChatModelCatalogEntry } from "../../settings/settingsDefaults";
 
 type MermaidApi = typeof import("mermaid").default;
 const lowlight = createLowlight(common);
@@ -411,6 +412,7 @@ interface TipTapEditorProps {
   content?: string;
   onContentChange?: (content: string) => void;
   onEditorReady?: (editor: Editor) => void;
+  bubbleDefaultModel?: ChatModelCatalogEntry | null;
   onBubbleCommand?: BubbleCommandHandler;
   readOnly?: boolean;
   contentType?: "html" | "markdown";
@@ -422,6 +424,7 @@ export function TipTapEditor({
   content = "",
   onContentChange,
   onEditorReady,
+  bubbleDefaultModel = null,
   onBubbleCommand,
   readOnly = false,
   contentType = "html",
@@ -580,6 +583,7 @@ export function TipTapEditor({
         >
           <EditorBubbleMenu
             editor={editor}
+            defaultModel={bubbleDefaultModel}
             onBubbleCommand={onBubbleCommand}
           />
         </BubbleMenu>

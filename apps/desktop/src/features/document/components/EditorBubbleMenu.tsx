@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { type Editor, useEditorState } from "@tiptap/react";
 import { useTranslation } from "../../settings/i18n/useTranslation";
+import type { ChatModelCatalogEntry } from "../../settings/settingsDefaults";
 import type {
   BubbleCommandPayload,
   BubbleCommandHandler,
@@ -8,6 +9,7 @@ import type {
 
 interface EditorBubbleMenuProps {
   editor: Editor;
+  defaultModel?: ChatModelCatalogEntry | null;
   onBubbleCommand?: BubbleCommandHandler;
 }
 
@@ -81,7 +83,11 @@ const AI_PRESETS = [
  * Evolved contextual bubble menu over text selection.
  * Quick formatting actions, AI preset buttons (UX-only this cycle), and free instruction field.
  */
-export function EditorBubbleMenu({ editor, onBubbleCommand }: EditorBubbleMenuProps) {
+export function EditorBubbleMenu({
+  editor,
+  defaultModel = null,
+  onBubbleCommand,
+}: EditorBubbleMenuProps) {
   const { t } = useTranslation();
   const [instruction, setInstruction] = useState("");
   const [sendState, setSendState] = useState<"idle" | "sent">("idle");
@@ -112,6 +118,8 @@ export function EditorBubbleMenu({ editor, onBubbleCommand }: EditorBubbleMenuPr
       type: "custom",
       instruction: trimmed,
       selectedText,
+      modelId: defaultModel?.id ?? null,
+      modelName: defaultModel?.name ?? null,
     };
     onBubbleCommand?.(payload);
 
@@ -123,7 +131,7 @@ export function EditorBubbleMenu({ editor, onBubbleCommand }: EditorBubbleMenuPr
       setSendState("idle");
       editor.chain().focus().setTextSelection(editor.state.selection.to).run();
     }, 350);
-  }, [instruction, editor, getSelectedText, onBubbleCommand]);
+  }, [defaultModel, editor, instruction, getSelectedText, onBubbleCommand]);
 
   const handlePresetClick = useCallback((suggestedInstruction: string) => {
     setInstruction(suggestedInstruction);
@@ -213,6 +221,15 @@ export function EditorBubbleMenu({ editor, onBubbleCommand }: EditorBubbleMenuPr
         >
           {sendState === "sent" ? "✓" : t("bubble_send")}
         </button>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 rounded border border-[var(--app-border)] bg-[var(--app-bg)] px-2.5 py-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--app-text-muted)]/75">
+          {t("bubble_model_label")}
+        </span>
+        <span className="min-w-0 truncate text-[11px] text-[var(--app-text)]">
+          {defaultModel?.name ?? t("chat_no_models")}
+        </span>
       </div>
     </div>
   );
