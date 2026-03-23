@@ -20,6 +20,11 @@ use std::sync::Mutex;
 use tauri::Manager;
 
 #[tauri::command]
+fn show_app_window(window: tauri::Window) -> Result<(), String> {
+    window.show().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn close_main_window(window: tauri::Window) -> Result<(), String> {
     save_window_state(&window);
     window.destroy().map_err(|error| error.to_string())
@@ -60,9 +65,8 @@ pub fn run() {
                     }
                 }
 
-                // Keep initial window hidden in config, then show only after
-                // restored size/position are applied to avoid visible jumping.
-                let _ = window.show();
+                // Window is shown from the frontend after the correct theme is applied
+                // (see show_app_window command), to avoid a dark-flash on startup.
             }
 
             // Store the settings path for use in window event handler
@@ -85,6 +89,7 @@ pub fn run() {
         })
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            show_app_window,
             settings::load_settings,
             settings::save_settings,
             settings::get_app_data_directory,
@@ -152,4 +157,3 @@ fn save_window_state(window: &tauri::Window) {
 
     let _ = write_settings_to_disk(&settings_path, &settings);
 }
-

@@ -7,6 +7,26 @@ body,
   height: 100%;
 }
 
+html {
+  /* Hidden on startup; shown by AppShell after the correct theme is painted. */
+  opacity: 0;
+  transition: opacity 220ms ease;
+  background-color: #09090b;
+  color: #fafafa;
+  color-scheme: dark;
+}
+
+html.pw-ready {
+  opacity: 1;
+}
+
+/* Apply bg/color from the saved theme before React mounts (set by AppShell). */
+html[data-theme="light"] {
+  background-color: #f5f6f8;
+  color: #111827;
+  color-scheme: light;
+}
+
 body {
   margin: 0;
   overflow: hidden;

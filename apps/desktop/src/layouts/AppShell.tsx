@@ -11,8 +11,14 @@ import { ResizeHandle } from "../components/ResizeHandle";
 import { useWorkspaceLayout } from "../features/workspace/useWorkspaceLayout";
 import { useWorkspaceDocuments } from "../features/workspace/useWorkspaceDocuments";
 import { loadSettings, saveProjectRootPath } from "../features/settings/appSettings";
-import type { AppearanceSettings } from "../features/settings/settingsDefaults";
-import { DEFAULT_APPEARANCE } from "../features/settings/settingsDefaults";
+import type {
+  AppSettings,
+  AppearanceSettings,
+} from "../features/settings/settingsDefaults";
+import {
+  DEFAULT_APPEARANCE,
+  DEFAULT_SETTINGS,
+} from "../features/settings/settingsDefaults";
 import { I18nProvider } from "../features/settings/i18n/I18nContext";
 import { PreferencesModal } from "../features/settings/PreferencesModal";
 import { AISettingsModal } from "../features/chat/AISettingsModal";
@@ -86,27 +92,43 @@ export function AppShell() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [aiSettingsOpen, setAISettingsOpen] = useState(false);
   const [chatConfigVersion, setChatConfigVersion] = useState(0);
-  const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [pendingAppClose, setPendingAppClose] = useState(false);
   const dirtyTabCountRef = useRef(0);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     loadSettings()
-      .then((s) => {
+      .then((s: AppSettings) => {
+        if (!active) return;
+        const resolvedAppearance = s.appearance ?? DEFAULT_APPEARANCE;
         setProjectRootPath(s.projectRootPath ?? null);
-        setAppearance(s.appearance ?? DEFAULT_APPEARANCE);
+        setAppearance(resolvedAppearance);
+        try { localStorage.setItem("pw-theme", resolvedAppearance.theme); } catch { /* storage unavailable */ }
+        setSettingsLoaded(true);
       })
-      .finally(() => {
-        setIsBootstrapped(true);
+      .catch(() => {
+        if (!active) return;
+        setProjectRootPath(DEFAULT_SETTINGS.projectRootPath ?? null);
+        setAppearance(DEFAULT_SETTINGS.appearance ?? DEFAULT_APPEARANCE);
+        setSettingsLoaded(true);
       });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
+  // Show the window only after the correct theme is painted — eliminates the dark flash.
   useEffect(() => {
-    const interval = setInterval(() => {
-      loadSettings().then((s) => setProjectRootPath(s.projectRootPath ?? null));
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!settingsLoaded) return;
+    const raf = requestAnimationFrame(() => {
+      void invoke("show_app_window").catch(() => {});
+      document.documentElement.classList.add("pw-ready");
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [settingsLoaded]);
 
   const handleAppearanceSaved = useCallback((next: AppearanceSettings) => {
     setAppearance(next);
@@ -393,7 +415,7 @@ export function AppShell() {
   return (
     <I18nProvider locale={appearance.language}>
       <div
-        className={`app-shell flex h-screen w-screen flex-col bg-[var(--app-bg)] text-[var(--app-text)] transition-opacity duration-300 ${isBootstrapped ? "opacity-100" : "opacity-0"}`}
+        className="app-shell flex h-screen w-screen flex-col bg-[var(--app-bg)] text-[var(--app-text)]"
         data-theme={appearance.theme}
         data-font-preset={appearance.fontPreset}
       >

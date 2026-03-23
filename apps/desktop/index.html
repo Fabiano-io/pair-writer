@@ -5,6 +5,13 @@
     <!-- favicon will be added in a future step -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pair Writer</title>
+    <script>
+      // Apply the cached theme before React mounts to avoid a flash of wrong bg color.
+      try {
+        var t = localStorage.getItem("pw-theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (_) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
