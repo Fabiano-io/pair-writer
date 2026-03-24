@@ -14,8 +14,9 @@ import { streamChatMessage } from "./chatService";
 import { getApiKey } from "./chatCredentials";
 import { resolveDefaultChatModelId, resolvePreferredEnabledModelId } from "./chatModelDefaults";
 import { dispatchCanvasApply, type CanvasApplyPayload } from "../document/editorCommandEvents";
-import { CANVAS_SYSTEM_PROMPT } from "./canvasSystemPrompt";
+import { CANVAS_SURGICAL_PROMPT, CANVAS_CREATIVE_PROMPT } from "./canvasSystemPrompt";
 import { parseCanvasDiff } from "./canvasParser";
+import { classifyIntent } from "./canvasIntentClassifier";
 
 function generateId(): string {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -235,6 +236,13 @@ export function useChatConversation({
         return { endpointUrl: baseUrls[provider] ?? "", apiKey: k || undefined };
       };
 
+      // Classify canvas intent from the user command before the async chain
+      const isCanvasMode = draft.mode === "plan" && documentContent.trim().length > 0;
+      const intent = isCanvasMode ? classifyIntent(trimmed) : ("surgical" as const);
+      console.log("[Canvas] intent:", intent, "| comando:", trimmed);
+      const canvasBasePrompt =
+        intent === "creative" ? CANVAS_CREATIVE_PROMPT : CANVAS_SURGICAL_PROMPT;
+
       // Captured inside the .then() so .finally() can look up the finished message
       let capturedAssistantMsgId = "";
 
@@ -245,13 +253,11 @@ export function useChatConversation({
           // Build the messages array from the cache (already includes userMsg)
           const cachedMsgs = cacheRef.current[key]?.messages ?? [userMsg];
 
-          const isCanvasMode = draft.mode === "plan" && documentContent.trim().length > 0;
-
           const apiMessages = [
             {
               role: "system",
               content: isCanvasMode
-                ? buildCanvasSystemInstruction(documentContent, selectedEntry)
+                ? buildCanvasSystemInstruction(documentContent, selectedEntry, canvasBasePrompt)
                 : buildModeSystemInstruction(draft.mode, selectedEntry),
             },
             ...cachedMsgs.map((message) => ({
@@ -357,21 +363,46 @@ export function useChatConversation({
             );
             if (assistantMsg?.content?.trim()) {
               let canvasPayload: CanvasApplyPayload;
-              try {
-                const diff = parseCanvasDiff(assistantMsg.content.trim());
+              if (intent === "creative") {
+                const sanitized = assistantMsg.content.trim()
+                  .replace(/^---\n?/m, "")
+                  .replace(/\n?---$/m, "")
+                  .replace(/^```[\w]*\n?/m, "")
+                  .replace(/\n?```$/m, "")
+                  .trim();
+                console.log("[Canvas Creative] Retorno do modelo:", sanitized);
                 canvasPayload = {
                   documentId: sendingDocId,
-                  newContent: diff.correctedDocument,
-                  canvasDiff: diff,
-                  anchorStrategy: resolveAnchorStrategy(selectedEntry.provider),
-                };
-              } catch {
-                canvasPayload = {
-                  documentId: sendingDocId,
-                  newContent: assistantMsg.content.trim(),
-                  canvasDiff: null,
+                  newContent: sanitized,
+                  canvasDiff: {
+                    summary: "Reescrita criativa aplicada",
+                    correctedDocument: sanitized,
+                    changes: [],
+                    intent: "creative",
+                  },
                   anchorStrategy: "dmp-only",
                 };
+              } else {
+                try {
+                  const diff = parseCanvasDiff(assistantMsg.content.trim());
+                  diff.intent = "surgical";
+                  console.log("[Canvas Surgical] intent:", intent);
+                  console.log("[Canvas Surgical] changes:", JSON.stringify(diff.changes, null, 2));
+                  console.log("[Canvas Surgical] correctedDocument:", diff.correctedDocument);
+                  canvasPayload = {
+                    documentId: sendingDocId,
+                    newContent: diff.correctedDocument,
+                    canvasDiff: diff,
+                    anchorStrategy: resolveAnchorStrategy(selectedEntry.provider),
+                  };
+                } catch {
+                  canvasPayload = {
+                    documentId: sendingDocId,
+                    newContent: assistantMsg.content.trim(),
+                    canvasDiff: null,
+                    anchorStrategy: "dmp-only",
+                  };
+                }
               }
               dispatchCanvasApply(canvasPayload);
             }
@@ -450,7 +481,8 @@ function resolveAnchorStrategy(
 
 function buildCanvasSystemInstruction(
   documentContent: string,
-  selectedModel: ChatModelCatalogEntry
+  selectedModel: ChatModelCatalogEntry,
+  basePrompt: string = CANVAS_SURGICAL_PROMPT
 ): string {
   const docSection = [
     "",
@@ -462,7 +494,7 @@ function buildCanvasSystemInstruction(
 
   const capabilityNotes = buildCapabilityNotes(selectedModel);
 
-  return CANVAS_SYSTEM_PROMPT + docSection + (capabilityNotes ? "\n" + capabilityNotes : "");
+  return basePrompt + docSection + (capabilityNotes ? "\n" + capabilityNotes : "");
 }
 
 function buildApiMessageContent(

@@ -1,3 +1,5 @@
+import type { CanvasIntent } from "./canvasIntentClassifier";
+
 export interface CanvasChange {
   original: string;
   corrected: string;
@@ -13,4 +15,5 @@ export interface CanvasDiff {
   summary: string;
   correctedDocument: string;
   changes: CanvasChange[];
+  intent: CanvasIntent;
 }

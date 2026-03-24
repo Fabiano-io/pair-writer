@@ -783,11 +783,57 @@ interface ResolvedChange {
   corrected: string;
 }
 
+// Returns true if the char is part of a word (letter, digit, or accented char)
+function isWordChar(ch: string): boolean {
+  return /\w|[À-ú]/.test(ch);
+}
+
+// Returns true if textOffset is in the middle of a word in `text` —
+// i.e. both the preceding and current chars are word chars.
+function isMidWord(text: string, offset: number): boolean {
+  if (offset <= 0 || offset >= text.length) return false;
+  return isWordChar(text[offset - 1]) && isWordChar(text[offset]);
+}
+
+// Returns true if the range {from, to} crosses the boundary of a paragraph
+// node in the ProseMirror document. Such ranges would corrupt doc structure.
+function spansBlockBoundary(
+  editor: Editor,
+  from: number,
+  to: number
+): boolean {
+  if (from === to) return false;
+  const { doc } = editor.state;
+  let crossesBoundary = false;
+
+  doc.nodesBetween(from, to, (node) => {
+    if (node.isBlock && !node.isTextblock) {
+      crossesBoundary = true;
+      return false;
+    }
+    if (node.isTextblock) {
+      // se o range abrange mais de um textblock, há fronteira
+      const count = 0;
+      void count;
+    }
+  });
+
+  // Verifica se from e to estão em textblocks diferentes
+  const resolvedFrom = doc.resolve(from);
+  const resolvedTo   = doc.resolve(to);
+  if (resolvedFrom.node(1) !== resolvedTo.node(1)) {
+    crossesBoundary = true;
+  }
+
+  return crossesBoundary;
+}
+
 /** Runs a full diff-match-patch between the current editor plain text and
  *  `correctedDocument`, returning all changed spans as ProseMirror positions. */
 function resolveViaFullDiff(
   editor: Editor,
-  correctedDocument: string
+  correctedDocument: string,
+  strict: boolean = true
 ): ResolvedChange[] {
   const dmp = new DiffMatchPatch();
 
@@ -848,7 +894,20 @@ function resolveViaFullDiff(
     i++;
   }
 
-  return changes;
+  return strict
+    ? changes
+        .filter((c) => !spansBlockBoundary(editor, c.from, c.to))
+        .filter((c) => {
+          if (c.from === c.to) return true;
+          const mapping = buildOffsetMapping(editor);
+          const textFrom = mapping.indexOf(c.from);
+          if (textFrom === -1) return true;
+          const textTo = textFrom + (c.to - c.from);
+          return !isMidWord(originalText, textFrom) && !isMidWord(originalText, textTo);
+        })
+    : changes.filter((c) => !spansBlockBoundary(editor, c.from, c.to));
+  // no modo creative mantém só o guard de bloco — evita corrupção estrutural
+  // mas permite mudanças em qualquer fronteira de palavra
 }
 
 /** Resolves the ProseMirror position of a CanvasChange's `original` text using
@@ -945,6 +1004,80 @@ async function applyAnimatedChange(
     const tr = editor.state.tr.insertText(newText[k], at);
     if (markType) tr.addMark(at, at + 1, markType.create());
     editor.view.dispatch(tr);
+  }
+}
+
+/** Applies a large change using word-level diff so only the words that actually
+ *  changed are animated, rather than the entire span char by char. */
+async function applyWordLevelChange(
+  editor: Editor,
+  position: { from: number; to: number },
+  newText: string,
+  markType: MarkType | undefined
+): Promise<void> {
+  const oldText = editor.state.doc.textBetween(position.from, position.to);
+
+  // Word-level diff só é seguro dentro de um único parágrafo.
+  // Se o bloco atravessa parágrafos (contém \n), o textBetween
+  // inclui separadores que deslocam os op.textFrom — cai no
+  // applyAnimatedChange diretamente.
+  if (oldText.includes("\n") || newText.includes("\n")) {
+    await applyAnimatedChange(editor, position, newText);
+    return;
+  }
+
+  const wordOps = computeWordDiff(oldText, newText);
+
+  // Guard de similaridade: se mais de 65% do conteúdo mudou,
+  // o parágrafo foi essencialmente reescrito — word-level diff
+  // produziria fragmentos ilegíveis. Usa animação direta.
+  const equalChars = wordOps
+    .filter((op) => op.type === "equal")
+    .reduce((sum, op) => sum + op.oldText.length, 0);
+  const totalChars = Math.max(oldText.length, newText.length);
+  const similarityRatio = totalChars > 0 ? equalChars / totalChars : 0;
+
+  if (similarityRatio < 0.35) {
+    await applyAnimatedChange(editor, position, newText);
+    return;
+  }
+
+  // Process RIGHT-TO-LEFT so earlier edits don't shift later positions
+  const changing = wordOps
+    .filter((op) => op.type !== "equal")
+    .reverse();
+
+  for (const op of changing) {
+    const pmFrom = position.from + op.textFrom;
+    await applyAnimatedChange(
+      editor,
+      { from: pmFrom, to: pmFrom + op.oldText.length },
+      op.newText
+    );
+    await sleep(120);
+  }
+
+  void markType; // markType is applied inside applyAnimatedChange
+}
+
+// Threshold in chars: changes larger than this use word-level diff
+const WORD_DIFF_THRESHOLD = 60;
+
+/** Selects the animation strategy based on the size of the change. */
+async function applyChange(
+  editor: Editor,
+  item: { from: number; to: number; corrected: string },
+  markType: MarkType | undefined
+): Promise<void> {
+  const oldLength = item.to - item.from;
+  const newLength = item.corrected.length;
+  const isLargeChange =
+    oldLength > WORD_DIFF_THRESHOLD || newLength > WORD_DIFF_THRESHOLD;
+
+  if (isLargeChange) {
+    await applyWordLevelChange(editor, item, item.corrected, markType);
+  } else {
+    await applyAnimatedChange(editor, item, item.corrected);
   }
 }
 
@@ -1121,13 +1254,30 @@ export function TipTapEditor({
         if (eventDocId !== documentId) return;
         if (!newContent?.trim()) return;
 
-        // ── CAMINHO ESTRUTURADO (novo) ──────────────────────────────────────
-        if (canvasDiff && canvasDiff.changes.length > 0) {
+        // Conteúdo efetivo que o fluxo legado irá usar (pode ser sobrescrito pelo creative)
+        let effectiveContent = newContent;
+
+        // Modo creative: o modelo reescreveu livremente o documento.
+        // O pipeline legado diffParagraphs + computeWordDiff é mais
+        // confiável para reescritas completas — anima parágrafo a parágrafo.
+        if (canvasDiff && canvasDiff.intent === "creative") {
+          effectiveContent = canvasDiff.correctedDocument
+            .replace(/^---\n?/m, "")
+            .replace(/\n?---$/m, "")
+            .replace(/^```[\w]*\n?/m, "")
+            .replace(/\n?```$/m, "")
+            .trim();
+          // não faz return — cai no fluxo legado abaixo
+        }
+
+        // ── CAMINHO ESTRUTURADO surgical (DMP) ─────────────────────────────
+        if (canvasDiff && canvasDiff.correctedDocument && canvasDiff.intent !== "creative") {
           const resolved: ResolvedChange[] = [];
           const coveredRanges: { from: number; to: number }[] = [];
 
-          // ── Tier A: context anchoring primeiro ─────────────────────────
-          if (anchorStrategy === "anchoring") {
+          // Context anchoring só no modo surgical com Tier A
+          // (intent !== "creative" já garantido pelo outer if)
+          if (anchorStrategy === "anchoring" && canvasDiff.changes.length > 0) {
             for (const change of canvasDiff.changes) {
               const position = resolveChangePosition(editor, change);
               if (position) {
@@ -1137,31 +1287,35 @@ export function TipTapEditor({
             }
           }
 
-          // ── Todos os tiers: DMP cobre o que o anchoring não resolveu ───
-          if (canvasDiff.correctedDocument) {
-            const sanitizedDoc = canvasDiff.correctedDocument
-              .replace(/^---\n?/m, "")
-              .replace(/\n?---$/m, "")
-              .replace(/^```[\w]*\n?/m, "")
-              .replace(/\n?```$/m, "")
-              .trim();
+          // DMP sobre correctedDocument — cobre tudo no modo creative,
+          // e o que o anchoring não resolveu no modo surgical
+          const sanitizedDoc = canvasDiff.correctedDocument
+            .replace(/^---\n?/m, "")
+            .replace(/\n?---$/m, "")
+            .replace(/^```[\w]*\n?/m, "")
+            .replace(/\n?```$/m, "")
+            .trim();
 
-            const dmpChanges = resolveViaFullDiff(editor, sanitizedDoc);
-
-            for (const dmpChange of dmpChanges) {
-              const alreadyCovered = coveredRanges.some(
-                (r) => r.from < dmpChange.to && r.to > dmpChange.from
-              );
-              if (!alreadyCovered) {
-                resolved.push(dmpChange);
-              }
+          const dmpChanges = resolveViaFullDiff(
+            editor,
+            sanitizedDoc,
+            false  // DMP sempre sem guards de palavra — context anchoring
+                   // já fez a parte cirúrgica; guards filtravam demais
+          );
+          for (const dmpChange of dmpChanges) {
+            const alreadyCovered = coveredRanges.some(
+              (r) => r.from < dmpChange.to && r.to > dmpChange.from
+            );
+            if (!alreadyCovered) {
+              resolved.push(dmpChange);
             }
           }
 
           if (resolved.length > 0) {
             resolved.sort((a, b) => b.from - a.from);
+            const markType = editor.schema.marks["canvasHighlight"] as MarkType | undefined;
             for (const item of resolved) {
-              await applyAnimatedChange(editor, item, item.corrected);
+              await applyChange(editor, item, markType);
               await sleep(300);
             }
             return;
@@ -1170,7 +1324,8 @@ export function TipTapEditor({
         }
 
         // ── CAMINHO LEGADO (fallback) ───────────────────────────────────────
-        const stripped = stripMarkdownFence(newContent.trim());
+        // effectiveContent = sanitizedDoc para creative, ou newContent para surgical
+        const stripped = stripMarkdownFence(effectiveContent.trim());
         const oldContent = isMarkdownContent
           ? editor.getMarkdown()
           : editor.getHTML();
