@@ -54,6 +54,11 @@ const en = {
   prefs_language_pt: "Português",
   prefs_close: "Close",
   prefs_font_note: "Font preset applies to document area only.",
+  prefs_ui_scale: "Interface size",
+  prefs_ui_scale_compact: "Compact",
+  prefs_ui_scale_default: "Default",
+  prefs_ui_scale_comfortable: "Comfortable",
+  prefs_ui_scale_note: "Controls font size for sidebar, tabs, chat and menus.",
 
   // Status bar
   status_no_project: "No project",
@@ -185,6 +190,7 @@ const en = {
   chat_capability_vision: "Vision",
   chat_capability_tools: "Tools",
   chat_capability_think: "Think",
+  canvas_edit_applied: "Canvas edit applied to document",
 
   ai_settings_kicker: "Chat configuration",
   ai_settings_title: "AI Settings",
@@ -318,6 +324,11 @@ const pt: Record<StringKey, string> = {
   prefs_language_pt: "Português",
   prefs_close: "Fechar",
   prefs_font_note: "O preset de fonte aplica-se apenas à área do documento.",
+  prefs_ui_scale: "Tamanho da interface",
+  prefs_ui_scale_compact: "Compacto",
+  prefs_ui_scale_default: "Padrão",
+  prefs_ui_scale_comfortable: "Confortável",
+  prefs_ui_scale_note: "Controla o tamanho da fonte na barra lateral, abas, chat e menus.",
 
   status_no_project: "Sem projeto",
   status_no_document: "Sem documento",
@@ -443,6 +454,7 @@ const pt: Record<StringKey, string> = {
   chat_capability_vision: "Vision",
   chat_capability_tools: "Tools",
   chat_capability_think: "Think",
+  canvas_edit_applied: "Edição canvas aplicada ao documento",
 
   ai_settings_kicker: "Configuracao do chat",
   ai_settings_title: "Configuracoes de IA",

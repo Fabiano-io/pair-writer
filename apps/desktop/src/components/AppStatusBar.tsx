@@ -51,7 +51,7 @@ export function AppStatusBar({
 
   return (
     <div
-      className="flex shrink-0 items-center gap-4 border-t border-[var(--app-border)] bg-[var(--app-bg)] px-4 py-1.5 text-[10px] font-semibold text-[var(--app-text-muted)]"
+      className="flex shrink-0 items-center gap-4 border-t border-[var(--app-border)] bg-[var(--app-bg)] px-4 py-1.5 text-[length:var(--ui-fs-sm)] font-semibold text-[var(--app-text-muted)]"
       role="status"
       style={{ minHeight: 24 }}
     >

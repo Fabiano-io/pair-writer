@@ -183,7 +183,7 @@ export function WorkspaceTabs({
                 startY: event.clientY,
               };
             }}
-            className={`group relative flex items-center gap-2 rounded-t-lg px-4 py-2 text-sm transition-colors cursor-grab active:cursor-grabbing select-none ${
+            className={`group relative flex items-center gap-2 rounded-t-lg px-4 py-2 text-[length:var(--ui-fs)] transition-colors cursor-grab active:cursor-grabbing select-none ${
               isActive
                 ? "bg-[var(--app-surface)] text-[var(--app-text)] font-medium"
                 : "text-[var(--app-text-muted)] hover:bg-[var(--app-surface)]/50 hover:text-[var(--app-text)]/80"

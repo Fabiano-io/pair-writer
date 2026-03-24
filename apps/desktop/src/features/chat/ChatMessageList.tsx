@@ -96,7 +96,7 @@ export function ChatMessageList({ messages, isLoading, documentId }: ChatMessage
 
       {showDots && (
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium tracking-wide text-[var(--app-text-muted)] uppercase">
+          <span className="text-[length:var(--ui-fs-sm)] font-medium tracking-wide text-[var(--app-text-muted)] uppercase">
             {t("chat_assistant")}
           </span>
           <div className="rounded-md bg-[var(--app-surface-alt)]/30 px-3 py-2.5">

@@ -135,6 +135,7 @@ export function DocumentWorkspace({
                 <DocumentChatPane
                   documentId={activeTabId}
                   documentTitle={activeDocument!.label}
+                  documentContent={contentByTabId[activeTabId!] ?? ""}
                   width={chatWidth}
                   configVersion={chatConfigVersion}
                   onResize={onChatResize}

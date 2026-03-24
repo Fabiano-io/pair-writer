@@ -109,6 +109,137 @@ function getTreeItemDomId(path: string): string {
   return `explorer-tree-item-${encodedPath}`;
 }
 
+// ─── Inline SVG icons ────────────────────────────────────────────────────────
+
+function IconChevronRight() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+      <path d="M3.5 2.5l3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+
+function IconFile() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 1.5h5.5L11.5 5v7.5a.5.5 0 01-.5.5H3a.5.5 0 01-.5-.5v-11A.5.5 0 013 1.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M8.5 1.5V5H11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconFolder({ open }: { open?: boolean }) {
+  if (open) {
+    return (
+      <svg width="15" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <path d="M1.5 4a1 1 0 011-1h3.25l1.75 1.5H12a1 1 0 011 1v1H1.5V4z" stroke="currentColor" strokeWidth="1.15" strokeLinejoin="round" />
+        <path d="M1.5 7.5h11L11.2 11.3a1 1 0 01-.94.7H3.75a1 1 0 01-.94-.67L1.5 7.5z" stroke="currentColor" strokeWidth="1.15" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="15" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M1.5 4a1 1 0 011-1h3.25L7.5 5H12a1 1 0 011 1v5a1 1 0 01-1 1h-9a1 1 0 01-1-1V4z" stroke="currentColor" strokeWidth="1.15" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconRefreshSm() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M2.5 7a4.5 4.5 0 014.5-4.5 4.5 4.5 0 013.9 2.3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+      <path d="M11.5 7a4.5 4.5 0 01-8.4 2.2" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+      <path d="M10.5 3.5L12 5l-1.75.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.5 10.5L2 9l1.75-.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconExternalFolder() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M1.5 4.5a1 1 0 011-1H6l1.5 1.5H12a1 1 0 011 1V11a1 1 0 01-1 1H2.5a1 1 0 01-1-1V4.5z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+      <path d="M8.5 8.5H11m0 0V6m0 2.5L9 7" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconOpen() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M5.5 2.5H3a1 1 0 00-1 1v7a1 1 0 001 1h8a1 1 0 001-1V5.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.5 2.5H11.5V5.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 7L11.5 2.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconRename() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M9.5 2.5l2 2-6 6H3.5v-2l6-6z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2.5 12h9" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconCopy() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <rect x="5" y="5" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M2.5 9.5V3a.5.5 0 01.5-.5h6.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconPaste() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <rect x="2" y="3.5" width="7" height="9" rx="1" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M4.5 3.5V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V3.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M9 5.5h1.5a1 1 0 011 1V12a1 1 0 01-1 1H5.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M2.5 4h9M5.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4M5.5 6.5V10M8.5 6.5V10" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.5 4l.5 7.5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5L10.5 4" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconNewDoc() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 1.5h5.5L11.5 5v7.5a.5.5 0 01-.5.5H3a.5.5 0 01-.5-.5v-11A.5.5 0 013 1.5z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+      <path d="M8.5 1.5V5H11.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M5.5 9h3M7 7.5V10.5" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconNewFolder() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M1.5 4.5a1 1 0 011-1H6L7.5 5H12a1 1 0 011 1v5a1 1 0 01-1 1H2.5a1 1 0 01-1-1V4.5z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+      <path d="M7 7.5v3M5.5 9h3" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconChangeFolderSm() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M1.5 4.5a1 1 0 011-1H6L7.5 5H12a1 1 0 011 1v5a1 1 0 01-1 1H2.5a1 1 0 01-1-1V4.5z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+      <path d="M8 8.5l1.5-1.5 1.5 1.5M9.5 7v3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function ExplorerSidebar({
   width,
   activeDocumentId,
@@ -1059,19 +1190,19 @@ export function ExplorerSidebar({
                 treeNavRef.current?.focus();
                 void toggleExpand(entry.path);
               }}
-              className="w-4 shrink-0 rounded text-[10px] text-[var(--app-text-muted)] outline-none transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)] focus:outline-none focus-visible:outline-none"
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--app-text-muted)] outline-none transition-[color,transform] duration-[160ms] ease-[cubic-bezier(0.4,0,0.2,1)] hover:text-[var(--app-text)] focus:outline-none focus-visible:outline-none ${expanded ? "rotate-90" : "rotate-0"}`}
               aria-label={expanded ? "Collapse folder" : "Expand folder"}
               title={expanded ? "Collapse folder" : "Expand folder"}
               tabIndex={-1}
             >
-              {expanded ? "▾" : "▸"}
+              <IconChevronRight />
             </button>
           ) : (
             <span className="w-4 shrink-0" />
           )}
 
           {isRenaming ? (
-            <div className="my-0.5 flex-1 rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1">
+            <div className="my-px flex-1 rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1">
               <input
                 ref={renameInputRef}
                 type="text"
@@ -1094,7 +1225,7 @@ export function ExplorerSidebar({
                   }
                 }}
                 placeholder={t("explorer_rename_placeholder")}
-                className="w-full bg-transparent text-xs text-[var(--app-text)] outline-none"
+                className="w-full bg-transparent text-[length:var(--ui-fs)] text-[var(--app-text)] outline-none"
               />
               {renameError && (
                 <p className="mt-0.5 text-[10px] text-red-400/80">{renameError}</p>
@@ -1112,22 +1243,33 @@ export function ExplorerSidebar({
               onPointerDown={!entry.isDir ? (event) => handlePointerDownOnEntry(event, entry) : undefined}
               title={!supported ? t("explorer_unsupported") : undefined}
               tabIndex={-1}
-              className={`my-0.5 flex flex-1 items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-sm outline-none transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${
+              className={`my-px flex flex-1 items-center gap-2 rounded px-2 py-[5px] text-left text-[length:var(--ui-fs)] outline-none transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${
                 isSelected
-                  ? `bg-[var(--app-surface-alt)]/70 text-[var(--app-text)] ${isTreeFocused ? "ring-1 ring-[var(--app-border)]" : ""}`
+                  ? `bg-[var(--app-surface-alt)] text-[var(--app-text)] ${isTreeFocused ? "ring-1 ring-[var(--app-border)]" : ""}`
                   : isActiveDocument
-                    ? "bg-[var(--app-surface-alt)]/55 text-[var(--app-text)]"
+                    ? "bg-[var(--app-surface-alt)]/60 text-[var(--app-text)]"
                     : "text-[var(--app-text-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
-              } ${!supported ? "opacity-70" : ""}`}
+              } ${!supported ? "opacity-50" : ""}`}
             >
-              <span className="shrink-0 text-xs opacity-60">{entry.isDir ? "📁" : "📄"}</span>
+              <span className={`shrink-0 ${entry.isDir ? "text-[var(--app-text-muted)]" : "text-[var(--app-text-muted)]/70"}`}>
+                {entry.isDir ? <IconFolder open={expanded} /> : <IconFile />}
+              </span>
               <span className="truncate">{entry.name}</span>
             </button>
           )}
         </div>
-        {entry.isDir && expanded && children.length > 0 && (
-          <div role="group">
-            {children.map((child) => renderTreeNode(child, depth + 1))}
+        {entry.isDir && (
+          <div
+            role="group"
+            style={{
+              display: "grid",
+              gridTemplateRows: expanded ? "1fr" : "0fr",
+              transition: "grid-template-rows 200ms cubic-bezier(0.4,0,0.2,1)",
+            }}
+          >
+            <div style={{ overflow: "hidden" }}>
+              {children.map((child) => renderTreeNode(child, depth + 1))}
+            </div>
           </div>
         )}
       </div>
@@ -1207,11 +1349,10 @@ export function ExplorerSidebar({
       style={{ width }}
     >
       <div
-        className="flex items-center gap-2 border-b border-[var(--app-border)] px-4"
+        className="flex items-center border-b border-[var(--app-border)] px-3"
         style={{ minHeight: 32 }}
       >
-        <span className="text-base" aria-hidden>✦</span>
-        <span className="text-sm font-semibold tracking-wide text-[var(--app-text)]">
+        <span className="text-[length:var(--ui-fs-sm)] font-semibold tracking-[0.12em] uppercase text-[var(--app-text-muted)]">
           {t("explorer_title")}
         </span>
       </div>
@@ -1233,34 +1374,34 @@ export function ExplorerSidebar({
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between gap-2 border-b border-[var(--app-border)] px-3 py-2">
+            <div className="flex items-center justify-between gap-2 border-b border-[var(--app-border)] px-3 py-1.5">
               <span
                 data-drop-folder-path={projectRootPath}
                 onContextMenu={openContextMenuForRoot}
-                className={`truncate text-sm font-medium text-[var(--app-text)]/90 ${dropTargetPath === projectRootPath ? "rounded bg-[var(--app-surface-alt)]/80 px-1 ring-1 ring-[var(--app-border)]" : ""}`}
+                className={`truncate text-[length:var(--ui-fs)] font-medium text-[var(--app-text)]/80 ${dropTargetPath === projectRootPath ? "rounded bg-[var(--app-surface-alt)]/80 px-1 ring-1 ring-[var(--app-border)]" : ""}`}
                 title={projectRootPath}
               >
                 {getFolderName(projectRootPath)}
               </span>
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex shrink-0 items-center gap-0.5">
                 <button
                   type="button"
                   onClick={() => void refreshTree()}
                   disabled={isLoading}
-                  className="rounded px-1.5 py-0.5 text-xs text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)] disabled:opacity-50 disabled:hover:bg-transparent"
+                  className="flex h-6 w-6 items-center justify-center rounded text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)] disabled:opacity-40 disabled:hover:bg-transparent"
                   title={t("explorer_refresh")}
                   aria-label={t("explorer_refresh")}
                 >
-                  {t("explorer_refresh")}
+                  <IconRefreshSm />
                 </button>
                 <button
                   type="button"
                   onClick={selectProjectFolder}
-                  className="rounded px-1.5 py-0.5 text-xs text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
+                  className="flex h-6 w-6 items-center justify-center rounded text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
                   title={t("explorer_change_folder")}
                   aria-label={t("explorer_change_folder")}
                 >
-                  {t("explorer_change")}
+                  <IconChangeFolderSm />
                 </button>
               </div>
             </div>
@@ -1335,11 +1476,11 @@ export function ExplorerSidebar({
 
       {pointerDraggedEntryPath && dragPreviewPosition && (
         <div
-          className="pointer-events-none fixed z-[120] rounded-md border border-[var(--app-border)] bg-[var(--app-surface)]/95 px-2 py-1 shadow-lg backdrop-blur-sm"
+          className="pointer-events-none fixed z-[120] rounded-md border border-[var(--app-border)] bg-[var(--app-surface)]/95 px-2.5 py-1.5 shadow-lg backdrop-blur-sm"
           style={{ left: dragPreviewPosition.x + 12, top: dragPreviewPosition.y + 10 }}
         >
-          <div className="flex items-center gap-2 text-xs text-[var(--app-text)]">
-            <span className="opacity-70">📄</span>
+          <div className="flex items-center gap-2 text-[length:var(--ui-fs-sm)] text-[var(--app-text)]">
+            <span className="text-[var(--app-text-muted)]/70"><IconFile /></span>
             <span className="max-w-56 truncate">{dragPreviewLabel || pointerDraggedEntryLabelRef.current}</span>
           </div>
         </div>
@@ -1348,7 +1489,7 @@ export function ExplorerSidebar({
       {contextMenu && contextMenuPosition && (
         <div
           ref={contextMenuRef}
-          className="fixed z-[200] min-w-[220px] rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xl"
+          className="fixed z-[200] min-w-[210px] rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] py-1 shadow-2xl"
           style={{ left: contextMenuPosition.x, top: contextMenuPosition.y }}
           role="menu"
           onContextMenu={(event) => event.preventDefault()}
@@ -1359,48 +1500,53 @@ export function ExplorerSidebar({
                 type="button"
                 role="menuitem"
                 onClick={() => void handleRefreshFromContextMenu()}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)]"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)]"
               >
-                {t("explorer_context_refresh")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconRefreshSm /></span>
+                <span className="flex-1">{t("explorer_context_refresh")}</span>
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => void handleOpenInFileExplorerFromContextMenu()}
                 disabled={!canOpenInExplorerFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_open_in_explorer")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconExternalFolder /></span>
+                <span className="flex-1">{t("explorer_context_open_in_explorer")}</span>
               </button>
-              <div className="my-1 h-px bg-[var(--app-border)]" />
+              <div className="my-1 mx-2 h-px bg-[var(--app-border)]/60" />
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => void handlePasteFromContextMenu()}
                 disabled={!canPasteFromContext}
                 title={!canPasteFromContext ? t("explorer_context_paste_disabled") : undefined}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_paste")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconPaste /></span>
+                <span className="flex-1">{t("explorer_context_paste")}</span>
               </button>
-              <div className="my-1 h-px bg-[var(--app-border)]" />
+              <div className="my-1 mx-2 h-px bg-[var(--app-border)]/60" />
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleCreateDocumentFromContextMenu}
                 disabled={!canCreateDocumentFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_new_doc")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconNewDoc /></span>
+                <span className="flex-1">{t("explorer_new_doc")}</span>
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => void handleCreateFolderFromContextMenu()}
                 disabled={!canCreateFolderFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_new_folder")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconNewFolder /></span>
+                <span className="flex-1">{t("explorer_context_new_folder")}</span>
               </button>
             </>
           )}
@@ -1411,57 +1557,65 @@ export function ExplorerSidebar({
                 type="button"
                 role="menuitem"
                 onClick={() => void handleRefreshFromContextMenu()}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)]"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)]"
               >
-                {t("explorer_context_refresh")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconRefreshSm /></span>
+                <span className="flex-1">{t("explorer_context_refresh")}</span>
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => void handleOpenInFileExplorerFromContextMenu()}
                 disabled={!canOpenInExplorerFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_open_in_explorer")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconExternalFolder /></span>
+                <span className="flex-1">{t("explorer_context_open_in_explorer")}</span>
               </button>
-              <div className="my-1 h-px bg-[var(--app-border)]" />
+              <div className="my-1 mx-2 h-px bg-[var(--app-border)]/60" />
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleOpenFromContextMenu}
                 disabled={!canOpenFromContext}
                 title={!canOpenFromContext ? t("explorer_context_open_disabled") : undefined}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_open")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconOpen /></span>
+                <span className="flex-1">{t("explorer_context_open")}</span>
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleRenameFromContextMenu}
                 disabled={!canRenameFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_rename")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconRename /></span>
+                <span className="flex-1">{t("explorer_context_rename")}</span>
+                <span className="ml-4 text-[length:var(--ui-fs-sm)] text-[var(--app-text-muted)]/50">F2</span>
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleCopyFromContextMenu}
                 disabled={!canCopyFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_copy")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconCopy /></span>
+                <span className="flex-1">{t("explorer_context_copy")}</span>
               </button>
-              <div className="my-1 h-px bg-[var(--app-border)]" />
+              <div className="my-1 mx-2 h-px bg-[var(--app-border)]/60" />
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleRequestDeleteFromContextMenu}
                 disabled={!canDeleteFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-red-500 transition-colors hover:bg-red-500/8 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_delete")}
+                <span className="flex w-4 shrink-0 items-center justify-center"><IconTrash /></span>
+                <span className="flex-1">{t("explorer_context_delete")}</span>
+                <span className="ml-4 text-[length:var(--ui-fs-sm)] text-red-400/50">Del</span>
               </button>
             </>
           )}
@@ -1472,66 +1626,75 @@ export function ExplorerSidebar({
                 type="button"
                 role="menuitem"
                 onClick={() => void handleRefreshFromContextMenu()}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)]"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)]"
               >
-                {t("explorer_context_refresh")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconRefreshSm /></span>
+                <span className="flex-1">{t("explorer_context_refresh")}</span>
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => void handleOpenInFileExplorerFromContextMenu()}
                 disabled={!canOpenInExplorerFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_open_in_explorer")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconExternalFolder /></span>
+                <span className="flex-1">{t("explorer_context_open_in_explorer")}</span>
               </button>
-              <div className="my-1 h-px bg-[var(--app-border)]" />
+              <div className="my-1 mx-2 h-px bg-[var(--app-border)]/60" />
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => void handlePasteFromContextMenu()}
                 disabled={!canPasteFromContext}
                 title={!canPasteFromContext ? t("explorer_context_paste_disabled") : undefined}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_paste")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconPaste /></span>
+                <span className="flex-1">{t("explorer_context_paste")}</span>
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleRenameFromContextMenu}
                 disabled={!canRenameFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_rename")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconRename /></span>
+                <span className="flex-1">{t("explorer_context_rename")}</span>
+                <span className="ml-4 text-[length:var(--ui-fs-sm)] text-[var(--app-text-muted)]/50">F2</span>
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleRequestDeleteFromContextMenu}
                 disabled={!canDeleteFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-red-500 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-red-500 transition-colors hover:bg-red-500/8 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_delete")}
+                <span className="flex w-4 shrink-0 items-center justify-center"><IconTrash /></span>
+                <span className="flex-1">{t("explorer_context_delete")}</span>
+                <span className="ml-4 text-[length:var(--ui-fs-sm)] text-red-400/50">Del</span>
               </button>
-              <div className="my-1 h-px bg-[var(--app-border)]" />
+              <div className="my-1 mx-2 h-px bg-[var(--app-border)]/60" />
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleCreateDocumentFromContextMenu}
                 disabled={!canCreateDocumentFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_new_doc")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconNewDoc /></span>
+                <span className="flex-1">{t("explorer_new_doc")}</span>
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => void handleCreateFolderFromContextMenu()}
                 disabled={!canCreateFolderFromContext}
-                className="flex w-full items-center justify-start rounded-md px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left text-[length:var(--ui-fs)] text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
               >
-                {t("explorer_context_new_folder")}
+                <span className="flex w-4 shrink-0 items-center justify-center text-[var(--app-text-muted)]"><IconNewFolder /></span>
+                <span className="flex-1">{t("explorer_context_new_folder")}</span>
               </button>
             </>
           )}

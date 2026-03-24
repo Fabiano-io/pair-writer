@@ -17,6 +17,12 @@ export interface ChatMessage {
   thinkingContent?: string;
   attachments?: ChatAttachment[];
   mode?: ChatMode;
+  /**
+   * "canvas_edit" marks an assistant message whose content is the full updated
+   * document returned by Canvas mode.  The bubble renders a compact summary
+   * instead of the full markdown once streaming is complete.
+   */
+  contentKind?: "canvas_edit";
   timestamp: number;
 }
 

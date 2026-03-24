@@ -8,11 +8,14 @@ import type {
   DocumentChatPersistedState,
 } from "./chatTypes";
 import { DEFAULT_DOCUMENT_CHAT_STATE } from "./chatTypes";
-import type { ChatSettings, ChatModelCatalogEntry } from "../settings/settingsDefaults";
+import type { ChatSettings, ChatModelCatalogEntry, ChatProvider } from "../settings/settingsDefaults";
 import { loadChatSettings } from "./chatSettings";
 import { streamChatMessage } from "./chatService";
 import { getApiKey } from "./chatCredentials";
 import { resolveDefaultChatModelId, resolvePreferredEnabledModelId } from "./chatModelDefaults";
+import { dispatchCanvasApply, type CanvasApplyPayload } from "../document/editorCommandEvents";
+import { CANVAS_SYSTEM_PROMPT } from "./canvasSystemPrompt";
+import { parseCanvasDiff } from "./canvasParser";
 
 function generateId(): string {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -28,6 +31,9 @@ function docKey(documentId: string | null): string {
 interface UseChatConversationOptions {
   configVersion: number;
   documentId: string | null;
+  /** Current document content (markdown).  Provided when Canvas mode is active
+   *  so that the system prompt can include the full document for editing. */
+  documentContent?: string;
 }
 
 interface UseChatConversationReturn {
@@ -57,6 +63,7 @@ interface UseChatConversationReturn {
 export function useChatConversation({
   configVersion,
   documentId,
+  documentContent = "",
 }: UseChatConversationOptions): UseChatConversationReturn {
   const [docState, setDocState] = useState<DocumentChatPersistedState>(DEFAULT_DOCUMENT_CHAT_STATE);
   const [isLoading, setIsLoading] = useState(false);
@@ -228,6 +235,9 @@ export function useChatConversation({
         return { endpointUrl: baseUrls[provider] ?? "", apiKey: k || undefined };
       };
 
+      // Captured inside the .then() so .finally() can look up the finished message
+      let capturedAssistantMsgId = "";
+
       resolveEndpointAndKey()
         .then(({ endpointUrl, apiKey }) => {
           if (reqId !== requestIdsByDocRef.current[key]) return;
@@ -235,10 +245,14 @@ export function useChatConversation({
           // Build the messages array from the cache (already includes userMsg)
           const cachedMsgs = cacheRef.current[key]?.messages ?? [userMsg];
 
+          const isCanvasMode = draft.mode === "plan" && documentContent.trim().length > 0;
+
           const apiMessages = [
             {
               role: "system",
-              content: buildModeSystemInstruction(draft.mode, selectedEntry),
+              content: isCanvasMode
+                ? buildCanvasSystemInstruction(documentContent, selectedEntry)
+                : buildModeSystemInstruction(draft.mode, selectedEntry),
             },
             ...cachedMsgs.map((message) => ({
               role: message.role,
@@ -251,6 +265,8 @@ export function useChatConversation({
 
           // ID for the assistant message we will stream into
           const assistantMsgId = generateId();
+          // Capture the ID so the .finally() handler can find the final message
+          capturedAssistantMsgId = assistantMsgId;
           let firstChunk = true;
 
           const applyDelta = (field: "content" | "thinkingContent", delta: string) => {
@@ -267,6 +283,7 @@ export function useChatConversation({
                 id: assistantMsgId,
                 role: "assistant",
                 content: delta,
+                contentKind: isCanvasMode ? "canvas_edit" : undefined,
                 timestamp: Date.now(),
               };
               next = { ...prev, messages: [...prev.messages, assistantMsg] };
@@ -325,9 +342,43 @@ export function useChatConversation({
           if (documentIdRef.current === sendingDocId) {
             setIsLoading(false);
           }
+
+          // Canvas mode: dispatch the finished response to the editor for
+          // diff-based application with animated highlight marks.
+          if (
+            draft.mode === "plan" &&
+            sendingDocId &&
+            capturedAssistantMsgId &&
+            documentContent.trim().length > 0
+          ) {
+            const finalMsgs = cacheRef.current[key]?.messages ?? [];
+            const assistantMsg = finalMsgs.find(
+              (m) => m.id === capturedAssistantMsgId
+            );
+            if (assistantMsg?.content?.trim()) {
+              let canvasPayload: CanvasApplyPayload;
+              try {
+                const diff = parseCanvasDiff(assistantMsg.content.trim());
+                canvasPayload = {
+                  documentId: sendingDocId,
+                  newContent: diff.correctedDocument,
+                  canvasDiff: diff,
+                  anchorStrategy: resolveAnchorStrategy(selectedEntry.provider),
+                };
+              } catch {
+                canvasPayload = {
+                  documentId: sendingDocId,
+                  newContent: assistantMsg.content.trim(),
+                  canvasDiff: null,
+                  anchorStrategy: "dmp-only",
+                };
+              }
+              dispatchCanvasApply(canvasPayload);
+            }
+          }
         });
     },
-    [isLoading, chatSettings, docState.selectedModelId, enabledModels]
+    [isLoading, chatSettings, docState.selectedModelId, enabledModels, documentContent]
   );
 
   const clearConversation = useCallback(() => {
@@ -360,17 +411,21 @@ export function useChatConversation({
   };
 }
 
-function buildModeSystemInstruction(
-  mode: ChatDraftMessage["mode"],
-  selectedModel: ChatModelCatalogEntry
-): string {
-  const capabilityNotes = [
+function buildCapabilityNotes(selectedModel: ChatModelCatalogEntry): string {
+  return [
     selectedModel.supportsThinking ? "thinking enabled" : null,
     selectedModel.supportsVision ? "vision enabled" : null,
     selectedModel.supportsTools ? "tools enabled" : null,
   ]
     .filter(Boolean)
     .join(", ");
+}
+
+function buildModeSystemInstruction(
+  mode: ChatDraftMessage["mode"],
+  selectedModel: ChatModelCatalogEntry
+): string {
+  const capabilityNotes = buildCapabilityNotes(selectedModel);
 
   const baseInstruction =
     mode === "agent"
@@ -382,6 +437,32 @@ function buildModeSystemInstruction(
   return capabilityNotes
     ? `${baseInstruction} Selected model capabilities: ${capabilityNotes}.`
     : baseInstruction;
+}
+
+function resolveAnchorStrategy(
+  provider: ChatProvider
+): "anchoring" | "dmp-only" {
+  // Tier A: models that follow the JSON contract with high fidelity
+  // — they return context.before/after with the ORIGINAL document text
+  const tierA: ChatProvider[] = ["anthropic", "openai", "gemini"];
+  return tierA.includes(provider) ? "anchoring" : "dmp-only";
+}
+
+function buildCanvasSystemInstruction(
+  documentContent: string,
+  selectedModel: ChatModelCatalogEntry
+): string {
+  const docSection = [
+    "",
+    "## DOCUMENTO ATUAL",
+    "---",
+    documentContent,
+    "---",
+  ].join("\n");
+
+  const capabilityNotes = buildCapabilityNotes(selectedModel);
+
+  return CANVAS_SYSTEM_PROMPT + docSection + (capabilityNotes ? "\n" + capabilityNotes : "");
 }
 
 function buildApiMessageContent(

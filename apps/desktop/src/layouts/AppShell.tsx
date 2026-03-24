@@ -418,6 +418,7 @@ export function AppShell() {
         className="app-shell flex h-screen w-screen flex-col bg-[var(--app-bg)] text-[var(--app-text)]"
         data-theme={appearance.theme}
         data-font-preset={appearance.fontPreset}
+        data-ui-scale={appearance.uiScale}
       >
         <AppMenuBar
           hasActiveTab={workspace.hasActiveTab}

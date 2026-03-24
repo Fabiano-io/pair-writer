@@ -262,7 +262,7 @@ export function ChatModelDropdown({
 
   if (models.length === 0) {
     return (
-      <span className="truncate text-[11px] text-[var(--app-text-muted)]">
+      <span className="truncate text-[length:var(--ui-fs-sm)] text-[var(--app-text-muted)]">
         {t("chat_no_models")}
       </span>
     );
@@ -281,7 +281,7 @@ export function ChatModelDropdown({
       <button
         ref={triggerRef}
         type="button"
-        className="flex min-w-[210px] items-center gap-2.5 rounded-[8px] border px-3 py-2 text-[13px] font-semibold tracking-[-0.01em] transition-colors outline-none"
+        className="flex min-w-[210px] items-center gap-2.5 rounded-[8px] border px-3 py-2 text-[length:var(--ui-fs)] font-semibold tracking-[-0.01em] transition-colors outline-none"
         style={triggerStyle}
         onClick={() => (isOpen ? setIsOpen(false) : openDropdown())}
         onKeyDown={handleTriggerKeyDown}
@@ -326,7 +326,7 @@ export function ChatModelDropdown({
               {groupedModels.map((group, groupIndex) => (
                 <div key={group.provider} className={groupIndex === 0 ? "pt-1" : "pt-3"}>
                   <p
-                    className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                    className="px-3 pb-2 text-[length:var(--ui-fs-sm)] font-semibold uppercase tracking-[0.18em]"
                     style={{ color: palette.sectionLabelColor }}
                   >
                     {PROVIDER_LABELS[group.provider]}
@@ -364,13 +364,13 @@ export function ChatModelDropdown({
                           <ModelGlyphIcon className="mt-[3px] h-[17px] w-[17px] shrink-0 text-[var(--app-text-muted)]/72" />
                           <span className="min-w-0 flex-1">
                             <span
-                              className="block truncate text-[15px] font-semibold leading-[1.15] tracking-[-0.02em]"
+                              className="block truncate text-[length:var(--ui-fs)] font-semibold leading-[1.15] tracking-[-0.02em]"
                               style={{ color: palette.titleColor }}
                             >
                               {model.name}
                             </span>
                             <span
-                              className="block truncate pt-1 text-[12px] leading-[1.2]"
+                              className="block truncate pt-1 text-[length:var(--ui-fs-sm)] leading-[1.2]"
                               style={{ color: palette.descriptionColor }}
                             >
                               {description}

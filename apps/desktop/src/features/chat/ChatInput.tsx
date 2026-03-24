@@ -228,7 +228,7 @@ export function ChatInput({
             onKeyDown={handleKeyDown}
             placeholder={t("chat_placeholder_compose")}
             rows={1}
-            className="min-h-[52px] w-full resize-none overflow-y-auto bg-transparent text-[14px] leading-relaxed text-[var(--app-text)] placeholder:text-[var(--app-text-muted)]/45 outline-none"
+            className="min-h-[52px] w-full resize-none overflow-y-auto bg-transparent text-[length:var(--ui-fs)] leading-relaxed text-[var(--app-text)] placeholder:text-[var(--app-text-muted)]/45 outline-none"
             style={{ maxHeight: `${MAX_TEXTAREA_HEIGHT}px` }}
           />
         </div>
@@ -294,7 +294,7 @@ export function ChatInput({
 
           {/* Shortcut hint + Send */}
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-medium tracking-tight text-[var(--app-text-muted)]/50">
+            <span className="text-[length:var(--ui-fs-sm)] font-medium tracking-tight text-[var(--app-text-muted)]/50">
               ↵ ENTER
             </span>
             <button
@@ -302,7 +302,7 @@ export function ChatInput({
               onClick={handleSend}
               onMouseDown={(e) => e.preventDefault()}
               disabled={!canSend}
-              className="flex items-center gap-1.5 rounded-[8px] bg-[var(--app-surface-alt)] px-4 py-1.5 text-[12px] font-semibold text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:opacity-35"
+              className="flex items-center gap-1.5 rounded-[8px] bg-[var(--app-surface-alt)] px-4 py-1.5 text-[length:var(--ui-fs-sm)] font-semibold text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover-bg)] disabled:opacity-35"
               title={t("chat_send")}
             >
               <span>{t("chat_send")}</span>
@@ -349,7 +349,7 @@ function ComposerViewButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-[8px] px-5 py-1.5 text-[12px] font-semibold transition-colors ${
+      className={`rounded-[8px] px-5 py-1.5 text-[length:var(--ui-fs-sm)] font-semibold transition-colors ${
         active
           ? "bg-[var(--app-surface-alt)] text-[var(--app-text)]"
           : "text-[var(--app-text-muted)] hover:text-[var(--app-text)]"

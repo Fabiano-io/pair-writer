@@ -271,7 +271,7 @@ export function AppMenuBar({
           <div key={menu.key} className="relative">
             <button
               type="button"
-              className={`px-2.5 py-1 text-xs transition-colors rounded ${
+              className={`px-2.5 py-1 text-[length:var(--ui-fs-sm)] transition-colors rounded ${
                 openMenu === menu.key
                   ? "bg-[var(--app-surface-alt)] text-[var(--app-text)]"
                   : "text-[var(--app-text-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
@@ -294,7 +294,7 @@ export function AppMenuBar({
                     type="button"
                     disabled={item.disabled}
                     onClick={item.action}
-                    className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition-colors ${
+                    className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-[length:var(--ui-fs-sm)] transition-colors ${
                       item.disabled
                         ? "cursor-default text-[var(--app-text-muted)]/60"
                         : "text-[var(--app-text)]/80 hover:bg-[var(--app-surface-alt)] hover:text-[var(--app-text)]"
@@ -302,7 +302,7 @@ export function AppMenuBar({
                   >
                     <span>{t(item.labelKey as never)}</span>
                     {item.shortcut && (
-                      <span className="ml-4 text-[10px] text-[var(--app-text-muted)]/70">
+                      <span className="ml-4 text-[length:var(--ui-fs-sm)] text-[var(--app-text-muted)]/70">
                         {item.shortcut}
                       </span>
                     )}

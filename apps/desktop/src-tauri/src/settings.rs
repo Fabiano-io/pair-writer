@@ -31,6 +31,8 @@ pub struct AppearanceSettings {
     pub font_preset: String,
     #[serde(default = "default_language")]
     pub language: String,
+    #[serde(default = "default_ui_scale")]
+    pub ui_scale: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -139,6 +141,9 @@ fn default_font_preset() -> String {
 }
 fn default_language() -> String {
     "en".to_string()
+}
+fn default_ui_scale() -> String {
+    "comfortable".to_string()
 }
 fn default_chat_provider() -> String {
     "lmStudio".to_string()
@@ -255,6 +260,7 @@ impl Default for AppearanceSettings {
             theme: default_theme(),
             font_preset: default_font_preset(),
             language: default_language(),
+            ui_scale: default_ui_scale(),
         }
     }
 }

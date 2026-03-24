@@ -15,6 +15,7 @@ export interface AppearanceSettings {
   theme: "dark" | "light" | "dark-blue" | "dark-graphite";
   fontPreset: "default" | "reading" | "editorial";
   language: "en" | "pt";
+  uiScale: "compact" | "default" | "comfortable";
 }
 
 export type ChatProvider =
@@ -91,6 +92,7 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   theme: "dark",
   fontPreset: "default",
   language: "en",
+  uiScale: "comfortable",
 };
 
 export const DEFAULT_CHAT_GENERAL_SETTINGS: ChatGeneralSettings = {

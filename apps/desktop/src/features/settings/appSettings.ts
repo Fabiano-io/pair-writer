@@ -63,10 +63,15 @@ function normalizeAppearance(a?: AppearanceSettings | null): AppearanceSettings 
       ? a.fontPreset
       : "default";
   const validLanguage = a.language === "pt" ? "pt" : "en";
+  const validUiScale =
+    a.uiScale === "compact" || a.uiScale === "comfortable"
+      ? a.uiScale
+      : "default";
   return {
     theme: validTheme,
     fontPreset: validFontPreset,
     language: validLanguage,
+    uiScale: validUiScale,
   };
 }
 

@@ -7,6 +7,7 @@ import { useTranslation } from "../settings/i18n/useTranslation";
 interface DocumentChatPaneProps {
   documentId: string | null;
   documentTitle: string;
+  documentContent: string;
   width: number;
   configVersion: number;
   onResize: (delta: number) => void;
@@ -17,6 +18,7 @@ interface DocumentChatPaneProps {
 export function DocumentChatPane({
   documentId,
   documentTitle,
+  documentContent,
   width,
   configVersion,
   onResize,
@@ -70,7 +72,7 @@ export function DocumentChatPane({
     sendMessage,
     clearConversation,
     dismissError,
-  } = useChatConversation({ configVersion, documentId });
+  } = useChatConversation({ configVersion, documentId, documentContent });
 
   return (
     <aside
@@ -90,14 +92,14 @@ export function DocumentChatPane({
       {/* Header */}
       <div className="border-b border-[var(--app-border)] px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] text-[11px] font-medium text-[var(--app-text-muted)]">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] text-[length:var(--ui-fs-sm)] font-medium text-[var(--app-text-muted)]">
             C
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[13px] font-medium text-[var(--app-text)]">
+            <h2 className="truncate text-[length:var(--ui-fs)] font-medium text-[var(--app-text)]">
               {t("chat_title")}
             </h2>
-            <p className="truncate text-[11px] text-[var(--app-text-muted)]">
+            <p className="truncate text-[length:var(--ui-fs-sm)] text-[var(--app-text-muted)]">
               {documentTitle}
               {selectedModel ? ` · ${selectedModel.name}` : ""}
             </p>
